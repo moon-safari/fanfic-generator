@@ -90,7 +90,7 @@ Replaces free-text tone input with **preset pill/button options**.
 **Multi-select, max 2.** Fanfic tones naturally come in pairs (e.g., Angst + Slow Burn).
 
 Options (12 tones):
-| Tone | Description (shown on hover/tap) |
+| Tone | Subtitle |
 |------|----------------------------------|
 | Fluff | Light, sweet, feel-good |
 | Angst | Emotional pain and suffering |
