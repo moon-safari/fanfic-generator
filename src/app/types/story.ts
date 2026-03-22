@@ -1,13 +1,17 @@
+export type RelationshipType = "gen" | "mm" | "fm" | "ff" | "multi" | "other";
+export type Rating = "general" | "teen" | "mature" | "explicit";
+
 export interface Story {
   id: string;
   title: string;
   chapters: string[];
   fandom: string;
   customFandom?: string;
-  characters: string;
-  setting: string;
-  plotTheme: string;
-  tone: string;
+  characters: string[];
+  relationshipType: RelationshipType;
+  rating: Rating;
+  setting?: string;
+  tone: string[];
   tropes: string[];
   createdAt: string;
   updatedAt: string;
@@ -17,10 +21,11 @@ export interface Story {
 export interface StoryFormData {
   fandom: string;
   customFandom?: string;
-  characters: string;
-  setting: string;
-  plotTheme: string;
-  tone: string;
+  characters: string[];
+  relationshipType: RelationshipType;
+  rating: Rating;
+  setting?: string;
+  tone: string[];
   tropes: string[];
 }
 
