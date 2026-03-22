@@ -54,6 +54,7 @@ Replaces the free-text "Characters" field.
 - Each dropdown includes a **"Custom..."** option at the bottom — selecting it reveals a text input
 - For **Custom** or **Original Story** fandoms: all 4 fields are freeform text (no dropdown)
 - Labels: "Character 1 (required)", "Character 2 (required)", "Character 3 (optional)", "Character 4 (optional)"
+- **Fandom switch behavior:** Changing the selected fandom must clear all character selections and custom text inputs
 
 ### 3. Relationship Type (new component: `RelationshipSelector.tsx`)
 
@@ -171,8 +172,29 @@ Categorized tabs replacing flat list. **Max 6 selections** across all categories
 
 ### 10. Type Changes
 
+**Note:** Existing `category: "films"` values in fandoms.ts must be migrated to `"films-tv"`.
+
 ```typescript
-// Updated StoryFormData
+type FandomCategoryId = 'books' | 'films-tv' | 'anime' | 'games' | 'cartoons' | 'web-other';
+
+interface FandomCategory {
+  id: FandomCategoryId;
+  label: string;  // Display name, e.g., "Films & TV"
+}
+
+// Updated Fandom type
+interface Fandom {
+  id: string;
+  name: string;
+  category: FandomCategoryId;
+  canonRules: string;
+  locations: string;
+  era?: string;
+  characters: string[];        // NEW: 10-15 per fandom
+  settingPlaceholder: string;  // NEW: fandom-specific placeholder
+}
+
+// Updated StoryFormData (submitted to API)
 interface StoryFormData {
   fandom: string;
   customFandom?: string;
@@ -184,16 +206,30 @@ interface StoryFormData {
   tropes: string[];
 }
 
-// Updated Fandom type
-interface Fandom {
+// Updated Story type (persisted in localStorage)
+interface Story {
   id: string;
-  name: string;
-  category: 'books' | 'films-tv' | 'anime' | 'games' | 'cartoons' | 'web-other';
-  canonRules: string;
-  locations: string;
-  era?: string;
-  characters: string[];        // NEW: 10-15 per fandom
-  settingPlaceholder: string;  // NEW: fandom-specific placeholder
+  title: string;
+  chapters: string[];
+  fandom: string;
+  customFandom?: string;
+  characters: string[];        // Changed from string to string[]
+  relationshipType: 'gen' | 'mm' | 'fm' | 'ff' | 'multi' | 'other';  // NEW
+  rating: 'general' | 'teen' | 'mature' | 'explicit';                 // NEW
+  setting?: string;            // Now optional
+  tone: string[];              // Changed from string to string[]
+  tropes: string[];
+  createdAt: string;
+  updatedAt: string;
+  wordCount: number;
+  // plotTheme: REMOVED
+}
+
+// Trope data structure
+interface TropeCategory {
+  id: string;        // e.g., "romance", "au", "plot", "dynamics"
+  label: string;     // Display name
+  tropes: string[];
 }
 ```
 
@@ -214,27 +250,43 @@ Both `buildChapter1Prompt` and `buildContinuationPrompt` updated to include:
 
 ### 12. API Route Changes
 
-- `generate-story/route.ts`: Update validation for new required fields (characters array length >= 2, relationshipType, rating). Setting becomes optional. Theme removed.
-- `continue-chapter/route.ts`: No structural changes needed — it receives the full Story object which will contain the new fields.
+- `generate-story/route.ts`: Update validation for new required fields (characters array length >= 2, relationshipType, rating). Setting becomes optional. plotTheme removed.
+- `continue-chapter/route.ts`: Update validation for new Story shape. `buildContinuationPrompt` needs the same rating, relationship type, and character array handling as `buildChapter1Prompt` (Section 11). This is a substantial update — all field references change type or are removed.
 
 ### 13. Storage & Library Updates
 
-- `storage.ts`: No changes needed (stores whatever Story object shape is passed)
+- `storage.ts`: Update `exportStoryToText` — it currently references `story.characters` (string), `story.plotTheme` (removed), `story.tone` (string), and `story.setting` (required). All change shape. Also add `rating` and `relationshipType` to the export.
 - `Library.tsx`: Update metadata display to show rating, relationship type alongside fandom/tropes
 - `StoryViewer.tsx`: No changes needed
 
-### 14. FandomSelector Updates
+### 14. Backward Compatibility (localStorage migration)
+
+Existing stories saved under the old `Story` shape will break with the new code. Add a migration function in `storage.ts`:
+- `getStories()` normalizes old data on read:
+  - `characters: string` → wrap in array: `[characters]`
+  - `tone: string` → wrap in array: `[tone]`
+  - `plotTheme` → ignore (removed)
+  - Missing `relationshipType` → default to `"gen"`
+  - Missing `rating` → default to `"mature"`
+  - Missing `setting` → leave as `undefined`
+
+### 15. FandomSelector Updates
 
 - Add 2 new categories to the button grid: "Cartoons & Animation", "Web Series & Other"
-- Scrollable within each category for mobile (horizontal scroll or collapsible)
-- With ~200 fandoms, add a **search/filter text input** at the top of the fandom selector to quickly find a fandom by name
+- With ~200 fandoms, add a **search/filter text input** at the top of the fandom selector
+- **Mobile interaction pattern:** Categories collapsed by default (accordion). Search filters across all categories and shows only matching fandoms. Max-height container with vertical scroll when expanded.
+
+### 16. Tone Description Delivery
+
+Tone descriptions ("Light, sweet, feel-good" etc.) shown as **subtitle text below each pill** rather than hover/tooltip. This works on both desktop and mobile without requiring hover or long-press.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
 | `src/app/lib/fandoms.ts` | Expand to ~200+ fandoms with characters + settingPlaceholder |
-| `src/app/types/index.ts` | Update StoryFormData, Fandom, Story interfaces |
+| `src/app/types/story.ts` | Update StoryFormData, Story interfaces |
+| `src/app/types/fandom.ts` | Update Fandom, FandomCategory, add TropeCategory |
 | `src/app/components/CreateStoryTab.tsx` | New form layout, remove theme, add new fields |
 | `src/app/components/FandomSelector.tsx` | 6 categories, search input, ~200 fandoms |
 | `src/app/components/CharacterSelector.tsx` | **NEW** — 4 dropdowns with custom option |
@@ -244,7 +296,8 @@ Both `buildChapter1Prompt` and `buildContinuationPrompt` updated to include:
 | `src/app/components/TropeSelector.tsx` | Categorized tabs, expanded to ~40 tropes |
 | `src/app/lib/prompts.ts` | Inject rating, relationship, structured characters |
 | `src/app/api/generate-story/route.ts` | Update validation for new fields |
-| `src/app/api/continue-chapter/route.ts` | Minor updates for new Story shape |
+| `src/app/api/continue-chapter/route.ts` | Substantial updates: new Story shape, prompt changes |
+| `src/app/lib/storage.ts` | Update `exportStoryToText`, add localStorage migration |
 | `src/app/components/Library.tsx` | Show rating + relationship type in cards |
 
 ## Out of Scope
