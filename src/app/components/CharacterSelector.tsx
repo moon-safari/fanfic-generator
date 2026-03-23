@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getFandomById } from "../lib/fandoms";
 
 interface CharacterSelectorProps {
@@ -10,26 +10,13 @@ interface CharacterSelectorProps {
 }
 
 export default function CharacterSelector({ fandom, characters, onChange }: CharacterSelectorProps) {
-  const [customInputs, setCustomInputs] = useState<Record<number, boolean>>({});
-
-  // Reset custom input toggles when fandom changes
-  useEffect(() => {
-    setCustomInputs({});
-  }, [fandom]);
-
   const fandomData = getFandomById(fandom);
   const fandomCharacters = fandomData?.characters ?? [];
-  const isCustomFandom = !fandomData; // custom or original — no dropdown
 
   const updateCharacter = (index: number, value: string) => {
     const next = [...characters];
     next[index] = value;
     onChange(next);
-  };
-
-  const toggleCustom = (index: number) => {
-    setCustomInputs((prev) => ({ ...prev, [index]: !prev[index] }));
-    updateCharacter(index, "");
   };
 
   const labels = [
@@ -42,57 +29,87 @@ export default function CharacterSelector({ fandom, characters, onChange }: Char
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-zinc-300">Characters</label>
-      {labels.map((label, i) => {
-        const useCustom = isCustomFandom || customInputs[i];
+      {labels.map((label, i) => (
+        <div key={i}>
+          <label className="block text-xs text-zinc-500 mb-1">{label}</label>
+          <ComboInput
+            value={characters[i] || ""}
+            onChange={(val) => updateCharacter(i, val)}
+            suggestions={fandomCharacters}
+            placeholder="Type character name..."
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
-        return (
-          <div key={i}>
-            <label className="block text-xs text-zinc-500 mb-1">{label}</label>
-            {useCustom ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={characters[i] || ""}
-                  onChange={(e) => updateCharacter(i, e.target.value)}
-                  placeholder="Type character name..."
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-                />
-                {!isCustomFandom && (
-                  <button
-                    type="button"
-                    onClick={() => toggleCustom(i)}
-                    className="text-xs text-zinc-400 hover:text-zinc-200 px-2"
-                  >
-                    List
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <select
-                  value={characters[i] || ""}
-                  onChange={(e) => {
-                    if (e.target.value === "__custom__") {
-                      toggleCustom(i);
-                    } else {
-                      updateCharacter(i, e.target.value);
-                    }
-                  }}
-                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">Select character...</option>
-                  {fandomCharacters.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                  <option value="__custom__">Custom...</option>
-                </select>
-              </div>
-            )}
-          </div>
-        );
-      })}
+interface ComboInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  suggestions: string[];
+  placeholder: string;
+}
+
+function ComboInput({ value, onChange, suggestions, placeholder }: ComboInputProps) {
+  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = value.length > 0
+    ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()))
+    : suggestions;
+
+  // Show dropdown when focused and there are suggestions to show
+  const showDropdown = focused && filtered.length > 0 && open;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setFocused(true);
+          setOpen(true);
+        }}
+        placeholder={placeholder}
+        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+      />
+      {showDropdown && (
+        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg">
+          {filtered.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(name);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 transition-colors ${
+                value === name ? "text-purple-400" : "text-zinc-300"
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
