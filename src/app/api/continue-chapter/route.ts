@@ -3,7 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Story } from "../../types/story";
 import { buildContinuationPrompt } from "../../lib/prompts";
 
-const anthropic = new Anthropic();
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 export async function POST(req: NextRequest) {
   try {
