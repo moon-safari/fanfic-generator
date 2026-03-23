@@ -42,9 +42,7 @@ export default function Library({ stories, onSelectStory }: LibraryProps) {
                   {story.title}
                 </h3>
                 <p className="text-sm text-zinc-500 mt-1">
-                  {fandomLabel} · {story.chapters.length} chapter
-                  {story.chapters.length !== 1 ? "s" : ""} ·{" "}
-                  {story.wordCount.toLocaleString()} words
+                  {fandomLabel} · {(story.rating || "mature").toUpperCase()} · {(story.relationshipType || "gen").toUpperCase()} · {story.chapters.length} ch · {story.wordCount.toLocaleString()} words
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {story.tropes.slice(0, 3).map((trope) => (
