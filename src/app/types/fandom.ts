@@ -1,4 +1,4 @@
-export type FandomCategoryId = "books" | "films-tv" | "anime" | "games" | "cartoons" | "web-other";
+export type FandomCategoryId = "books" | "films-tv" | "anime" | "games" | "cartoons" | "web-other" | "kpop" | "asian-media";
 
 export interface FandomConfig {
   id: string;

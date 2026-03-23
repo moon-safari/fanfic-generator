@@ -429,4 +429,28 @@ export const CARTOON_FANDOMS: FandomConfig[] = [
     ],
     settingPlaceholder: "e.g., The Monastery of Spinjitzu, training at sunrise on the mountain",
   },
+  {
+    id: "amphibia",
+    name: "Amphibia",
+    category: "cartoons",
+    canonRules:
+      "Anne Boonchuy, Marcy Wu, and Sasha Waybright are three human girls transported to Amphibia, a world of sentient amphibians, by a mysterious music box (the Calamity Box). Each girl is connected to a gem on the box granting Calamity Powers (blue/heart for Anne, green/wit for Marcy, pink/strength for Sasha). Respect the Plantar family's importance to Anne's growth, the complex friendship dynamics between the three girls, and King Andrias's true nature as the villain. Newtopia's history and The Core are central to the overarching plot. Maintain the blend of comedy, adventure, and genuine emotional stakes.",
+    locations:
+      "Wartwood, Newtopia, The Plantar farm, Toad Tower, The Third Temple, Earth (Los Angeles), various Amphibia locations, The Core's stronghold",
+    characters: [
+      "Anne Boonchuy",
+      "Sprig Plantar",
+      "Hop Pop Plantar",
+      "Polly Plantar",
+      "Marcy Wu",
+      "Sasha Waybright",
+      "Lady Olivia",
+      "General Yunan",
+      "King Andrias",
+      "The Core",
+      "Grime",
+      "Maddie Flour",
+    ],
+    settingPlaceholder: "e.g., The Plantar living room in Wartwood, planning the next adventure over dinner",
+  },
 ];
