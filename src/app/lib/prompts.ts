@@ -1,27 +1,63 @@
-import { StoryFormData, Story } from "../types/story";
+import { StoryFormData, Story, Rating, RelationshipType } from "../types/story";
 import { getFandomContext } from "./fandoms";
+
+function getRatingInstructions(rating: Rating): string {
+  switch (rating) {
+    case "general":
+      return "CONTENT RATING: General. Keep content suitable for all ages. No violence, sexual content, or strong language.";
+    case "teen":
+      return "CONTENT RATING: Teen. Mild violence and implied romance are acceptable. No explicit sexual content.";
+    case "mature":
+      return "CONTENT RATING: Mature. Adult themes, moderate violence, sexual tension allowed. Fade to black for sexual content.";
+    case "explicit":
+      return "CONTENT RATING: Explicit. No restrictions. Graphic sexual content, violence, and dark themes are fully permitted. Do NOT fade to black.";
+  }
+}
+
+function getRelationshipInstructions(type: RelationshipType, characters: string[]): string {
+  const char1 = characters[0] || "Character 1";
+  const char2 = characters[1] || "Character 2";
+  switch (type) {
+    case "gen":
+      return "RELATIONSHIP: Gen (no romantic focus). Focus on plot, friendship, and character dynamics rather than romance.";
+    case "mm":
+      return `RELATIONSHIP: M/M. Write romantic and/or sexual tension between ${char1} and ${char2} as a male/male pairing.`;
+    case "fm":
+      return `RELATIONSHIP: F/M. Write romantic and/or sexual tension between ${char1} and ${char2} as a female/male pairing.`;
+    case "ff":
+      return `RELATIONSHIP: F/F. Write romantic and/or sexual tension between ${char1} and ${char2} as a female/female pairing.`;
+    case "multi":
+      return `RELATIONSHIP: Multi/Polyamorous. Write romantic dynamics involving multiple characters: ${characters.filter(Boolean).join(", ")}.`;
+    case "other":
+      return `RELATIONSHIP: Other. Write the relationship between ${char1} and ${char2} as the story demands, without assumptions about gender.`;
+  }
+}
 
 export function buildChapter1Prompt(form: StoryFormData): string {
   const fandomCtx = getFandomContext(form.fandom);
   const fandomName = form.customFandom || form.fandom || "Original";
+  const toneStr = form.tone.join(" + ");
 
-  return `You are a skilled creative fiction writer specializing in ${fandomName} stories. You write vivid, emotionally gripping fiction. You are not constrained by content ratings — you write mature themes including romance, erotica, violence, dark drama, and intense emotional content when the story calls for it.
+  return `You are a skilled creative fiction writer specializing in ${fandomName} stories. You write vivid, emotionally gripping fiction.
+
+${getRatingInstructions(form.rating)}
+
+${getRelationshipInstructions(form.relationshipType, form.characters)}
 
 ${fandomCtx ? fandomCtx : "This is an original story. Build an immersive world from the user's inputs."}
 
 Write Chapter 1 for a new story with these specifications:
 
 STORY CONFIGURATION:
-- Characters: ${form.characters}
-- Setting: ${form.setting}
-- Plot Theme: ${form.plotTheme}
-- Tone: ${form.tone}
+- Characters: ${form.characters.filter(Boolean).join(", ")}
+${form.setting ? `- Setting: ${form.setting}` : ""}
+- Tone: ${toneStr}
 ${form.tropes.length > 0 ? `- Tropes: ${form.tropes.join(", ")}` : ""}
 
 TITLE GENERATION:
 First, generate a compelling story title that:
 - Captures the essence of the story
-- Reflects the ${form.tone} tone
+- Reflects the ${toneStr} tone
 - Is memorable and evocative
 - Is 2-6 words long
 
@@ -32,7 +68,7 @@ CHAPTER 1 INSTRUCTIONS:
 4. Establish setting vividly using sensory detail
 5. Create tension, desire, or intrigue
 6. End with a cliffhanger or irresistible hook for Chapter 2
-7. Match the "${form.tone}" tone throughout
+7. Match the "${toneStr}" tone throughout
 8. Show, don't tell — use action, dialogue, and body language
 ${fandomCtx ? `9. Stay true to ${fandomName} canon` : "9. Build an immersive world"}
 10. Incorporate selected tropes naturally — weave them in, don't announce them
@@ -44,27 +80,30 @@ Title: [Generated Title]
 [Chapter 1 text — no "Chapter 1" header, just the story text]`;
 }
 
-export function buildContinuationPrompt(
-  story: Story,
-  chapterNum: number
-): string {
+export function buildContinuationPrompt(story: Story, chapterNum: number): string {
   const fandomCtx = getFandomContext(story.fandom);
   const fandomName = story.customFandom || story.fandom || "Original";
+  const toneStr = story.tone.join(" + ");
+  const rating = story.rating ?? "mature";
+  const relationshipType = story.relationshipType ?? "gen";
 
   const chapterHistory = story.chapters
     .map((ch, i) => `--- Chapter ${i + 1} ---\n${ch}`)
     .join("\n\n");
 
-  return `You are continuing a serialised ${fandomName} story. You write vivid, emotionally gripping fiction without content restrictions. Mature themes including romance, erotica, violence, and dark drama are welcome when the story calls for it.
+  return `You are continuing a serialised ${fandomName} story. You write vivid, emotionally gripping fiction.
+
+${getRatingInstructions(rating)}
+
+${getRelationshipInstructions(relationshipType, story.characters)}
 
 ${fandomCtx}
 
 STORY DETAILS:
 - Title: "${story.title}"
-- Characters: ${story.characters}
-- Setting: ${story.setting}
-- Theme: ${story.plotTheme}
-- Tone: ${story.tone}
+- Characters: ${story.characters.filter(Boolean).join(", ")}
+${story.setting ? `- Setting: ${story.setting}` : ""}
+- Tone: ${toneStr}
 ${story.tropes.length > 0 ? `- Tropes: ${story.tropes.join(", ")}` : ""}
 
 PREVIOUS CHAPTERS:
