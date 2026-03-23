@@ -9,7 +9,16 @@ export async function POST(req: NextRequest) {
   try {
     const body: StoryFormData = await req.json();
 
-    if (!body.characters || !body.setting || !body.plotTheme || !body.tone) {
+    if (
+      !body.characters ||
+      !Array.isArray(body.characters) ||
+      body.characters.filter((c: string) => c.trim().length > 0).length < 2 ||
+      !body.tone ||
+      !Array.isArray(body.tone) ||
+      body.tone.length < 1 ||
+      !body.rating ||
+      !body.relationshipType
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
