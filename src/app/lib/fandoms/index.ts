@@ -9,8 +9,6 @@ import { WEB_OTHER_FANDOMS } from "./web-other";
 export { TROPE_CATEGORIES, ALL_TROPES } from "./tropes";
 export { TONES } from "./tones";
 
-// Temporary backward-compat export — TropeSelector still imports TROPES until Task 8 rewrites it
-export { ALL_TROPES as TROPES } from "./tropes";
 
 const ALL_FANDOMS: FandomConfig[] = [
   ...BOOK_FANDOMS,
