@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { v4 as uuid } from "uuid";
 import { Sparkles, Loader2 } from "lucide-react";
 import FandomSelector from "./FandomSelector";
+import CharacterSelector from "./CharacterSelector";
+import RelationshipSelector from "./RelationshipSelector";
+import RatingSelector from "./RatingSelector";
+import ToneSelector from "./ToneSelector";
 import TropeSelector from "./TropeSelector";
-import { Story, StoryFormData, GenerateResponse } from "../types/story";
+import { Story, StoryFormData, GenerateResponse, RelationshipType, Rating } from "../types/story";
+import { getFandomById } from "../lib/fandoms";
 import { saveStory } from "../lib/storage";
 
 interface CreateStoryTabProps {
@@ -15,20 +20,27 @@ interface CreateStoryTabProps {
 export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) {
   const [fandom, setFandom] = useState("");
   const [customFandom, setCustomFandom] = useState("");
-  const [characters, setCharacters] = useState("");
+  const [characters, setCharacters] = useState<string[]>(["", "", "", ""]);
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>("gen");
+  const [rating, setRating] = useState<Rating>("mature");
   const [setting, setSetting] = useState("");
-  const [plotTheme, setPlotTheme] = useState("");
-  const [tone, setTone] = useState("");
+  const [tone, setTone] = useState<string[]>([]);
   const [tropes, setTropes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const canSubmit =
-    characters.length >= 3 &&
-    setting.length >= 5 &&
-    plotTheme.length >= 3 &&
-    tone.length >= 3 &&
-    !loading;
+  // At least 2 characters filled in, at least 1 tone
+  const filledCharacters = characters.filter((c) => c.trim().length >= 2);
+  const canSubmit = filledCharacters.length >= 2 && tone.length >= 1 && !loading;
+
+  const handleFandomChange = useCallback((id: string) => {
+    setFandom(id);
+    // Reset characters when fandom changes
+    setCharacters(["", "", "", ""]);
+  }, []);
+
+  const fandomData = getFandomById(fandom);
+  const settingPlaceholder = fandomData?.settingPlaceholder || "Describe your setting...";
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -38,9 +50,10 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
     const formData: StoryFormData = {
       fandom: fandom === "custom" ? "" : fandom,
       customFandom: fandom === "custom" ? customFandom : undefined,
-      characters,
-      setting,
-      plotTheme,
+      characters: characters.filter((c) => c.trim().length > 0),
+      relationshipType,
+      rating,
+      setting: setting.trim() || undefined,
       tone,
       tropes,
     };
@@ -64,13 +77,7 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
         id: uuid(),
         title: data.title,
         chapters: [data.chapter],
-        fandom: formData.fandom,
-        customFandom: formData.customFandom,
-        characters,
-        setting,
-        plotTheme,
-        tone,
-        tropes,
+        ...formData,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         wordCount,
@@ -90,63 +97,37 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
       <FandomSelector
         selected={fandom}
         customFandom={customFandom}
-        onSelect={setFandom}
+        onSelect={handleFandomChange}
         onCustomChange={setCustomFandom}
       />
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
-            Characters *
-          </label>
-          <input
-            type="text"
-            value={characters}
-            onChange={(e) => setCharacters(e.target.value)}
-            placeholder="e.g., Hermione and Draco, or describe your own characters"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-          />
-        </div>
+      <CharacterSelector
+        fandom={fandom}
+        characters={characters}
+        onChange={setCharacters}
+      />
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
-            Setting *
-          </label>
-          <input
-            type="text"
-            value={setting}
-            onChange={(e) => setSetting(e.target.value)}
-            placeholder="e.g., Hogwarts library after hours, 6th year"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-          />
-        </div>
+      <RelationshipSelector
+        selected={relationshipType}
+        onChange={setRelationshipType}
+      />
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
-            Theme *
-          </label>
-          <input
-            type="text"
-            value={plotTheme}
-            onChange={(e) => setPlotTheme(e.target.value)}
-            placeholder="e.g., Dark romance with mystery elements"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-          />
-        </div>
+      <RatingSelector selected={rating} onChange={setRating} />
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
-            Tone *
-          </label>
-          <input
-            type="text"
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-            placeholder="e.g., Intense and seductive, or dark and suspenseful"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
-          />
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-zinc-300 mb-1">
+          Setting <span className="text-zinc-500">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={setting}
+          onChange={(e) => setSetting(e.target.value)}
+          placeholder={settingPlaceholder}
+          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+        />
       </div>
+
+      <ToneSelector selected={tone} onChange={setTone} />
 
       <TropeSelector selected={tropes} onChange={setTropes} />
 
