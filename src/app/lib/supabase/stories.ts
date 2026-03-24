@@ -1,7 +1,21 @@
 import { createClient } from "./client";
-import { Story } from "../../types/story";
+import { Story, Chapter, RelationshipType, Rating } from "../../types/story";
 
 const supabase = createClient();
+
+export interface CreateStoryInput {
+  title: string;
+  firstChapterContent: string;
+  fandom: string;
+  customFandom?: string;
+  characters: string[];
+  relationshipType: RelationshipType;
+  rating: Rating;
+  setting?: string;
+  tone: string[];
+  tropes: string[];
+  wordCount: number;
+}
 
 /** Fetch all stories for the current user, with chapters inlined */
 export async function getStoriesFromDB(): Promise<Story[]> {
@@ -12,7 +26,7 @@ export async function getStoriesFromDB(): Promise<Story[]> {
 
   const { data: stories, error } = await supabase
     .from("stories")
-    .select("*, chapters(content, chapter_number, word_count)")
+    .select("*, chapters(id, content, content_json, summary, chapter_number, word_count)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -25,7 +39,7 @@ export async function getStoriesFromDB(): Promise<Story[]> {
 export async function getStoryFromDB(id: string): Promise<Story | null> {
   const { data, error } = await supabase
     .from("stories")
-    .select("*, chapters(content, chapter_number, word_count)")
+    .select("*, chapters(id, content, content_json, summary, chapter_number, word_count)")
     .eq("id", id)
     .single();
 
@@ -35,7 +49,7 @@ export async function getStoryFromDB(id: string): Promise<Story | null> {
 
 /** Create a new story with its first chapter */
 export async function createStoryInDB(
-  story: Omit<Story, "id" | "createdAt" | "updatedAt">
+  input: CreateStoryInput
 ): Promise<Story | null> {
   const {
     data: { user },
@@ -46,33 +60,31 @@ export async function createStoryInDB(
     .from("stories")
     .insert({
       user_id: user.id,
-      title: story.title,
-      fandom: story.fandom,
-      custom_fandom: story.customFandom || null,
-      characters: story.characters,
-      relationship_type: story.relationshipType,
-      rating: story.rating,
-      setting: story.setting || null,
-      tone: story.tone,
-      tropes: story.tropes,
-      word_count: story.wordCount,
+      title: input.title,
+      fandom: input.fandom,
+      custom_fandom: input.customFandom || null,
+      characters: input.characters,
+      relationship_type: input.relationshipType,
+      rating: input.rating,
+      setting: input.setting || null,
+      tone: input.tone,
+      tropes: input.tropes,
+      word_count: input.wordCount,
     })
     .select()
     .single();
 
   if (storyError || !dbStory) return null;
 
-  // Insert chapters
-  const chapterInserts = story.chapters.map((content, i) => ({
-    story_id: dbStory.id,
-    chapter_number: i + 1,
-    content,
-    word_count: content.split(/\s+/).length,
-  }));
-
+  // Insert first chapter
   const { error: chapError } = await supabase
     .from("chapters")
-    .insert(chapterInserts);
+    .insert({
+      story_id: dbStory.id,
+      chapter_number: 1,
+      content: input.firstChapterContent,
+      word_count: input.firstChapterContent.split(/\s+/).length,
+    });
 
   if (chapError) return null;
 
@@ -101,10 +113,7 @@ export async function addChapterToDB(
   const story = await getStoryFromDB(storyId);
   if (!story) return null;
 
-  const totalWords = story.chapters.reduce(
-    (sum, ch) => sum + ch.split(/\s+/).length,
-    0
-  );
+  const totalWords = story.chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
 
   await supabase
     .from("stories")
@@ -124,13 +133,23 @@ export async function deleteStoryFromDB(id: string): Promise<boolean> {
 function dbToStory(row: Record<string, unknown>): Story {
   const chapters = (
     row.chapters as Array<{
+      id: string;
       content: string;
+      content_json?: object;
+      summary?: string;
       chapter_number: number;
       word_count: number;
     }>
   )
     .sort((a, b) => a.chapter_number - b.chapter_number)
-    .map((ch) => ch.content);
+    .map((ch): Chapter => ({
+      id: ch.id,
+      chapterNumber: ch.chapter_number,
+      content: ch.content,
+      contentJson: ch.content_json || undefined,
+      summary: ch.summary || undefined,
+      wordCount: ch.word_count,
+    }));
 
   return {
     id: row.id as string,
