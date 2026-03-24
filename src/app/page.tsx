@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { PenLine, BookOpen, LogOut } from "lucide-react";
 import CreateStoryTab from "./components/CreateStoryTab";
-import StoryViewer from "./components/StoryViewer";
+import StoryEditor from "./components/editor/StoryEditor";
 import Library from "./components/Library";
 import { Story } from "./types/story";
 import { getStoriesFromDB, deleteStoryFromDB } from "./lib/supabase/stories";
@@ -33,6 +33,13 @@ export default function Home() {
   const handleStoryCreated = (story: Story) => {
     setStories((prev) => [story, ...prev]);
     setActiveStory(story);
+
+    // Auto-generate story bible in background
+    fetch("/api/story-bible/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storyId: story.id }),
+    }).catch(console.error);
   };
 
   const handleStoryUpdate = (updated: Story) => {
@@ -48,17 +55,15 @@ export default function Home() {
     setActiveStory(null);
   };
 
-  // Story viewer mode
+  // Story editor mode (full-screen immersive)
   if (activeStory) {
     return (
-      <main className="min-h-screen bg-zinc-950 px-4 py-8">
-        <StoryViewer
-          story={activeStory}
-          onBack={() => setActiveStory(null)}
-          onUpdate={handleStoryUpdate}
-          onDelete={handleStoryDelete}
-        />
-      </main>
+      <StoryEditor
+        story={activeStory}
+        onBack={() => setActiveStory(null)}
+        onUpdate={handleStoryUpdate}
+        onDelete={handleStoryDelete}
+      />
     );
   }
 
