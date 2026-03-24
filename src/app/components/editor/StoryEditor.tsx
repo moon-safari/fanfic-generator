@@ -17,7 +17,8 @@ import StoryBiblePanel from "../story-bible/StoryBiblePanel";
 import CraftToolbar from "./CraftToolbar";
 import CraftDrawer from "./CraftDrawer";
 import CraftPreview from "./CraftPreview";
-import AnnotationTooltip, { annotationUnderlineClass } from "./AnnotationTooltip";
+import AnnotationTooltip from "./AnnotationTooltip";
+import { AnnotationExtension, annotationPluginKey } from "./annotationExtension";
 
 interface StoryEditorProps {
   story: Story;
@@ -101,6 +102,7 @@ export default function StoryEditor({
       StarterKit,
       Placeholder.configure({ placeholder: "Start writing..." }),
       CharacterCount,
+      AnnotationExtension,
     ],
     content: getChapterContent(currentChapterIdx),
     editorProps: {
@@ -200,6 +202,36 @@ export default function StoryEditor({
     };
     fetchAnnotations();
   }, [chapter?.id]);
+
+  // Push annotations into the Tiptap plugin as decorations
+  useEffect(() => {
+    if (!editor) return;
+    const { tr } = editor.state;
+    tr.setMeta(annotationPluginKey, {
+      annotations: annotations
+        .filter((a) => !a.dismissed)
+        .map((a) => ({ id: a.id, textMatch: a.textMatch, severity: a.severity })),
+    });
+    editor.view.dispatch(tr);
+  }, [editor, annotations]);
+
+  // Show annotation tooltip on hover (desktop)
+  const handleEditorMouseOver = useCallback(
+    (e: React.MouseEvent) => {
+      if (isMobile) return;
+      const target = e.target as HTMLElement;
+      const annotationEl = target.closest("[data-annotation-id]");
+      if (annotationEl) {
+        const id = annotationEl.getAttribute("data-annotation-id");
+        const annotation = annotations.find((a) => a.id === id);
+        if (annotation && annotation.id !== activeAnnotation?.id) {
+          setActiveAnnotation(annotation);
+          setAnnotationAnchorRect(annotationEl.getBoundingClientRect());
+        }
+      }
+    },
+    [annotations, activeAnnotation, isMobile]
+  );
 
   // Dismiss annotation
   const handleDismissAnnotation = useCallback(async (id: string) => {
@@ -404,7 +436,7 @@ export default function StoryEditor({
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-y-auto" onClick={handleEditorClick}>
+        <div className="flex-1 overflow-y-auto" onClick={handleEditorClick} onMouseOver={handleEditorMouseOver}>
           <div className="max-w-3xl mx-auto">
             <EditorContent editor={editor} />
 
