@@ -1,5 +1,5 @@
-import { StoryFormData, Story, Rating, RelationshipType } from "../types/story";
-import { getFandomContext } from "./fandoms";
+import { StoryFormData, Story, Rating, RelationshipType } from "../../types/story";
+import { getFandomContext } from "../fandoms";
 
 function getRatingInstructions(rating: Rating): string {
   switch (rating) {
@@ -80,15 +80,27 @@ Title: [Generated Title]
 [Chapter 1 text — no "Chapter 1" header, just the story text]`;
 }
 
-export function buildContinuationPrompt(story: Story, chapterNum: number): string {
+export function buildContinuationPrompt(story: Story, chapterNum: number, bibleContext?: string): string {
   const fandomCtx = getFandomContext(story.fandom);
   const fandomName = story.customFandom || story.fandom || "Original";
   const toneStr = story.tone.join(" + ");
   const rating = story.rating ?? "mature";
   const relationshipType = story.relationshipType ?? "gen";
 
+  // Smart context budget: last 2 chapters full text, earlier chapters use summary if available
   const chapterHistory = story.chapters
-    .map((ch, i) => `--- Chapter ${i + 1} ---\n${ch.content}`)
+    .map((ch, i) => {
+      const chapNum = i + 1;
+      const isRecent = i >= story.chapters.length - 2;
+      if (isRecent) {
+        return `--- Chapter ${chapNum} ---\n${ch.content}`;
+      }
+      // Use summary if available, otherwise fall back to full text
+      if (ch.summary) {
+        return `--- Chapter ${chapNum} (Summary) ---\n${ch.summary}`;
+      }
+      return `--- Chapter ${chapNum} ---\n${ch.content}`;
+    })
     .join("\n\n");
 
   return `You are continuing a serialised ${fandomName} story. You write vivid, emotionally gripping fiction.
@@ -98,7 +110,7 @@ ${getRatingInstructions(rating)}
 ${getRelationshipInstructions(relationshipType, story.characters)}
 
 ${fandomCtx}
-
+${bibleContext ? `\n${bibleContext}\n` : ""}
 STORY DETAILS:
 - Title: "${story.title}"
 - Characters: ${story.characters.filter(Boolean).join(", ")}
