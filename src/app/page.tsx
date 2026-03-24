@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PenLine, BookOpen } from "lucide-react";
+import { PenLine, BookOpen, LogOut } from "lucide-react";
 import CreateStoryTab from "./components/CreateStoryTab";
 import StoryViewer from "./components/StoryViewer";
 import Library from "./components/Library";
 import { Story } from "./types/story";
 import { getStories } from "./lib/storage";
+import { useAuth } from "./lib/supabase/auth-context";
 
 type View = "create" | "library";
 
 export default function Home() {
+  const { user, signOut } = useAuth();
   const [view, setView] = useState<View>("create");
   const [stories, setStories] = useState<Story[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
@@ -54,13 +56,24 @@ export default function Home() {
     <main className="min-h-screen bg-zinc-950">
       {/* Header */}
       <header className="border-b border-zinc-800 px-4 py-6">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-white">
-            AI Fanfiction Generator
-          </h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            Unlimited personalised stories in your favourite universes
-          </p>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              AI Fanfiction Generator
+            </h1>
+            <p className="text-zinc-400 text-sm mt-1">
+              Unlimited personalised stories in your favourite universes
+            </p>
+          </div>
+          {user && (
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+          )}
         </div>
       </header>
 
