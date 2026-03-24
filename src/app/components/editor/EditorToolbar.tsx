@@ -17,6 +17,7 @@ interface EditorToolbarProps {
   currentChapterIdx: number;
   totalChapters: number;
   showBible: boolean;
+  annotationCount?: number;
   onBack: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
@@ -30,6 +31,7 @@ export default function EditorToolbar({
   currentChapterIdx,
   totalChapters,
   showBible,
+  annotationCount = 0,
   onBack,
   onPrevChapter,
   onNextChapter,
@@ -94,18 +96,25 @@ export default function EditorToolbar({
 
       {/* Right section */}
       <div className="flex items-center gap-1 shrink-0">
-        <button
-          onClick={onToggleBible}
-          className={`p-2 rounded-lg transition-colors ${
-            showBible
-              ? "bg-purple-600 text-white"
-              : "hover:bg-zinc-800 text-zinc-400 hover:text-white"
-          }`}
-          aria-label="Story Bible"
-          title="Story Bible"
-        >
-          <BookOpen className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={onToggleBible}
+            className={`p-2 rounded-lg transition-colors ${
+              showBible
+                ? "bg-purple-600 text-white"
+                : "hover:bg-zinc-800 text-zinc-400 hover:text-white"
+            }`}
+            aria-label="Story Bible"
+            title="Story Bible"
+          >
+            <BookOpen className="w-5 h-5" />
+          </button>
+          {annotationCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-yellow-500 text-zinc-950 text-[10px] font-bold px-1">
+              {annotationCount > 99 ? "99+" : annotationCount}
+            </span>
+          )}
+        </div>
 
         <div className="relative" ref={menuRef}>
           <button
