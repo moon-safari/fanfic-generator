@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { v4 as uuid } from "uuid";
 import { Sparkles, Loader2 } from "lucide-react";
 import FandomSelector from "./FandomSelector";
 import CharacterSelector from "./CharacterSelector";
@@ -11,7 +10,7 @@ import ToneSelector from "./ToneSelector";
 import TropeSelector from "./TropeSelector";
 import { Story, StoryFormData, GenerateResponse, RelationshipType, Rating } from "../types/story";
 import { getFandomById } from "../lib/fandoms";
-import { saveStory } from "../lib/storage";
+import { createStoryInDB } from "../lib/supabase/stories";
 
 interface CreateStoryTabProps {
   onStoryCreated: (story: Story) => void;
@@ -73,17 +72,14 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
       const data: GenerateResponse = await res.json();
       const wordCount = data.chapter.split(/\s+/).length;
 
-      const story: Story = {
-        id: uuid(),
+      const story = await createStoryInDB({
         title: data.title,
         chapters: [data.chapter],
         ...formData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         wordCount,
-      };
+      });
 
-      saveStory(story);
+      if (!story) throw new Error("Failed to save story");
       onStoryCreated(story);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -13,7 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { Story, ContinueResponse } from "../types/story";
-import { saveStory, deleteStory, exportStoryToText } from "../lib/storage";
+import { addChapterToDB } from "../lib/supabase/stories";
+import { exportStoryToText } from "../lib/storage";
 
 interface StoryViewerProps {
   story: Story;
@@ -56,15 +57,10 @@ export default function StoryViewer({
       }
 
       const data: ContinueResponse = await res.json();
-      const updated: Story = {
-        ...story,
-        chapters: [...story.chapters, data.chapter],
-        updatedAt: new Date().toISOString(),
-        wordCount:
-          story.wordCount + data.chapter.split(/\s+/).length,
-      };
+      const chapterNum = story.chapters.length + 1;
+      const updated = await addChapterToDB(story.id, chapterNum, data.chapter);
 
-      saveStory(updated);
+      if (!updated) throw new Error("Failed to save chapter");
       onUpdate(updated);
       setCurrentChapter(updated.chapters.length - 1);
     } catch (err) {
@@ -74,15 +70,15 @@ export default function StoryViewer({
     }
   };
 
-  const handleSaveTitle = () => {
+  const handleSaveTitle = async () => {
     if (titleDraft.trim()) {
-      const updated = {
-        ...story,
-        title: titleDraft.trim(),
-        updatedAt: new Date().toISOString(),
-      };
-      saveStory(updated);
-      onUpdate(updated);
+      const { createClient } = await import("../lib/supabase/client");
+      const supabase = createClient();
+      await supabase
+        .from("stories")
+        .update({ title: titleDraft.trim(), updated_at: new Date().toISOString() })
+        .eq("id", story.id);
+      onUpdate({ ...story, title: titleDraft.trim(), updatedAt: new Date().toISOString() });
     }
     setEditingTitle(false);
   };
@@ -99,7 +95,6 @@ export default function StoryViewer({
   };
 
   const handleDelete = () => {
-    deleteStory(story.id);
     onDelete(story.id);
   };
 

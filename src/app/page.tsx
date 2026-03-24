@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PenLine, BookOpen, LogOut } from "lucide-react";
 import CreateStoryTab from "./components/CreateStoryTab";
 import StoryViewer from "./components/StoryViewer";
 import Library from "./components/Library";
 import { Story } from "./types/story";
-import { getStories } from "./lib/storage";
+import { getStoriesFromDB, deleteStoryFromDB } from "./lib/supabase/stories";
 import { useAuth } from "./lib/supabase/auth-context";
 
 type View = "create" | "library";
@@ -16,10 +16,19 @@ export default function Home() {
   const [view, setView] = useState<View>("create");
   const [stories, setStories] = useState<Story[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadStories = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const data = await getStoriesFromDB();
+    setStories(data);
+    setLoading(false);
+  }, [user]);
 
   useEffect(() => {
-    setStories(getStories());
-  }, []);
+    loadStories();
+  }, [loadStories]);
 
   const handleStoryCreated = (story: Story) => {
     setStories((prev) => [story, ...prev]);
@@ -33,7 +42,8 @@ export default function Home() {
     setActiveStory(updated);
   };
 
-  const handleStoryDelete = (id: string) => {
+  const handleStoryDelete = async (id: string) => {
+    await deleteStoryFromDB(id);
     setStories((prev) => prev.filter((s) => s.id !== id));
     setActiveStory(null);
   };
@@ -114,6 +124,8 @@ export default function Home() {
       <div className="px-4 py-8">
         {view === "create" ? (
           <CreateStoryTab onStoryCreated={handleStoryCreated} />
+        ) : loading ? (
+          <div className="text-center text-zinc-500 py-12">Loading stories...</div>
         ) : (
           <Library stories={stories} onSelectStory={setActiveStory} />
         )}
