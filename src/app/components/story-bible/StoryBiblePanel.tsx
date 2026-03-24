@@ -89,13 +89,16 @@ export default function StoryBiblePanel({
     (sectionType: BibleSectionType, content: BibleSectionContent) => {
       // Update local state immediately
       setBible((prev) => {
-        if (!prev) return prev;
+        const emptySections = Object.fromEntries(
+          SECTION_CONFIG.map((c) => [c.type, null])
+        ) as StoryBible["sections"];
+        const base: StoryBible = prev ?? { storyId, sections: emptySections };
         return {
-          ...prev,
+          ...base,
           sections: {
-            ...prev.sections,
-            [sectionType]: prev.sections[sectionType]
-              ? { ...prev.sections[sectionType], content }
+            ...base.sections,
+            [sectionType]: base.sections[sectionType]
+              ? { ...base.sections[sectionType], content }
               : {
                   id: "",
                   storyId,

@@ -42,7 +42,7 @@ export async function GET(
 
     // Fetch all bible sections
     const { data, error } = await supabase
-      .from("bible_sections")
+      .from("story_bibles")
       .select("*")
       .eq("story_id", storyId);
 
@@ -119,7 +119,7 @@ export async function PUT(
 
     // Upsert single section
     const { data, error } = await supabase
-      .from("bible_sections")
+      .from("story_bibles")
       .upsert(
         {
           story_id: storyId,

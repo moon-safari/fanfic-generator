@@ -76,7 +76,7 @@ export async function authenticateAndFetchBible(
 
   // Fetch Bible sections
   const { data, error: bibleError } = await supabase
-    .from("bible_sections")
+    .from("story_bibles")
     .select("*")
     .eq("story_id", storyId);
 

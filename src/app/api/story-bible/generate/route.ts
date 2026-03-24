@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       }));
 
     const { error: upsertError } = await supabase
-      .from("bible_sections")
+      .from("story_bibles")
       .upsert(rows, { onConflict: "story_id,section_type" });
 
     if (upsertError) {

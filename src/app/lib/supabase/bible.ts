@@ -11,7 +11,7 @@ const supabase = createClient();
 /** Fetch all bible sections for a story, returning a StoryBible */
 export async function getStoryBible(storyId: string): Promise<StoryBible> {
   const { data, error } = await supabase
-    .from("bible_sections")
+    .from("story_bibles")
     .select("*")
     .eq("story_id", storyId);
 
@@ -53,7 +53,7 @@ export async function upsertBibleSection(
   content: BibleSectionContent
 ): Promise<BibleSection | null> {
   const { data, error } = await supabase
-    .from("bible_sections")
+    .from("story_bibles")
     .upsert(
       {
         story_id: storyId,
@@ -93,7 +93,7 @@ export async function upsertAllBibleSections(
   if (rows.length === 0) return true;
 
   const { error } = await supabase
-    .from("bible_sections")
+    .from("story_bibles")
     .upsert(rows, { onConflict: "story_id,section_type" });
 
   return !error;

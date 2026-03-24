@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch Bible sections
     const { data: bibleSectionsData } = await supabase
-      .from("bible_sections")
+      .from("story_bibles")
       .select("*")
       .eq("story_id", storyId);
 
