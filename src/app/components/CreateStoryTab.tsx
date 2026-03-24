@@ -74,7 +74,7 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
 
       const story = await createStoryInDB({
         title: data.title,
-        chapters: [data.chapter],
+        firstChapterContent: data.chapter,
         ...formData,
         wordCount,
       });

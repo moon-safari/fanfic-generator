@@ -48,7 +48,7 @@ export default function StoryViewer({
       const res = await fetch("/api/continue-chapter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ story }),
+        body: JSON.stringify({ storyId: story.id }),
       });
 
       if (!res.ok) {
@@ -218,7 +218,7 @@ export default function StoryViewer({
       {/* Chapter content */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
         <div className="prose prose-invert prose-zinc max-w-none">
-          {story.chapters[currentChapter]
+          {story.chapters[currentChapter].content
             .split("\n\n")
             .filter(Boolean)
             .map((paragraph, i) => (

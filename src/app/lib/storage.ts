@@ -1,13 +1,35 @@
-import { Story } from "../types/story";
+import { Story, Chapter } from "../types/story";
 
 const STORAGE_KEY = "fanfic-stories";
 
-// Migrate old story shape to new shape
+// Migrate old story shape to new shape, handling legacy chapters: string[]
 function migrateStory(raw: Record<string, unknown>): Story {
+  let chapters: Chapter[];
+  const rawChapters = raw.chapters;
+
+  if (Array.isArray(rawChapters)) {
+    if (rawChapters.length === 0) {
+      chapters = [];
+    } else if (typeof rawChapters[0] === "string") {
+      // Legacy format: chapters was string[]
+      chapters = (rawChapters as string[]).map((content, i) => ({
+        id: `legacy-${i}`,
+        chapterNumber: i + 1,
+        content,
+        wordCount: content.split(/\s+/).length,
+      }));
+    } else {
+      // Already Chapter[] format
+      chapters = rawChapters as Chapter[];
+    }
+  } else {
+    chapters = [];
+  }
+
   return {
     id: raw.id as string,
     title: raw.title as string,
-    chapters: raw.chapters as string[],
+    chapters,
     fandom: raw.fandom as string,
     customFandom: raw.customFandom as string | undefined,
     characters: Array.isArray(raw.characters)
@@ -65,7 +87,7 @@ export function exportStoryToText(story: Story): string {
 
   story.chapters.forEach((ch, i) => {
     lines.push(`Chapter ${i + 1}\n`);
-    lines.push(ch);
+    lines.push(ch.content);
     lines.push(`\n${"—".repeat(40)}\n`);
   });
 

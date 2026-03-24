@@ -88,7 +88,7 @@ export function buildContinuationPrompt(story: Story, chapterNum: number): strin
   const relationshipType = story.relationshipType ?? "gen";
 
   const chapterHistory = story.chapters
-    .map((ch, i) => `--- Chapter ${i + 1} ---\n${ch}`)
+    .map((ch, i) => `--- Chapter ${i + 1} ---\n${ch.content}`)
     .join("\n\n");
 
   return `You are continuing a serialised ${fandomName} story. You write vivid, emotionally gripping fiction.
