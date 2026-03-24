@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerSupabase } from "../../lib/supabase/server";
 import { buildContinuationPrompt } from "../../lib/prompts";
+import { formatBibleForPrompt } from "../../lib/prompts/bible";
 import { Story, Chapter } from "../../types/story";
+import {
+  BibleSectionType,
+  BibleSectionContent,
+  BibleSection,
+  StoryBible,
+} from "../../types/bible";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -88,7 +95,44 @@ export async function POST(req: NextRequest) {
     }
 
     const chapterNum = story.chapters.length + 1;
-    const prompt = buildContinuationPrompt(story, chapterNum);
+
+    // Fetch Bible sections for smart context
+    const { data: bibleSectionsData } = await supabase
+      .from("story_bibles")
+      .select("*")
+      .eq("story_id", storyId);
+
+    let bibleContext = "";
+    if (bibleSectionsData && bibleSectionsData.length > 0) {
+      const ALL_SECTION_TYPES: BibleSectionType[] = [
+        "characters",
+        "world",
+        "synopsis",
+        "genre",
+        "style_guide",
+        "outline",
+        "notes",
+      ];
+      const sections = Object.fromEntries(
+        ALL_SECTION_TYPES.map((t) => [t, null])
+      ) as Record<BibleSectionType, BibleSection | null>;
+
+      for (const row of bibleSectionsData) {
+        sections[row.section_type as BibleSectionType] = {
+          id: row.id as string,
+          storyId: row.story_id as string,
+          sectionType: row.section_type as BibleSectionType,
+          content: row.content as BibleSectionContent,
+          createdAt: row.created_at as string,
+          updatedAt: row.updated_at as string,
+        };
+      }
+
+      const bible: StoryBible = { storyId, sections };
+      bibleContext = formatBibleForPrompt(bible);
+    }
+
+    const prompt = buildContinuationPrompt(story, chapterNum, bibleContext);
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
