@@ -151,7 +151,7 @@ export default function CraftPreview({
   onDismiss,
 }: CraftPreviewProps) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-4 sm:inset-auto sm:fixed sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl">
+    <div className="fixed inset-x-0 bottom-0 z-50 p-4 max-h-[80vh] overflow-y-auto sm:inset-auto sm:fixed sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl">
       <div className="bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl p-4">
         {result.type === "rewrite" || result.type === "expand" ? (
           <RewriteExpandPreview

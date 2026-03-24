@@ -218,7 +218,7 @@ export default function StoryBiblePanel({
   // Skeleton loader
   if (loading) {
     return (
-      <div className="w-full sm:w-[35%] sm:min-w-[320px] bg-[#2a1f3d] border-l border-purple-900/50 flex flex-col overflow-y-auto fixed inset-0 sm:static z-50">
+      <div className="w-full sm:w-[35%] sm:min-w-[320px] bg-[#2a1f3d] border-l border-purple-900/50 flex flex-col overflow-y-auto fixed inset-0 sm:static z-50 animate-in slide-in-from-right duration-300 ease-out">
         <div className="flex items-center justify-between px-4 h-14 border-b border-purple-900/30 shrink-0">
           <div className="h-5 w-24 bg-purple-900/30 rounded animate-pulse" />
           <div className="h-8 w-8 bg-purple-900/30 rounded animate-pulse" />
@@ -236,14 +236,14 @@ export default function StoryBiblePanel({
   }
 
   return (
-    <div className="w-full sm:w-[35%] sm:min-w-[320px] bg-[#2a1f3d] border-l border-purple-900/50 flex flex-col overflow-y-auto fixed inset-0 sm:static z-50">
+    <div className="w-full sm:w-[35%] sm:min-w-[320px] bg-[#2a1f3d] border-l border-purple-900/50 flex flex-col overflow-y-auto fixed inset-0 sm:static z-50 animate-in slide-in-from-right duration-300 ease-out">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-14 border-b border-purple-900/30 shrink-0">
         <div className="flex items-center gap-2">
           {/* Mobile back button */}
           <button
             onClick={onClose}
-            className="sm:hidden p-1 text-zinc-400 hover:text-white transition-colors"
+            className="sm:hidden p-2 text-zinc-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -252,7 +252,7 @@ export default function StoryBiblePanel({
         </div>
         <button
           onClick={onClose}
-          className="hidden sm:block p-1 text-zinc-400 hover:text-white transition-colors"
+          className="hidden sm:flex p-2 text-zinc-400 hover:text-white transition-colors items-center justify-center"
           aria-label="Close"
         >
           <X className="w-5 h-5" />

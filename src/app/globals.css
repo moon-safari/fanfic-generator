@@ -17,3 +17,39 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Animation utilities (replaces tailwindcss-animate for Tailwind v4) */
+@keyframes enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes enter-from-bottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes enter-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+.animate-in.fade-in {
+  animation-name: enter-fade;
+}
+
+.animate-in.slide-in-from-bottom {
+  animation-name: enter-from-bottom;
+  animation-duration: 300ms;
+}
+
+.animate-in.slide-in-from-right {
+  animation-name: enter-from-right;
+  animation-duration: 300ms;
+}

@@ -130,7 +130,7 @@ export default function AnnotationTooltip({
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors"
+          className="p-2 rounded hover:bg-zinc-700 text-zinc-500 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Close tooltip"
         >
           <X className="w-3.5 h-3.5" />
@@ -144,7 +144,7 @@ export default function AnnotationTooltip({
       <div className="mt-2 flex justify-end">
         <button
           onClick={handleDismissAnnotation}
-          className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors min-h-[32px]"
+          className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors min-h-[44px]"
         >
           Dismiss
         </button>
