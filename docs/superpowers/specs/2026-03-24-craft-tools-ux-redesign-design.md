@@ -38,8 +38,8 @@ The editor gains a unified side panel with three tabs (Bible, Craft, History) re
 
 ### Current State
 
-- `StoryBiblePanel.tsx` renders as a standalone right panel (35% width, min 320px)
-- `CraftPreview.tsx` renders inline below the editor
+- `StoryBiblePanel.tsx` renders as a standalone right panel (35% width, min 320px) with its own header (close/back buttons), loading skeleton, section accordion, and regenerate footer
+- `CraftPreview.tsx` renders as a fixed overlay at the bottom of the viewport
 - No history panel exists
 
 ### Target State
@@ -60,13 +60,36 @@ A single `SidePanel` component with three tabs:
 - Close button (X) on desktop, back arrow on mobile (existing pattern)
 - When panel is closed, editor takes full width
 
+### StoryBiblePanel Extraction
+
+The current `StoryBiblePanel` is a self-contained component with:
+- Outer wrapper div (width, background, border, animation classes)
+- Header with close/back buttons
+- Loading skeleton
+- Section accordion list
+- Regenerate footer
+
+**After extraction**, `StoryBiblePanel` becomes a "headless" body component:
+
+```typescript
+// New props — no onClose, no outer shell
+interface StoryBibleBodyProps {
+  storyId: string;
+}
+```
+
+- Removes the outer wrapper div (width, positioning, z-index) — `SidePanel` owns that
+- Removes the header with close/back buttons — `SidePanel` has its own close button
+- Keeps: loading skeleton (rendered inside its tab area), section accordion, regenerate footer
+- `SidePanel` renders `<StoryBibleBody storyId={storyId} />` inside the Bible tab
+
 ### Files to Create/Modify
 
-- Create: `src/app/components/editor/SidePanel.tsx` — tabbed container
+- Create: `src/app/components/editor/SidePanel.tsx` — tabbed container with close button, tab bar, tab content area
 - Create: `src/app/components/editor/CraftTab.tsx` — craft results display
 - Create: `src/app/components/editor/HistoryTab.tsx` — history display
 - Modify: `src/app/components/editor/StoryEditor.tsx` — replace separate Bible panel + CraftPreview with SidePanel
-- Modify: `src/app/components/story-bible/StoryBiblePanel.tsx` — extract inner content into a renderable body (no outer shell/close button)
+- Modify: `src/app/components/story-bible/StoryBiblePanel.tsx` — extract into `StoryBibleBody` (remove outer shell, header, close logic)
 
 ---
 
@@ -76,7 +99,22 @@ A single `SidePanel` component with three tabs:
 
 - `CraftToolbar.tsx` renders as a floating bar that appears on text selection
 - `CraftDrawer.tsx` renders on mobile as a slide-up drawer
-- `EditorToolbar.tsx` has the chapter nav and Bible icon
+- `EditorToolbar.tsx` has the chapter nav, Bible icon, and overflow menu. Current props:
+  ```typescript
+  interface EditorToolbarProps {
+    story: Story;
+    currentChapterIdx: number;
+    totalChapters: number;
+    showBible: boolean;
+    annotationCount?: number;
+    onBack: () => void;
+    onPrevChapter: () => void;
+    onNextChapter: () => void;
+    onToggleBible: () => void;
+    onExport: () => void;
+    onDelete: () => void;
+  }
+  ```
 
 ### Target State
 
@@ -86,11 +124,29 @@ Craft tool buttons live permanently in the editor header toolbar, right-aligned,
 ← Story Title  |  ◀ Ch 2 of 5 ▶        ✏️ Rewrite  📐 Expand  🎨 Describe  💡 Brainstorm  |  📖  ⋮
 ```
 
+### New EditorToolbar Props
+
+```typescript
+interface EditorToolbarProps {
+  // ... existing props unchanged ...
+  // New craft tool props:
+  activeTool: CraftTool | null;
+  hasSelection: boolean;         // whether editor has text selected
+  craftLoading: boolean;         // show spinner on active tool button
+  onCraftTool: (tool: CraftTool) => void;  // called when a craft button is clicked
+}
+```
+
+- `activeTool` highlights the active button (purple tint + border)
+- `hasSelection` determines behavior: if false and a tool is clicked, show "Select text" hint in Craft tab instead of calling the API
+- `craftLoading` shows a subtle spin animation on the active tool's icon
+- `onCraftTool` callback triggers the craft tool flow in the parent
+
 ### Behavior
 
 - Tools are always visible (not dependent on selection)
 - Clicking a tool with selected text: triggers the tool, opens side panel to Craft tab, shows loading then results
-- Clicking a tool without selected text: shows a subtle hint near cursor or in the Craft tab: "Select text to use craft tools"
+- Clicking a tool without selected text: opens side panel to Craft tab showing "Select text to use craft tools" hint
 - Active tool is highlighted (purple background tint + border)
 - On mobile (< 768px), tools render as emoji-only icons in the header (no labels)
 
@@ -100,7 +156,7 @@ When text is selected and the user hasn't clicked a tool yet, no floating toolba
 
 ### Files to Create/Modify
 
-- Modify: `src/app/components/editor/EditorToolbar.tsx` — add craft tool buttons inline
+- Modify: `src/app/components/editor/EditorToolbar.tsx` — add craft tool buttons and new props
 - Delete: `src/app/components/editor/CraftToolbar.tsx` — replaced by toolbar buttons
 - Delete: `src/app/components/editor/CraftDrawer.tsx` — replaced by mobile bottom sheet
 
@@ -119,10 +175,11 @@ Single result card with:
 
 ### Describe Results — Sensory Categories + Blend
 
-The Describe API returns structured sensory descriptions:
+The Describe API response changes from `{ result: string[] }` to a structured sensory format.
 
-**API Response Shape:**
+**New API Response Shape (wrapped in `result` key for consistency):**
 ```typescript
+// Response: { result: DescribeResult }
 interface DescribeResult {
   blend: string;        // Combined best-of-all-senses description
   senses: {
@@ -150,24 +207,37 @@ interface DescribeResult {
 
 ### Brainstorm Results — Expanded Panel
 
+**Current state:** Brainstorm already returns structured objects with `{ title, description, preview }` (via `BrainstormItem` type in `useCraftTools.ts`). The existing `CraftPreview.tsx` already renders title, description, and preview fields.
+
+**Change:** Rename `preview` → `prose` in the response and type. Update the prompt to generate richer prose previews (1-2 sentences showing how it would read in the story).
+
 When Brainstorm is active:
 - Side panel expands to ~50% of viewport width (from 35%)
 - Editor dims slightly (opacity: 0.7) to focus attention
 - Panel shows 3-5 idea cards, each with:
   - **Title** (bold, e.g., "The lighthouse keeper is alive")
   - **Description** (2-3 sentences explaining the idea)
-  - **Prose preview** (italic quote showing how it might read in the story)
-  - Action buttons: "Use this" (inserts prose preview) + "Copy"
+  - **Prose** (italic quote showing how it might read in the story)
+  - Action buttons: "Use this" (inserts prose) + "Copy"
 - "Generate more" link at top-right generates additional ideas
 - Closing Brainstorm or switching tabs returns panel to normal width
 
+### Error States
+
+When a craft API call fails:
+- **Craft tab (desktop):** Shows an error card with message and "Try again" button. Example: "Something went wrong generating your rewrite. [Try again]"
+- **Mobile bottom sheet:** Same error card inside the sheet
+- **Toolbar:** Active tool button stops spinning, returns to normal state
+- Error card uses `border-red-800/40` with `text-red-400` message text
+- "Try again" re-runs the same tool with the same parameters
+
 ### Files to Create/Modify
 
-- Create: `src/app/components/editor/CraftTab.tsx` — result display for all 4 tools
+- Create: `src/app/components/editor/CraftTab.tsx` — result display for all 4 tools + error state
 - Create: `src/app/components/editor/DescribeResults.tsx` — sensory cards + blend
 - Create: `src/app/components/editor/BrainstormResults.tsx` — expanded idea cards
-- Modify: `src/app/api/craft/describe/route.ts` — return structured sensory response
-- Modify: `src/app/api/craft/brainstorm/route.ts` — return structured ideas with title/description/prose
+- Modify: `src/app/api/craft/describe/route.ts` — return structured sensory response wrapped in `{ result: DescribeResult }`
+- Modify: `src/app/api/craft/brainstorm/route.ts` — rename `preview` → `prose` in response objects
 
 ---
 
@@ -176,15 +246,15 @@ When Brainstorm is active:
 ### Behavior
 
 1. User clicks "Insert" on any result card
-2. Selected text in editor is replaced with the craft result
+2. Selected text in editor is replaced with the craft result (single Tiptap transaction via `editor.chain().focus().deleteRange().insertContentAt().run()`)
 3. Side panel stays open (user may want to try another direction)
 4. An **undo toast** appears at bottom-center of the editor:
    ```
    ✓ Inserted rewrite — [Undo] 4s
    ```
 5. Toast shows a countdown (5s → 0s) then fades out
-6. Clicking "Undo" reverts the editor to the pre-insert state
-7. Undo uses Tiptap's built-in undo (transaction-based)
+6. Clicking "Undo" calls `editor.commands.undo()` which reverts the transaction (text replacement). Note: this restores the text content but does not restore the original selection range — this is acceptable behavior.
+7. After undo, toast dismisses immediately
 
 ### Toast Design
 
@@ -227,10 +297,17 @@ CREATE POLICY "Users can manage own craft history"
   ON craft_history FOR ALL USING (auth.uid() = user_id);
 ```
 
+### History Save Strategy
+
+History is saved **server-side within each craft API route** after successfully generating results. This is simpler and more reliable than client-side POSTing. Each craft route (`rewrite`, `expand`, `describe`, `brainstorm`) inserts a `craft_history` row before returning the response. The `user_id` and `story_id` are already available in the route handler via `authenticateAndFetchBible`.
+
+The client only needs to:
+- `GET /api/craft/history?storyId=X&chapter=N` — fetch history for display
+- `PATCH /api/craft/history/[id]` — update status when user inserts or dismisses
+
 ### API
 
-- `GET /api/craft/history?storyId=X&chapter=N` — fetch history for a chapter
-- `POST /api/craft/history` — save a history entry (called automatically when a craft tool returns results)
+- `GET /api/craft/history?storyId=X&chapter=N` — fetch history for a chapter (reverse chronological)
 - `PATCH /api/craft/history/[id]` — update status (inserted/dismissed)
 
 ### UI
@@ -248,10 +325,13 @@ CREATE POLICY "Users can manage own craft history"
 ### Files to Create/Modify
 
 - Create: `src/app/components/editor/HistoryTab.tsx` — history list UI
-- Create: `src/app/api/craft/history/route.ts` — GET + POST endpoints
+- Create: `src/app/api/craft/history/route.ts` — GET endpoint
 - Create: `src/app/api/craft/history/[id]/route.ts` — PATCH endpoint
 - Create: `src/app/lib/supabase/craftHistory.ts` — database helpers
-- Modify: existing craft API routes to save history after generation
+- Modify: `src/app/api/craft/rewrite/route.ts` — save history entry after generation
+- Modify: `src/app/api/craft/expand/route.ts` — save history entry after generation
+- Modify: `src/app/api/craft/describe/route.ts` — save history entry after generation
+- Modify: `src/app/api/craft/brainstorm/route.ts` — save history entry after generation
 
 ---
 
@@ -301,48 +381,60 @@ All craft tools show a loading state while the API call is in progress:
 
 ## 8. API Changes
 
-### Describe API (`/api/craft/describe`)
+### Request Body (All Craft APIs)
 
-Current: Returns a single string description.
-
-New: Returns structured sensory response:
+The request body uses the existing field names from `shared.ts`. No changes to the request shape:
 
 ```typescript
-// Request (unchanged)
-{ storyId: string, selectedText: string, chapterContent: string }
-
-// Response (new shape)
+// Request body (unchanged — uses existing field names)
 {
-  blend: string,
-  senses: Array<{ type: string, text: string }>
+  storyId: string;
+  selectedText: string;
+  context?: string;    // surrounding chapter text for context
+  direction?: string;  // user-provided direction (rewrite/expand only)
 }
 ```
 
-The prompt instructs Claude to return JSON with a `blend` field and a `senses` array. Only relevant senses are included.
+The shared `authenticateAndFetchBible` helper in `src/app/api/craft/shared.ts` parses these fields and fetches the Bible context. No changes needed to the shared helper.
+
+### Describe API (`/api/craft/describe`)
+
+**Current:** Returns `{ result: string[] }` (array of description options).
+
+**New:** Returns `{ result: DescribeResult }` (structured sensory response):
+
+```typescript
+// Response (new shape, keeping `result` wrapper)
+{
+  result: {
+    blend: string,
+    senses: Array<{ type: 'sight' | 'smell' | 'sound' | 'touch' | 'taste', text: string }>
+  }
+}
+```
+
+The prompt changes to instruct Claude to return JSON with a `blend` field and a `senses` array. Only relevant senses are included.
 
 ### Brainstorm API (`/api/craft/brainstorm`)
 
-Current: Returns a list of idea strings.
+**Current:** Returns `{ result: BrainstormItem[] }` where `BrainstormItem` is `{ title: string, description: string, preview: string }`. This is already structured — not a list of plain strings.
 
-New: Returns structured ideas:
+**Change:** Rename `preview` → `prose` in the response objects for clarity. Update the prompt to generate richer prose previews.
 
 ```typescript
-// Request (unchanged)
-{ storyId: string, selectedText: string, chapterContent: string }
-
-// Response (new shape)
+// Response (renamed field)
 {
-  ideas: Array<{
+  result: Array<{
     title: string,
     description: string,
-    prose: string
+    prose: string          // renamed from "preview"
   }>
 }
 ```
 
-### All Craft APIs
+### All Craft APIs — History Save
 
-After returning results, each craft API also saves a `craft_history` entry.
+Each craft route adds a server-side insert into `craft_history` after successful generation, before returning the response. Uses the same Supabase client already created in the route.
 
 ---
 
@@ -350,32 +442,49 @@ After returning results, each craft API also saves a `craft_history` entry.
 
 ### New Hook: `useCraftPanel`
 
-Manages the unified panel state:
+Replaces the current `useCraftTools` hook (`src/app/components/editor/useCraftTools.ts`). Manages the unified panel state:
 
 ```typescript
+import { CraftTool } from './useCraftTools'; // reuse type
+
+// Updated CraftResult to match new response shapes
+type CraftResult =
+  | { type: 'rewrite'; text: string }
+  | { type: 'expand'; text: string }
+  | { type: 'describe'; blend: string; senses: Array<{ type: string; text: string }> }
+  | { type: 'brainstorm'; ideas: Array<{ title: string; description: string; prose: string }> };
+
 interface CraftPanelState {
   isOpen: boolean;
   activeTab: 'bible' | 'craft' | 'history';
-  activeTool: 'rewrite' | 'expand' | 'describe' | 'brainstorm' | null;
+  activeTool: CraftTool | null;
   selectedText: string | null;
-  direction: string;
+  direction: string;                        // preserved per tool session, cleared on tool change
   result: CraftResult | null;
+  error: string | null;                     // error message from failed API call
   loading: boolean;
-  panelWidth: 'normal' | 'expanded'; // expanded for brainstorm
+  panelWidth: 'normal' | 'expanded';        // expanded for brainstorm
 }
 ```
 
-This replaces the current `useCraftTools` hook and scattered state in `StoryEditor.tsx`.
+**Direction behavior:** `direction` is cleared when the user switches to a different tool. It persists while the same tool is active so the user can see what direction they used and modify it for a re-run.
 
 ### Undo State
 
 ```typescript
 interface UndoState {
   visible: boolean;
-  previousContent: string | null; // or rely on Tiptap undo stack
-  countdown: number;
+  toolLabel: string;     // e.g., "rewrite" for display in toast
+  countdown: number;     // seconds remaining (5 → 0)
 }
 ```
+
+Undo relies on Tiptap's built-in undo stack (`editor.commands.undo()`). No need to store previous content manually.
+
+### Files to Create/Modify
+
+- Create: `src/app/hooks/useCraftPanel.ts` — new unified hook
+- Delete: `src/app/components/editor/useCraftTools.ts` — replaced by useCraftPanel
 
 ---
 
@@ -384,6 +493,7 @@ interface UndoState {
 - `src/app/components/editor/CraftToolbar.tsx` — floating toolbar, replaced by header buttons
 - `src/app/components/editor/CraftDrawer.tsx` — mobile drawer, replaced by bottom sheet
 - `src/app/components/editor/CraftPreview.tsx` — inline preview, replaced by Craft tab
+- `src/app/components/editor/useCraftTools.ts` — replaced by `useCraftPanel`
 - Floating toolbar logic in `StoryEditor.tsx` (selection-based toolbar show/hide)
 
 ---
