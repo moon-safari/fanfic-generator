@@ -5,7 +5,7 @@ import { PenLine, BookOpen, LogOut } from "lucide-react";
 import CreateStoryTab from "./components/CreateStoryTab";
 import StoryEditor from "./components/editor/StoryEditor";
 import Library from "./components/Library";
-import { Story } from "./types/story";
+import { Story, StoryFormData } from "./types/story";
 import { getStoriesFromDB, deleteStoryFromDB } from "./lib/supabase/stories";
 import { useAuth } from "./lib/supabase/auth-context";
 
@@ -16,6 +16,7 @@ export default function Home() {
   const [view, setView] = useState<View>("create");
   const [stories, setStories] = useState<Story[]>([]);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
+  const [streamingFormData, setStreamingFormData] = useState<StoryFormData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadStories = useCallback(async () => {
@@ -30,16 +31,12 @@ export default function Home() {
     loadStories();
   }, [loadStories]);
 
-  const handleStoryCreated = (story: Story) => {
+  const handleStoryCreated = (story: Story, formData: StoryFormData) => {
     setStories((prev) => [story, ...prev]);
     setActiveStory(story);
-
-    // Auto-generate story bible in background
-    fetch("/api/story-bible/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storyId: story.id }),
-    }).catch(console.error);
+    setStreamingFormData(formData);
+    // NOTE: story bible generation is deferred until after streaming completes
+    // (triggered by StoryEditor's done handler)
   };
 
   const handleStoryUpdate = (updated: Story) => {
@@ -60,9 +57,11 @@ export default function Home() {
     return (
       <StoryEditor
         story={activeStory}
-        onBack={() => setActiveStory(null)}
+        streamingFormData={streamingFormData}
+        onBack={() => { setActiveStory(null); setStreamingFormData(null); }}
         onUpdate={handleStoryUpdate}
         onDelete={handleStoryDelete}
+        onStreamingComplete={() => setStreamingFormData(null)}
       />
     );
   }
