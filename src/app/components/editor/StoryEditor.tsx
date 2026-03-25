@@ -10,13 +10,13 @@ import { ChapterAnnotation } from "../../types/bible";
 import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
 import { useAutosave } from "./useAutosave";
-import { useCraftTools, CraftTool } from "./useCraftTools";
+import { useCraftPanel } from "../../hooks/useCraftPanel";
+import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
 import EditorFooter from "./EditorFooter";
-import StoryBiblePanel from "../story-bible/StoryBiblePanel";
-import CraftToolbar from "./CraftToolbar";
-import CraftDrawer from "./CraftDrawer";
-import CraftPreview from "./CraftPreview";
+import SidePanel from "./SidePanel";
+import MobileCraftSheet from "./MobileCraftSheet";
+import UndoToast from "./UndoToast";
 import AnnotationTooltip from "./AnnotationTooltip";
 import { AnnotationExtension, annotationPluginKey } from "./annotationExtension";
 
@@ -63,18 +63,21 @@ export default function StoryEditor({
   const [currentChapterIdx, setCurrentChapterIdx] = useState(
     story.chapters.length - 1
   );
-  const [showBible, setShowBible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Craft tools state
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const craftPanel = useCraftPanel(story.id);
   const [selectedText, setSelectedText] = useState("");
   const [selectionContext, setSelectionContext] = useState("");
-  const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number } | null>(null);
-  const [showCraftUI, setShowCraftUI] = useState(false);
-  const craftTools = useCraftTools(story.id);
+
+  // Undo toast state
+  const [undoToast, setUndoToast] = useState<{ visible: boolean; toolLabel: string }>({
+    visible: false,
+    toolLabel: "",
+  });
 
   // Annotations state
   const [annotations, setAnnotations] = useState<ChapterAnnotation[]>([]);
@@ -115,39 +118,20 @@ export default function StoryEditor({
     onSelectionUpdate: ({ editor: ed }) => {
       const { from, to } = ed.state.selection;
       if (from === to) {
-        // No selection - hide craft UI
-        if (!craftTools.result) {
-          setShowCraftUI(false);
-          setToolbarPosition(null);
-        }
+        setSelectedText("");
         return;
       }
-
       const text = ed.state.doc.textBetween(from, to, " ");
       if (text.trim().length < 3) {
-        setShowCraftUI(false);
-        setToolbarPosition(null);
+        setSelectedText("");
         return;
       }
-
       setSelectedText(text);
-
-      // Get surrounding context (up to 500 chars before and after)
+      // Get surrounding context
       const docText = ed.state.doc.textContent;
       const textBefore = docText.slice(Math.max(0, from - 250), from);
       const textAfter = docText.slice(to, Math.min(docText.length, to + 250));
       setSelectionContext(textBefore + text + textAfter);
-
-      // Get position for floating toolbar (desktop)
-      if (!isMobile) {
-        const coords = ed.view.coordsAtPos(from);
-        setToolbarPosition({
-          top: coords.top - 10,
-          left: (coords.left + ed.view.coordsAtPos(to).left) / 2,
-        });
-      }
-
-      setShowCraftUI(true);
     },
   });
 
@@ -159,32 +143,62 @@ export default function StoryEditor({
   const flushRef = useRef(flush);
   flushRef.current = flush;
 
-  // Handle craft tool invocation
+  // Handle craft tool invocation from toolbar
   const handleCraftTool = useCallback(
-    (tool: CraftTool, direction?: string) => {
-      if (!selectedText) return;
-      craftTools.callTool(tool, selectedText, selectionContext, direction);
+    (tool: CraftTool) => {
+      if (!selectedText) {
+        // No selection - open panel with hint
+        craftPanel.openTab("craft");
+        return;
+      }
+      craftPanel.callTool(tool, selectedText, selectionContext, undefined, currentChapterIdx + 1);
     },
-    [selectedText, selectionContext, craftTools]
+    [selectedText, selectionContext, craftPanel, currentChapterIdx]
   );
 
-  // Handle craft tool dismiss
-  const handleCraftDismiss = useCallback(() => {
-    craftTools.dismiss();
-    setShowCraftUI(false);
-    setToolbarPosition(null);
-  }, [craftTools]);
-
-  // Handle accepting a craft result
-  const handleCraftAccept = useCallback(
+  // Handle inserting craft result into editor
+  const handleCraftInsert = useCallback(
     (text: string) => {
       if (!editor) return;
       const { from, to } = editor.state.selection;
-      editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, text).run();
-      handleCraftDismiss();
+      if (from !== to) {
+        editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, text).run();
+      } else {
+        // Insert at cursor if no selection
+        editor.chain().focus().insertContentAt(from, text).run();
+      }
+      setUndoToast({ visible: true, toolLabel: craftPanel.activeTool || "craft" });
     },
-    [editor, handleCraftDismiss]
+    [editor, craftPanel.activeTool]
   );
+
+  // Handle undo
+  const handleUndo = useCallback(() => {
+    if (!editor) return;
+    editor.commands.undo();
+    setUndoToast({ visible: false, toolLabel: "" });
+  }, [editor]);
+
+  // Handle rerun with new direction
+  const handleCraftRerun = useCallback(
+    (direction: string) => {
+      if (!selectedText || !craftPanel.activeTool) return;
+      craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, direction, currentChapterIdx + 1);
+    },
+    [selectedText, selectionContext, craftPanel, currentChapterIdx]
+  );
+
+  // Handle brainstorm generate more
+  const handleGenerateMore = useCallback(() => {
+    if (!selectedText) return;
+    craftPanel.callTool("brainstorm", selectedText, selectionContext, undefined, currentChapterIdx + 1);
+  }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
+
+  // Handle retry on error
+  const handleCraftRetry = useCallback(() => {
+    if (!selectedText || !craftPanel.activeTool) return;
+    craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, craftPanel.direction, currentChapterIdx + 1);
+  }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 
   // Fetch annotations when chapter changes
   useEffect(() => {
@@ -400,12 +414,22 @@ export default function StoryEditor({
         story={story}
         currentChapterIdx={currentChapterIdx}
         totalChapters={story.chapters.length}
-        showBible={showBible}
+        showBible={craftPanel.isOpen && craftPanel.activeTab === "bible"}
         annotationCount={activeAnnotations.length}
+        activeCraftTool={craftPanel.activeTool}
+        hasSelection={selectedText.length > 0}
+        craftLoading={craftPanel.loading}
         onBack={handleBack}
         onPrevChapter={() => switchChapter(currentChapterIdx - 1)}
         onNextChapter={() => switchChapter(currentChapterIdx + 1)}
-        onToggleBible={() => setShowBible((v) => !v)}
+        onToggleBible={() => {
+          if (craftPanel.isOpen && craftPanel.activeTab === "bible") {
+            craftPanel.closePanel();
+          } else {
+            craftPanel.openTab("bible");
+          }
+        }}
+        onCraftTool={handleCraftTool}
         onExport={handleExport}
         onDelete={handleDelete}
       />
@@ -413,9 +437,7 @@ export default function StoryEditor({
       {/* Delete confirmation banner */}
       {showDeleteConfirm && (
         <div className="px-4 py-3 bg-red-900/30 border-b border-red-700 flex items-center justify-between shrink-0">
-          <p className="text-red-200 text-sm">
-            Delete this story permanently?
-          </p>
+          <p className="text-red-200 text-sm">Delete this story permanently?</p>
           <div className="flex gap-2">
             <button
               onClick={() => onDelete(story.id)}
@@ -436,7 +458,14 @@ export default function StoryEditor({
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-y-auto" onClick={handleEditorClick} onMouseOver={handleEditorMouseOver}>
+        <div
+          className={`flex-1 overflow-y-auto transition-opacity duration-300 ${
+            craftPanel.panelWidth === "expanded" ? "opacity-70" : "opacity-100"
+          }`}
+          onClick={handleEditorClick}
+          onMouseOver={handleEditorMouseOver}
+          style={{ position: "relative" }}
+        >
           <div className="max-w-3xl mx-auto">
             <EditorContent editor={editor} />
 
@@ -447,45 +476,60 @@ export default function StoryEditor({
               </div>
             )}
           </div>
+
+          {/* Undo toast */}
+          {undoToast.visible && (
+            <UndoToast
+              toolLabel={undoToast.toolLabel}
+              onUndo={handleUndo}
+              onExpire={() => setUndoToast({ visible: false, toolLabel: "" })}
+            />
+          )}
         </div>
 
-        {/* Bible panel */}
-        {showBible && (
-          <StoryBiblePanel
+        {/* Side Panel - desktop always, mobile for Bible/History only */}
+        {craftPanel.isOpen && (!isMobile || craftPanel.activeTab !== "craft") && (
+          <SidePanel
             storyId={story.id}
-            onClose={() => setShowBible(false)}
+            activeTab={craftPanel.activeTab}
+            activeTool={craftPanel.activeTool}
+            craftResult={craftPanel.result}
+            craftLoading={craftPanel.loading}
+            craftError={craftPanel.error}
+            craftDirection={craftPanel.direction}
+            currentChapter={currentChapterIdx + 1}
+            panelWidth={craftPanel.panelWidth}
+            isMobile={false}
+            onTabChange={craftPanel.setTab}
+            onClose={craftPanel.closePanel}
+            onCraftDirectionChange={craftPanel.setDirection}
+            onCraftRerun={handleCraftRerun}
+            onCraftInsert={handleCraftInsert}
+            onCraftGenerateMore={handleGenerateMore}
+            onCraftRetry={handleCraftRetry}
+            onHistoryReinsert={handleCraftInsert}
           />
         )}
       </div>
 
-      {/* Craft Toolbar (desktop) - shown when text is selected */}
-      {showCraftUI && !isMobile && toolbarPosition && !craftTools.result && (
-        <CraftToolbar
-          position={toolbarPosition}
-          loading={craftTools.loading}
-          activeTool={craftTools.activeTool}
-          onTool={handleCraftTool}
-          onDismiss={handleCraftDismiss}
-        />
-      )}
-
-      {/* Craft Drawer (mobile) - shown when text is selected */}
-      {showCraftUI && isMobile && !craftTools.result && (
-        <CraftDrawer
-          loading={craftTools.loading}
-          activeTool={craftTools.activeTool}
-          onTool={handleCraftTool}
-          onDismiss={handleCraftDismiss}
-        />
-      )}
-
-      {/* Craft Preview - shown when result is available */}
-      {craftTools.result && (
-        <CraftPreview
-          result={craftTools.result}
-          originalText={selectedText}
-          onAccept={handleCraftAccept}
-          onDismiss={handleCraftDismiss}
+      {/* Mobile craft sheet */}
+      {isMobile && craftPanel.isOpen && craftPanel.activeTab === "craft" && (
+        <MobileCraftSheet
+          isOpen
+          activeTool={craftPanel.activeTool}
+          result={craftPanel.result}
+          loading={craftPanel.loading}
+          error={craftPanel.error}
+          direction={craftPanel.direction}
+          onClose={craftPanel.closePanel}
+          onDirectionChange={craftPanel.setDirection}
+          onRerun={handleCraftRerun}
+          onInsert={(text) => {
+            handleCraftInsert(text);
+            craftPanel.closePanel();
+          }}
+          onGenerateMore={handleGenerateMore}
+          onRetry={handleCraftRetry}
         />
       )}
 
