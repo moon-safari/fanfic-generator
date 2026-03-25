@@ -1,6 +1,6 @@
 # Mobile Polish Pass — Design Spec
 
-**Goal:** Fix the 5 highest-impact mobile UX issues that would frustrate real users on iPhone and Android devices.
+**Goal:** Fix the highest-impact mobile UX issues that would frustrate real users on iPhone and Android devices.
 
 **Scope:** Targeted fixes only — no layout redesigns, no new features. Approach A from brainstorming.
 
@@ -13,21 +13,23 @@
 **Problem:** On iPhones with notch/Dynamic Island and Android devices with gesture navigation bars, content at the top and bottom edges gets clipped or hidden behind system UI.
 
 **Files:**
-- Modify: `src/app/layout.tsx` — add `viewport-fit=cover` via Next.js Metadata API
+- Modify: `src/app/layout.tsx` — add `viewport-fit=cover` via Next.js Viewport API
 - Modify: `src/app/components/editor/EditorToolbar.tsx` — add top safe area padding
 - Modify: `src/app/components/editor/EditorFooter.tsx` — add bottom safe area padding
 - Modify: `src/app/components/editor/MobileBottomSheet.tsx` — add bottom safe area padding
 
 **Implementation:**
 
-In `layout.tsx`, export a `viewport` config:
+In `layout.tsx`, add the `Viewport` import and export a `viewport` config:
 ```typescript
+import type { Metadata, Viewport } from "next";
+
 export const viewport: Viewport = {
   viewportFit: "cover",
 };
 ```
 
-On the three components, add Tailwind's safe area utilities or inline `env()` padding:
+On the three components, add Tailwind arbitrary value classes for safe area padding:
 - EditorToolbar header: `pt-[env(safe-area-inset-top)]`
 - EditorFooter: `pb-[env(safe-area-inset-bottom)]`
 - MobileBottomSheet inner sheet: `pb-[env(safe-area-inset-bottom)]`
@@ -44,11 +46,13 @@ On the three components, add Tailwind's safe area utilities or inline `env()` pa
 
 **Implementation:**
 
-In `handleTouchMove`, check the sheet's `scrollTop` before allowing the dismiss gesture:
-- If `scrollTop > 0`, the user is scrolling content — do not intercept, let native scroll happen.
-- If `scrollTop === 0` and the user swipes down, begin the dismiss gesture as before.
+The sheet element (`sheetRef`) is itself the scrollable container (`overflow-y-auto`). No additional ref is needed.
 
-Add a ref to track the scrollable content area. The drag handle area at the top should always trigger dismiss regardless of scroll position.
+In `handleTouchMove`, read `sheetRef.current.scrollTop` before allowing the dismiss gesture:
+- If `sheetRef.current.scrollTop > 0`, the user is scrolling content — do not intercept, let native scroll happen.
+- If `sheetRef.current.scrollTop === 0` and the user swipes down (`deltaY > 0`), begin the dismiss gesture as before.
+
+For the drag handle: add a separate `data-drag-handle` attribute to the drag handle div. In `handleTouchStart`, check if the touch originated on or within the drag handle element using `e.target.closest('[data-drag-handle]')`. Store this in a ref (`isDragHandleTouch`). In `handleTouchMove`, if `isDragHandleTouch` is true, always allow dismiss regardless of `scrollTop`.
 
 **Behavior:**
 - Swiping down on the drag handle → always dismisses
@@ -57,43 +61,25 @@ Add a ref to track the scrollable content area. The drag handle area at the top 
 
 ---
 
-## Fix 3: Annotation Tooltip Overflow
+## Fix 3: Annotation Tooltip Width Cap
 
-**Problem:** `AnnotationTooltip` uses fixed `w-72` (288px). On a 375px-wide device, with any horizontal offset, the tooltip overflows the viewport causing horizontal scroll.
+**Problem:** `AnnotationTooltip` uses fixed `w-72` (288px). Horizontal position clamping already exists (lines 85-86), but the tooltip's intrinsic width is not capped. On extremely narrow viewports or during the first render frame before the positioning effect fires, the tooltip can be wider than the viewport.
 
 **File:** Modify: `src/app/components/editor/AnnotationTooltip.tsx`
 
 **Implementation:**
 
-Replace `w-72` with `w-72 max-w-[calc(100vw-2rem)]`. This caps the tooltip at viewport width minus 32px (16px margin each side).
-
-For horizontal positioning, clamp the `left` style so the tooltip stays within viewport bounds:
-- `left: Math.max(16, Math.min(anchorLeft, window.innerWidth - tooltipWidth - 16))`
-
-Use a ref + `useLayoutEffect` to measure the tooltip's rendered width and adjust position.
+Add `max-w-[calc(100vw-2rem)]` alongside the existing `w-72` class. This is a one-line CSS change. No JavaScript changes needed — the existing `useEffect` positioning logic is correct and already handles horizontal clamping.
 
 ---
 
-## Fix 4: Dropdown Menu Overflow
+## Fix 4: Touch Target Minimums on Form Buttons
 
-**Problem:** The `CharacterSelector` dropdown can overflow on mobile. The EditorToolbar's "more options" menu works (uses `right-0`) but character selector dropdowns use absolute positioning that can go off-screen.
-
-**Files:**
-- Modify: `src/app/components/CharacterSelector.tsx` — constrain dropdown
-
-**Implementation:**
-
-Add `max-h-[50vh] overflow-y-auto` to the dropdown list so it doesn't exceed half the viewport height. Add `left-0 right-0` to make the dropdown match the parent width instead of growing beyond it. Since the character selector input is already full-width within its container, this naturally constrains the dropdown.
-
----
-
-## Fix 5: Touch Target Minimums on Form Buttons
-
-**Problem:** Tone buttons, trope chips, relationship buttons, and rating buttons rely on padding for height. On mobile, they render at ~36px — below the 44px minimum recommended by both Apple HIG and Material Design.
+**Problem:** Tone buttons, trope chips, trope category tabs, relationship buttons, and rating buttons rely on padding for height. On mobile, they render at ~32-36px — below the 44px minimum recommended by both Apple HIG and Material Design.
 
 **Files:**
 - Modify: `src/app/components/ToneSelector.tsx` — add `min-h-[44px]` to tone buttons
-- Modify: `src/app/components/TropeSelector.tsx` — add `min-h-[44px]` to trope chips
+- Modify: `src/app/components/TropeSelector.tsx` — add `min-h-[44px]` to trope chips AND category tab buttons
 - Modify: `src/app/components/RelationshipSelector.tsx` — add `min-h-[44px]` to relationship buttons
 - Modify: `src/app/components/RatingSelector.tsx` — add `min-h-[44px]` to rating buttons
 
@@ -110,4 +96,4 @@ Add `min-h-[44px]` to each interactive button element in these components. This 
 - Mobile-first form redesign
 - CSS `touch-action` optimization
 - Disabled button visibility
-- Dropdown repositioning based on viewport edge detection (complex, low ROI)
+- Dropdown repositioning (CharacterSelector already has `w-full max-h-48 overflow-y-auto`)
