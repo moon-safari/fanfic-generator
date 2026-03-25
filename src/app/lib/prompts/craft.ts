@@ -34,15 +34,25 @@ export function buildDescribePrompt(
   context: string,
   bibleContext: string
 ): string {
-  return `You are a skilled fiction writer. Generate 4 alternative descriptions for the selected passage. Each alternative should approach the same content from a different angle — different sensory focus, different emotional register, or different stylistic approach.
+  return `You are a skilled fiction writer. Generate vivid sensory descriptions for the selected passage.
+
+For each relevant sense (sight, smell, sound, touch, taste), write a 2-3 sentence description. Skip senses that don't naturally apply. Then write a "blend" that combines the best elements from all senses into one cohesive passage.
 ${bibleContext ? `\n${bibleContext}\n` : ""}
 ${context ? `SURROUNDING CONTEXT:\n${context}\n` : ""}
 SELECTED TEXT:
 ${selectedText}
 
-Output ONLY a valid JSON array of 4 strings, each a complete alternative description. No explanations, no markdown fences.
+Output ONLY valid JSON with this exact structure. No explanations, no markdown fences:
 
-Example format: ["First alternative...", "Second alternative...", "Third alternative...", "Fourth alternative..."]`;
+{
+  "blend": "A combined passage weaving together the most vivid sensory details...",
+  "senses": [
+    { "type": "sight", "text": "Visual description..." },
+    { "type": "sound", "text": "Auditory description..." }
+  ]
+}
+
+Only include senses that are relevant. Always include "blend".`;
 }
 
 export function buildBrainstormPrompt(
@@ -62,7 +72,7 @@ Output ONLY a valid JSON array of 5 objects with this exact structure. No explan
   {
     "title": "Short evocative title for this direction",
     "description": "2-3 sentence description of what happens in this direction",
-    "preview": "1-2 sentence opening that sets up this direction"
+    "prose": "1-2 sentence opening paragraph showing how this direction would read in the story"
   }
 ]`;
 }
