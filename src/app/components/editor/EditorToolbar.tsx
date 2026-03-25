@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Story } from "../../types/story";
+import { CraftTool } from "../../types/craft";
 
 interface EditorToolbarProps {
   story: Story;
@@ -24,6 +25,10 @@ interface EditorToolbarProps {
   onToggleBible: () => void;
   onExport: () => void;
   onDelete: () => void;
+  activeCraftTool: CraftTool | null;
+  hasSelection: boolean;
+  craftLoading: boolean;
+  onCraftTool: (tool: CraftTool) => void;
 }
 
 export default function EditorToolbar({
@@ -38,6 +43,10 @@ export default function EditorToolbar({
   onToggleBible,
   onExport,
   onDelete,
+  activeCraftTool,
+  hasSelection,
+  craftLoading,
+  onCraftTool,
 }: EditorToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,6 +105,62 @@ export default function EditorToolbar({
 
       {/* Right section */}
       <div className="flex items-center gap-1 shrink-0">
+            {/* Craft tool buttons */}
+            <div className="hidden sm:flex items-center gap-0.5">
+              {(
+                [
+                  { tool: "rewrite" as CraftTool, icon: "✏️", label: "Rewrite" },
+                  { tool: "expand" as CraftTool, icon: "📐", label: "Expand" },
+                  { tool: "describe" as CraftTool, icon: "🎨", label: "Describe" },
+                  { tool: "brainstorm" as CraftTool, icon: "💡", label: "Brainstorm" },
+                ] as const
+              ).map(({ tool, icon, label }) => (
+                <button
+                  key={tool}
+                  onClick={() => onCraftTool(tool)}
+                  className={`px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                    activeCraftTool === tool
+                      ? "bg-purple-600/20 text-purple-400 border border-purple-500/40"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  }`}
+                  title={label}
+                >
+                  {craftLoading && activeCraftTool === tool ? (
+                    <span className="animate-spin inline-block">⏳</span>
+                  ) : (
+                    icon
+                  )}{" "}
+                  <span className="hidden lg:inline">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile craft tool icons */}
+            <div className="flex sm:hidden items-center gap-0.5">
+              {(
+                [
+                  { tool: "rewrite" as CraftTool, icon: "✏️" },
+                  { tool: "expand" as CraftTool, icon: "📐" },
+                  { tool: "describe" as CraftTool, icon: "🎨" },
+                  { tool: "brainstorm" as CraftTool, icon: "💡" },
+                ] as const
+              ).map(({ tool, icon }) => (
+                <button
+                  key={tool}
+                  onClick={() => onCraftTool(tool)}
+                  className={`p-2 rounded-lg text-sm min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${
+                    activeCraftTool === tool
+                      ? "bg-purple-600/20 text-purple-400"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  {craftLoading && activeCraftTool === tool ? "⏳" : icon}
+                </button>
+              ))}
+            </div>
+
+            <span className="hidden sm:block w-px h-5 bg-zinc-700 mx-1" />
+
         <div className="relative">
           <button
             onClick={onToggleBible}
