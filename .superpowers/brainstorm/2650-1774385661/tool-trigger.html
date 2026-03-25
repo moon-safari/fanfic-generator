@@ -1,0 +1,86 @@
+<h2>How Should Craft Tools Be Triggered?</h2>
+<p class="subtitle">What happens when you select text in the editor?</p>
+
+<div class="cards">
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #1a1a2e;">
+      <div style="height: 200px; background: #0f0f1a; border-radius: 8px; position: relative; padding: 20px; font-size: 11px; color: #c0c0d0; line-height: 1.7;">
+        <p>She peered out across the bay, watching the dark water...</p>
+        <p><span style="background: #7c3aed30; padding: 1px 2px;">The old lighthouse stood like a sentinel, its beam cutting through the fog.</span></p>
+        <!-- Floating mini toolbar -->
+        <div style="position: absolute; top: 60px; left: 50%; transform: translateX(-50%); background: #2a2a3e; border: 1px solid #3a3a4e; border-radius: 8px; padding: 4px; display: flex; gap: 2px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+          <span style="padding: 4px 8px; font-size: 9px; color: #c4b5fd; background: #1a1025; border-radius: 4px;">✏️ Rewrite ▾</span>
+          <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">📐 Expand</span>
+          <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">🎨 Describe</span>
+          <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">💡 Brainstorm</span>
+        </div>
+        <p style="margin-top: 24px;">LaBlanche knew this was the place...</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Floating Toolbar on Selection</h3>
+      <p>Current approach. A mini toolbar appears above selected text. Click a tool → results open in the side panel. <strong>Familiar, discoverable.</strong> But: adds visual noise, covers text on mobile.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #1a1a2e;">
+      <div style="height: 200px; background: #0f0f1a; border-radius: 8px; position: relative; overflow: hidden;">
+        <!-- Top toolbar -->
+        <div style="background: #1a1a2e; padding: 6px 10px; border-bottom: 1px solid #2a2a3e; font-size: 10px; color: #a0a0b0; display: flex; justify-content: space-between; align-items: center;">
+          <span>← Story Title</span>
+          <div style="display: flex; gap: 1px;">
+            <span style="padding: 4px 8px; font-size: 9px; color: #c4b5fd; background: #7c3aed20; border-radius: 4px; border: 1px solid #7c3aed40;">✏️ Rewrite</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">📐 Expand</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">🎨 Describe</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">💡 Brainstorm</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0; margin-left: 4px;">📖</span>
+          </div>
+        </div>
+        <div style="padding: 14px; font-size: 11px; color: #c0c0d0; line-height: 1.7;">
+          <p>She peered out across the bay, watching the dark water...</p>
+          <p><span style="background: #7c3aed30; padding: 1px 2px;">The old lighthouse stood like a sentinel, its beam cutting through the fog.</span></p>
+          <p>LaBlanche knew this was the place...</p>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Persistent Top Toolbar</h3>
+      <p>Tool buttons live in the editor header bar (like Sudowrite). Select text, then click a tool in the toolbar. <strong>Always visible, no popups.</strong> But: takes toolbar space, less contextual.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #1a1a2e;">
+      <div style="height: 200px; background: #0f0f1a; border-radius: 8px; position: relative; overflow: hidden;">
+        <div style="background: #1a1a2e; padding: 6px 10px; border-bottom: 1px solid #2a2a3e; font-size: 10px; color: #a0a0b0; display: flex; justify-content: space-between;">
+          <span>← Story Title</span>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="padding: 4px 8px; font-size: 9px; color: #c4b5fd; background: #7c3aed20; border-radius: 4px;">✏️ Rewrite</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">📐 Expand</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">🎨 Describe</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">💡 Brain</span>
+            <span style="margin-left: 4px; color: #444;">|</span>
+            <span style="padding: 4px 8px; font-size: 9px; color: #a0a0b0;">📖</span>
+          </div>
+        </div>
+        <div style="padding: 14px; font-size: 11px; color: #c0c0d0; line-height: 1.7; position: relative;">
+          <p>She peered out across the bay, watching the dark water...</p>
+          <p><span style="background: #7c3aed30; padding: 1px 2px;">The old lighthouse stood like a sentinel, its beam cutting through the fog.</span></p>
+          <!-- Small context tooltip -->
+          <div style="position: absolute; top: 52px; left: 40%; background: #2a2a3e; border-radius: 6px; padding: 3px 8px; font-size: 8px; color: #a78bfa; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+            ✨ Select text to use tools above
+          </div>
+          <p>LaBlanche knew this was the place...</p>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Hybrid: Top Toolbar + Selection Hint</h3>
+      <p>Tools live in the header. When text is selected, a subtle hint appears near the selection pointing to the toolbar. <strong>Best of both: always visible + contextual.</strong> Clean, professional, scales to mobile (tools become icons).</p>
+    </div>
+  </div>
+</div>
