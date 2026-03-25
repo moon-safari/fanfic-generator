@@ -128,12 +128,25 @@ export interface CraftContext {
   context: string;
   direction: string;
   bibleContext: string;
-  userId: string;      // ADD THIS
-  storyId: string;     // ADD THIS
+  userId: string;         // ADD THIS
+  storyId: string;        // ADD THIS
+  chapterNumber: number;  // ADD THIS
 }
 ```
 
-Then in the `authenticateAndFetchBible` function, update the return statement (line 106) from:
+Also update the body parsing (line 47) to include `chapterNumber`:
+
+```typescript
+  const { storyId, selectedText, context = "", direction = "", chapterNumber = 0 } = body as {
+    storyId: string;
+    selectedText: string;
+    context?: string;
+    direction?: string;
+    chapterNumber?: number;
+  };
+```
+
+Then update the return statement (line 106) from:
 
 ```typescript
   return { selectedText, context, direction, bibleContext };
@@ -142,7 +155,7 @@ Then in the `authenticateAndFetchBible` function, update the return statement (l
 to:
 
 ```typescript
-  return { selectedText, context, direction, bibleContext, userId: user.id, storyId };
+  return { selectedText, context, direction, bibleContext, userId: user.id, storyId, chapterNumber };
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
@@ -471,7 +484,7 @@ export async function POST(req: NextRequest) {
       return authResult.error;
     }
 
-    const { selectedText, context, bibleContext, userId, storyId } = authResult;
+    const { selectedText, context, bibleContext, userId, storyId, chapterNumber } = authResult;
 
     const prompt = buildDescribePrompt(selectedText, context, bibleContext);
 
@@ -515,7 +528,7 @@ export async function POST(req: NextRequest) {
     // Save to history (non-blocking)
     saveCraftHistory({
       storyId,
-      chapterNumber: 0, // Client should pass this; default to 0
+      chapterNumber,
       toolType: "describe",
       direction: null,
       selectedText,
@@ -555,7 +568,7 @@ export async function POST(req: NextRequest) {
       return authResult.error;
     }
 
-    const { selectedText, context, bibleContext, userId, storyId } = authResult;
+    const { selectedText, context, bibleContext, userId, storyId, chapterNumber } = authResult;
 
     const prompt = buildBrainstormPrompt(selectedText, context, bibleContext);
 
@@ -592,7 +605,7 @@ export async function POST(req: NextRequest) {
     // Save to history (non-blocking)
     saveCraftHistory({
       storyId,
-      chapterNumber: 0,
+      chapterNumber,
       toolType: "brainstorm",
       direction: null,
       selectedText,
@@ -643,7 +656,7 @@ After the `text` variable is set (line 30), before the return, add:
     const { saveCraftHistory } = await import("../../../lib/supabase/craftHistory");
     saveCraftHistory({
       storyId,
-      chapterNumber: 0,
+      chapterNumber,
       toolType: "rewrite",
       direction: direction || null,
       selectedText,
@@ -661,7 +674,7 @@ Apply the same pattern to `src/app/api/craft/expand/route.ts`. Update destructur
     const { saveCraftHistory } = await import("../../../lib/supabase/craftHistory");
     saveCraftHistory({
       storyId,
-      chapterNumber: 0,
+      chapterNumber,
       toolType: "expand",
       direction: null,
       selectedText,
@@ -758,7 +771,8 @@ export function useCraftPanel(storyId: string) {
       tool: CraftTool,
       selectedText: string,
       context: string,
-      direction?: string
+      direction?: string,
+      chapterNumber?: number
     ) => {
       setState((prev) => ({
         ...prev,
@@ -782,6 +796,7 @@ export function useCraftPanel(storyId: string) {
             selectedText,
             context,
             direction: direction || "",
+            chapterNumber: chapterNumber || 0,
           }),
         });
 
@@ -2326,9 +2341,9 @@ Replace `handleCraftTool`, `handleCraftDismiss`, `handleCraftAccept` (lines 162-
         craftPanel.openTab("craft");
         return;
       }
-      craftPanel.callTool(tool, selectedText, selectionContext);
+      craftPanel.callTool(tool, selectedText, selectionContext, undefined, currentChapterIdx + 1);
     },
-    [selectedText, selectionContext, craftPanel]
+    [selectedText, selectionContext, craftPanel, currentChapterIdx]
   );
 
   // Handle inserting craft result into editor
@@ -2358,22 +2373,22 @@ Replace `handleCraftTool`, `handleCraftDismiss`, `handleCraftAccept` (lines 162-
   const handleCraftRerun = useCallback(
     (direction: string) => {
       if (!selectedText || !craftPanel.activeTool) return;
-      craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, direction);
+      craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, direction, currentChapterIdx + 1);
     },
-    [selectedText, selectionContext, craftPanel]
+    [selectedText, selectionContext, craftPanel, currentChapterIdx]
   );
 
   // Handle brainstorm generate more
   const handleGenerateMore = useCallback(() => {
     if (!selectedText) return;
-    craftPanel.callTool("brainstorm", selectedText, selectionContext);
-  }, [selectedText, selectionContext, craftPanel]);
+    craftPanel.callTool("brainstorm", selectedText, selectionContext, undefined, currentChapterIdx + 1);
+  }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 
   // Handle retry on error
   const handleCraftRetry = useCallback(() => {
     if (!selectedText || !craftPanel.activeTool) return;
-    craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, craftPanel.direction);
-  }, [selectedText, selectionContext, craftPanel]);
+    craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, craftPanel.direction, currentChapterIdx + 1);
+  }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 ```
 
 - [ ] **Step 5: Update the JSX render**
@@ -2448,8 +2463,8 @@ Replace the entire return JSX. Key changes:
           )}
         </div>
 
-        {/* Side Panel (desktop) */}
-        {craftPanel.isOpen && !isMobile && (
+        {/* Side Panel — desktop always, mobile for Bible/History only */}
+        {craftPanel.isOpen && (!isMobile || craftPanel.activeTab !== "craft") && (
           <SidePanel
             storyId={story.id}
             activeTab={craftPanel.activeTab}
