@@ -38,7 +38,7 @@ export default function TropeSelector({ selected, onChange }: TropeSelectorProps
               key={cat.id}
               type="button"
               onClick={() => setActiveTab(cat.id)}
-              className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
+              className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 min-h-[44px] ${
                 activeTab === cat.id
                   ? "border-purple-500 text-purple-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -61,7 +61,7 @@ export default function TropeSelector({ selected, onChange }: TropeSelectorProps
             key={trope}
             type="button"
             onClick={() => toggle(trope)}
-            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-sm transition-colors min-h-[44px] ${
               selected.includes(trope)
                 ? "bg-rose-600 text-white"
                 : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"

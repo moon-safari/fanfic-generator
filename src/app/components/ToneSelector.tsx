@@ -27,7 +27,7 @@ export default function ToneSelector({ selected, onChange }: ToneSelectorProps) 
             key={tone.id}
             type="button"
             onClick={() => toggle(tone.label)}
-            className={`flex flex-col items-start px-3 py-2 rounded-lg text-sm transition-colors ${
+            className={`flex flex-col items-start px-3 py-2 rounded-lg text-sm transition-colors min-h-[44px] ${
               selected.includes(tone.label)
                 ? "bg-rose-600 text-white"
                 : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"

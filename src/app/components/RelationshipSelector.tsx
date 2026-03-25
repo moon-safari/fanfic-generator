@@ -26,7 +26,7 @@ export default function RelationshipSelector({ selected, onChange }: Relationshi
             key={r.value}
             type="button"
             onClick={() => onChange(r.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
               selected === r.value
                 ? "bg-purple-600 text-white"
                 : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
