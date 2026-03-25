@@ -5,7 +5,7 @@ const supabase = createClient();
 
 export interface CreateStoryInput {
   title: string;
-  firstChapterContent: string;
+  firstChapterContent?: string;
   fandom: string;
   customFandom?: string;
   characters: string[];
@@ -14,7 +14,7 @@ export interface CreateStoryInput {
   setting?: string;
   tone: string[];
   tropes: string[];
-  wordCount: number;
+  wordCount?: number;
 }
 
 /** Fetch all stories for the current user, with chapters inlined */
@@ -69,7 +69,7 @@ export async function createStoryInDB(
       setting: input.setting || null,
       tone: input.tone,
       tropes: input.tropes,
-      word_count: input.wordCount,
+      word_count: input.wordCount ?? 0,
     })
     .select()
     .single();
@@ -77,13 +77,14 @@ export async function createStoryInDB(
   if (storyError || !dbStory) return null;
 
   // Insert first chapter
+  const chapterContent = input.firstChapterContent || " ";
   const { error: chapError } = await supabase
     .from("chapters")
     .insert({
       story_id: dbStory.id,
       chapter_number: 1,
-      content: input.firstChapterContent,
-      word_count: input.firstChapterContent.split(/\s+/).length,
+      content: chapterContent,
+      word_count: chapterContent.trim() ? chapterContent.split(/\s+/).length : 0,
     });
 
   if (chapError) return null;
@@ -121,6 +122,31 @@ export async function addChapterToDB(
     .eq("id", storyId);
 
   return getStoryFromDB(storyId);
+}
+
+/** Update a story's title */
+export async function updateStoryTitle(
+  storyId: string,
+  title: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("stories")
+    .update({ title, updated_at: new Date().toISOString() })
+    .eq("id", storyId);
+  return !error;
+}
+
+/** Update a chapter's content and word count */
+export async function updateChapterContent(
+  chapterId: string,
+  content: string
+): Promise<boolean> {
+  const wordCount = content.trim() ? content.split(/\s+/).length : 0;
+  const { error } = await supabase
+    .from("chapters")
+    .update({ content, word_count: wordCount })
+    .eq("id", chapterId);
+  return !error;
 }
 
 /** Delete a story */
