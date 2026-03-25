@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return result.error;
     }
 
-    const { selectedText, context, bibleContext } = result;
+    const { selectedText, context, bibleContext, userId, storyId, chapterNumber } = result;
 
     const prompt = buildExpandPrompt(selectedText, context, bibleContext);
 
@@ -27,6 +27,18 @@ export async function POST(req: NextRequest) {
 
     const text =
       message.content[0].type === "text" ? message.content[0].text : "";
+
+    // Save to history (non-blocking)
+    const { saveCraftHistory } = await import("../../../lib/supabase/craftHistory");
+    saveCraftHistory({
+      storyId,
+      chapterNumber,
+      toolType: "expand",
+      direction: null,
+      selectedText,
+      result: { type: "expand", text: text.trim() },
+      userId,
+    }).catch(() => {});
 
     return NextResponse.json({ result: text.trim() }, { status: 200 });
   } catch (err) {
