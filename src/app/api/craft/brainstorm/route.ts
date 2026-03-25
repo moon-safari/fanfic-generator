@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { authenticateAndFetchBible } from "../shared";
 import { buildBrainstormPrompt } from "../../../lib/prompts/craft";
+import { saveCraftHistory } from "../../../lib/supabase/craftHistory";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -9,13 +10,13 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const result = await authenticateAndFetchBible(req);
+    const authResult = await authenticateAndFetchBible(req);
 
-    if ("error" in result) {
-      return result.error;
+    if ("error" in authResult) {
+      return authResult.error;
     }
 
-    const { selectedText, context, bibleContext } = result;
+    const { selectedText, context, bibleContext, userId, storyId, chapterNumber } = authResult;
 
     const prompt = buildBrainstormPrompt(selectedText, context, bibleContext);
 
@@ -34,14 +35,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ result: [] }, { status: 200 });
     }
 
-    let parsed: object[];
+    let parsed: { title: string; description: string; prose: string }[];
     try {
       parsed = JSON.parse(jsonMatch[0]);
     } catch {
       return NextResponse.json({ result: [] }, { status: 200 });
     }
 
-    return NextResponse.json({ result: parsed }, { status: 200 });
+    const ideas = parsed.map((item) => ({
+      title: item.title || "",
+      description: item.description || "",
+      prose: item.prose || "",
+    }));
+
+    // Save to history (non-blocking)
+    saveCraftHistory({
+      storyId,
+      chapterNumber,
+      toolType: "brainstorm",
+      direction: null,
+      selectedText,
+      result: { type: "brainstorm", ideas },
+      userId,
+    }).catch(() => {});
+
+    return NextResponse.json({ result: ideas }, { status: 200 });
   } catch (err) {
     console.error("Brainstorm error:", err);
     const message = err instanceof Error ? err.message : "Brainstorm failed";
