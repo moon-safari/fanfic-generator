@@ -17,7 +17,6 @@ interface SidePanelProps {
   craftDirection: string;
   currentChapter: number;
   panelWidth: "normal" | "expanded";
-  isMobile: boolean;
   onTabChange: (tab: SidePanelTab) => void;
   onClose: () => void;
   onCraftDirectionChange: (direction: string) => void;
@@ -44,7 +43,6 @@ export default function SidePanel({
   craftDirection,
   currentChapter,
   panelWidth,
-  isMobile,
   onTabChange,
   onClose,
   onCraftDirectionChange,

@@ -1,7 +1,7 @@
 // src/app/components/editor/CraftTab.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Copy, AlertCircle, RefreshCw } from "lucide-react";
 import { CraftTool, CraftResult } from "../../types/craft";
 import DescribeResults from "./DescribeResults";
@@ -182,6 +182,11 @@ function DirectionInput({
   disabled?: boolean;
 }) {
   const [localDir, setLocalDir] = useState(direction);
+
+  // Sync local state when parent direction resets (e.g., new tool selected)
+  useEffect(() => {
+    setLocalDir(direction);
+  }, [direction]);
 
   return (
     <div className="flex gap-2 mb-3">

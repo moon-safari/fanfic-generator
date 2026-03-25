@@ -29,11 +29,13 @@ interface StoryEditorProps {
 
 /** Detect if viewport is mobile-width */
 function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
     const mql = window.matchMedia(query);
-    setMatches(mql.matches);
     const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
     mql.addEventListener("change", handler);
     return () => mql.removeEventListener("change", handler);
@@ -160,13 +162,8 @@ export default function StoryEditor({
   const handleCraftInsert = useCallback(
     (text: string) => {
       if (!editor) return;
-      const { from, to } = editor.state.selection;
-      if (from !== to) {
-        editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, text).run();
-      } else {
-        // Insert at cursor if no selection
-        editor.chain().focus().insertContentAt(from, text).run();
-      }
+      // insertContent replaces current selection or inserts at cursor
+      editor.chain().focus().insertContent(text).run();
       setUndoToast({ visible: true, toolLabel: craftPanel.activeTool || "craft" });
     },
     [editor, craftPanel.activeTool]
@@ -179,25 +176,28 @@ export default function StoryEditor({
     setUndoToast({ visible: false, toolLabel: "" });
   }, [editor]);
 
-  // Handle rerun with new direction
+  // Handle rerun with new direction — use stored selection as fallback since editor selection may have changed
   const handleCraftRerun = useCallback(
     (direction: string) => {
-      if (!selectedText || !craftPanel.activeTool) return;
-      craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, direction, currentChapterIdx + 1);
+      const text = selectedText || craftPanel.selectedText || "";
+      if (!text || !craftPanel.activeTool) return;
+      craftPanel.callTool(craftPanel.activeTool, text, selectionContext, direction, currentChapterIdx + 1);
     },
     [selectedText, selectionContext, craftPanel, currentChapterIdx]
   );
 
   // Handle brainstorm generate more
   const handleGenerateMore = useCallback(() => {
-    if (!selectedText) return;
-    craftPanel.callTool("brainstorm", selectedText, selectionContext, undefined, currentChapterIdx + 1);
+    const text = selectedText || craftPanel.selectedText || "";
+    if (!text) return;
+    craftPanel.callTool("brainstorm", text, selectionContext, undefined, currentChapterIdx + 1);
   }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 
   // Handle retry on error
   const handleCraftRetry = useCallback(() => {
-    if (!selectedText || !craftPanel.activeTool) return;
-    craftPanel.callTool(craftPanel.activeTool, selectedText, selectionContext, craftPanel.direction, currentChapterIdx + 1);
+    const text = selectedText || craftPanel.selectedText || "";
+    if (!text || !craftPanel.activeTool) return;
+    craftPanel.callTool(craftPanel.activeTool, text, selectionContext, craftPanel.direction, currentChapterIdx + 1);
   }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 
   // Fetch annotations when chapter changes
@@ -499,7 +499,6 @@ export default function StoryEditor({
             craftDirection={craftPanel.direction}
             currentChapter={currentChapterIdx + 1}
             panelWidth={craftPanel.panelWidth}
-            isMobile={false}
             onTabChange={craftPanel.setTab}
             onClose={craftPanel.closePanel}
             onCraftDirectionChange={craftPanel.setDirection}
