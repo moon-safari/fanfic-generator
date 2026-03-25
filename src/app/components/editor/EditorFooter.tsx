@@ -18,7 +18,7 @@ export default function EditorFooter({
   onContinue,
 }: EditorFooterProps) {
   return (
-    <footer className="border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shrink-0">
+    <footer className="border-t border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shrink-0 pb-[env(safe-area-inset-bottom)]">
       {error && (
         <div className="px-4 py-2 bg-red-900/50 border-b border-red-700 text-red-200 text-sm">
           {error}

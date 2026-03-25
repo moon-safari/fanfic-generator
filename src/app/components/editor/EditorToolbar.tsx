@@ -64,7 +64,7 @@ export default function EditorToolbar({
   }, [menuOpen]);
 
   return (
-    <header className="flex items-center justify-between px-3 sm:px-4 h-14 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shrink-0">
+    <header className="flex items-center justify-between px-3 sm:px-4 h-14 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shrink-0 pt-[env(safe-area-inset-top)]">
       {/* Left section */}
       <div className="flex items-center gap-1 sm:gap-2 min-w-0">
         <button
