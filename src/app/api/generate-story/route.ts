@@ -3,69 +3,107 @@ import Anthropic from "@anthropic-ai/sdk";
 import { StoryFormData } from "../../types/story";
 import { buildChapter1Prompt } from "../../lib/prompts";
 import { createServerSupabase } from "../../lib/supabase/server";
+import { sseEvent } from "../../lib/stream";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 export async function POST(req: NextRequest) {
-  try {
-    // Auth check
-    const supabase = await createServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  // Auth check
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body: StoryFormData = await req.json();
-
-    if (
-      !body.characters ||
-      !Array.isArray(body.characters) ||
-      body.characters.filter((c: string) => c.trim().length > 0).length < 2 ||
-      !body.tone ||
-      !Array.isArray(body.tone) ||
-      body.tone.length < 1 ||
-      !body.rating ||
-      !body.relationshipType
-    ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    const prompt = buildChapter1Prompt(body);
-
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const text =
-      message.content[0].type === "text" ? message.content[0].text : "";
-
-    const titleMatch = text.match(/^Title:\s*(.+?)$/m);
-    if (!titleMatch) {
-      return NextResponse.json(
-        { title: "Untitled Story", chapter: text.trim() },
-        { status: 200 }
-      );
-    }
-
-    const title = titleMatch[1].trim();
-    const chapter = text
-      .substring(titleMatch.index! + titleMatch[0].length)
-      .trim();
-
-    return NextResponse.json({ title, chapter }, { status: 200 });
-  } catch (err) {
-    console.error("Generate story error:", err);
-    const message = err instanceof Error ? err.message : "Generation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  let body: StoryFormData;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (
+    !body.characters ||
+    !Array.isArray(body.characters) ||
+    body.characters.filter((c: string) => c.trim().length > 0).length < 2 ||
+    !body.tone ||
+    !Array.isArray(body.tone) ||
+    body.tone.length < 1 ||
+    !body.rating ||
+    !body.relationshipType
+  ) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  const prompt = buildChapter1Prompt(body);
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const anthropicStream = anthropic.messages.stream({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        let titleBuffer = "";
+        let titleEmitted = false;
+
+        anthropicStream.on("text", (text) => {
+          if (!titleEmitted) {
+            titleBuffer += text;
+            const newlineIdx = titleBuffer.indexOf("\n");
+            if (newlineIdx !== -1) {
+              // Extract title from "Title: ..." line
+              const titleLine = titleBuffer.substring(0, newlineIdx);
+              const titleMatch = titleLine.match(/^Title:\s*(.+?)$/);
+              const title = titleMatch ? titleMatch[1].trim() : "Untitled Story";
+              controller.enqueue(encoder.encode(sseEvent("title", title)));
+              titleEmitted = true;
+
+              // Emit any remaining text after the title line
+              const remainder = titleBuffer.substring(newlineIdx + 1).trimStart();
+              if (remainder) {
+                controller.enqueue(encoder.encode(sseEvent("delta", remainder)));
+              }
+            }
+          } else {
+            controller.enqueue(encoder.encode(sseEvent("delta", text)));
+          }
+        });
+
+        anthropicStream.on("error", (err) => {
+          const message = err instanceof Error ? err.message : "Generation failed";
+          controller.enqueue(encoder.encode(sseEvent("error", message)));
+          controller.close();
+        });
+
+        // Wait for the stream to finish
+        await anthropicStream.finalMessage();
+        controller.enqueue(encoder.encode(sseEvent("done", "{}")));
+        controller.close();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Generation failed";
+        controller.enqueue(encoder.encode(sseEvent("error", message)));
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
