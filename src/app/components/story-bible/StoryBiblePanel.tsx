@@ -53,6 +53,172 @@ const SECTION_CONFIG: {
   { type: "notes", icon: StickyNote, title: "Notes" },
 ];
 
+// Headless body for embedding in SidePanel tabs
+interface StoryBibleBodyProps {
+  storyId: string;
+}
+
+export function StoryBibleBody({ storyId }: StoryBibleBodyProps) {
+  const [bible, setBible] = useState<StoryBible | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [openSection, setOpenSection] = useState<BibleSectionType | null>("characters");
+  const [regenerating, setRegenerating] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchBible = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/story-bible/${storyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBible(data);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
+    }
+  }, [storyId]);
+
+  useEffect(() => {
+    fetchBible();
+  }, [fetchBible]);
+
+  const saveSection = useCallback(
+    (sectionType: BibleSectionType, content: BibleSectionContent) => {
+      setBible((prev) => {
+        const emptySections = Object.fromEntries(
+          SECTION_CONFIG.map((c) => [c.type, null])
+        ) as StoryBible["sections"];
+        const base: StoryBible = prev ?? { storyId, sections: emptySections };
+        return {
+          ...base,
+          sections: {
+            ...base.sections,
+            [sectionType]: base.sections[sectionType]
+              ? { ...base.sections[sectionType], content }
+              : {
+                  id: "",
+                  storyId,
+                  sectionType,
+                  content,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                },
+          },
+        };
+      });
+
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          await fetch(`/api/story-bible/${storyId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sectionType, content }),
+          });
+        } catch {
+          // silently fail
+        }
+      }, 1000);
+    },
+    [storyId]
+  );
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    try {
+      await fetch("/api/story-bible/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storyId }),
+      });
+      await fetchBible();
+    } catch {
+      // silently fail
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const getSectionContent = (type: BibleSectionType): BibleSectionContent | null => {
+    return bible?.sections[type]?.content ?? null;
+  };
+
+  const getCharacterCount = (): number | undefined => {
+    const content = getSectionContent("characters") as BibleCharactersContent | null;
+    return content?.characters?.length;
+  };
+
+  const getOutlineCount = (): number | undefined => {
+    const content = getSectionContent("outline") as BibleOutlineContent | null;
+    return content?.chapters?.length;
+  };
+
+  const renderSectionContent = (type: BibleSectionType) => {
+    switch (type) {
+      case "characters":
+        return <CharacterCard content={getSectionContent(type) as BibleCharactersContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "world":
+        return <WorldEditor content={getSectionContent(type) as BibleWorldContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "synopsis":
+        return <SynopsisEditor content={getSectionContent(type) as BibleSynopsisContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "genre":
+        return <GenreEditor content={getSectionContent(type) as BibleGenreContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "style_guide":
+        return <StyleGuideEditor content={getSectionContent(type) as BibleStyleGuideContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "outline":
+        return <OutlineEditor content={getSectionContent(type) as BibleOutlineContent | null} onSave={(c) => saveSection(type, c)} />;
+      case "notes":
+        return <NotesEditor content={getSectionContent(type) as BibleNotesContent | null} onSave={(c) => saveSection(type, c)} />;
+    }
+  };
+
+  const getCount = (type: BibleSectionType): number | undefined => {
+    if (type === "characters") return getCharacterCount();
+    if (type === "outline") return getOutlineCount();
+    return undefined;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-10 bg-purple-900/20 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto">
+        {SECTION_CONFIG.map((cfg) => (
+          <BibleSection
+            key={cfg.type}
+            icon={cfg.icon}
+            title={cfg.title}
+            count={getCount(cfg.type)}
+            isOpen={openSection === cfg.type}
+            onToggle={() => setOpenSection((prev) => (prev === cfg.type ? null : cfg.type))}
+          >
+            {renderSectionContent(cfg.type)}
+          </BibleSection>
+        ))}
+      </div>
+      <div className="p-4 border-t border-purple-900/30 shrink-0">
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerating}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-purple-300 border border-purple-700/50 hover:bg-purple-900/30 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`} />
+          {regenerating ? "Re-checking..." : "Re-check continuity"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function StoryBiblePanel({
   storyId,
   onClose,
