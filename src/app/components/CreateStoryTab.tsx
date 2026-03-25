@@ -8,12 +8,12 @@ import RelationshipSelector from "./RelationshipSelector";
 import RatingSelector from "./RatingSelector";
 import ToneSelector from "./ToneSelector";
 import TropeSelector from "./TropeSelector";
-import { Story, StoryFormData, GenerateResponse, RelationshipType, Rating } from "../types/story";
+import { Story, StoryFormData, RelationshipType, Rating } from "../types/story";
 import { getFandomById } from "../lib/fandoms";
 import { createStoryInDB } from "../lib/supabase/stories";
 
 interface CreateStoryTabProps {
-  onStoryCreated: (story: Story) => void;
+  onStoryCreated: (story: Story, formData: StoryFormData) => void;
 }
 
 export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) {
@@ -58,29 +58,14 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
     };
 
     try {
-      const res = await fetch("/api/generate-story", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to generate story");
-      }
-
-      const data: GenerateResponse = await res.json();
-      const wordCount = data.chapter.split(/\s+/).length;
-
+      // Create placeholder story — editor will stream the actual content
       const story = await createStoryInDB({
-        title: data.title,
-        firstChapterContent: data.chapter,
+        title: "Generating...",
         ...formData,
-        wordCount,
       });
 
-      if (!story) throw new Error("Failed to save story");
-      onStoryCreated(story);
+      if (!story) throw new Error("Failed to create story");
+      onStoryCreated(story, formData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
