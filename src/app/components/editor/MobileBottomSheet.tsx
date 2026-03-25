@@ -17,18 +17,25 @@ export default function MobileBottomSheet({
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const currentTranslateY = useRef(0);
+  const isDragHandleTouch = useRef(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
     currentTranslateY.current = 0;
+    const target = e.target as HTMLElement;
+    isDragHandleTouch.current = !!target.closest("[data-drag-handle]");
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (dragStartY.current === null || !sheetRef.current) return;
     const deltaY = e.touches[0].clientY - dragStartY.current;
     if (deltaY > 0) {
-      currentTranslateY.current = deltaY;
-      sheetRef.current.style.transform = `translateY(${deltaY}px)`;
+      // Only allow dismiss gesture if drag started on handle OR content is scrolled to top
+      if (isDragHandleTouch.current || sheetRef.current.scrollTop <= 0) {
+        currentTranslateY.current = deltaY;
+        sheetRef.current.style.transform = `translateY(${deltaY}px)`;
+        e.preventDefault();
+      }
     }
   }, []);
 
@@ -66,7 +73,7 @@ export default function MobileBottomSheet({
         onTouchEnd={handleTouchEnd}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div data-drag-handle className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-zinc-600" />
         </div>
         {children}
