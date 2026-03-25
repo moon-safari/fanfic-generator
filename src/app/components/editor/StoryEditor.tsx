@@ -5,7 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
-import { Story, ContinueResponse } from "../../types/story";
+import { Story } from "../../types/story";
 import { ChapterAnnotation } from "../../types/bible";
 import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
@@ -19,12 +19,20 @@ import MobileCraftSheet from "./MobileCraftSheet";
 import UndoToast from "./UndoToast";
 import AnnotationTooltip from "./AnnotationTooltip";
 import { AnnotationExtension, annotationPluginKey } from "./annotationExtension";
+import { readSSEStream } from "../../lib/stream";
+import { updateStoryTitle, updateChapterContent } from "../../lib/supabase/stories";
+import { StoryFormData } from "../../types/story";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { Extension } from "@tiptap/core";
 
 interface StoryEditorProps {
   story: Story;
+  streamingFormData?: StoryFormData | null;
   onBack: () => void;
   onUpdate: (story: Story) => void;
   onDelete: (id: string) => void;
+  onStreamingComplete?: () => void;
 }
 
 /** Detect if viewport is mobile-width */
@@ -56,11 +64,41 @@ function textToTiptapDoc(text: string): object {
   };
 }
 
+/** Streaming cursor decoration — pulsing purple cursor at end of doc */
+const streamingCursorKey = new PluginKey("streamingCursor");
+
+function createStreamingCursorExtension(isActive: () => boolean) {
+  return Extension.create({
+    name: "streamingCursor",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          key: streamingCursorKey,
+          props: {
+            decorations(state) {
+              if (!isActive()) return DecorationSet.empty;
+              const pos = state.doc.content.size;
+              const cursorEl = document.createElement("span");
+              cursorEl.className = "streaming-cursor";
+              cursorEl.innerHTML = "&#8203;"; // zero-width space
+              return DecorationSet.create(state.doc, [
+                Decoration.widget(pos, cursorEl, { side: 1 }),
+              ]);
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
+
 export default function StoryEditor({
   story,
+  streamingFormData,
   onBack,
   onUpdate,
   onDelete,
+  onStreamingComplete,
 }: StoryEditorProps) {
   const [currentChapterIdx, setCurrentChapterIdx] = useState(
     story.chapters.length - 1
@@ -86,6 +124,23 @@ export default function StoryEditor({
   const [activeAnnotation, setActiveAnnotation] = useState<ChapterAnnotation | null>(null);
   const [annotationAnchorRect, setAnnotationAnchorRect] = useState<DOMRect | null>(null);
 
+  // Streaming state
+  const [streaming, setStreaming] = useState<{
+    active: boolean;
+    fullText: string;
+    source: "generate" | "continue";
+  }>({ active: false, fullText: "", source: "generate" });
+  const streamingRef = useRef(streaming);
+  streamingRef.current = streaming;
+
+  // Ref to track latest story prop — avoids stale closures in streaming callbacks
+  const storyRef = useRef(story);
+  storyRef.current = story;
+
+  const streamingCursorExtension = useRef(
+    createStreamingCursorExtension(() => streamingRef.current.active)
+  ).current;
+
   const chapter = story.chapters[currentChapterIdx];
   const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
 
@@ -108,6 +163,7 @@ export default function StoryEditor({
       Placeholder.configure({ placeholder: "Start writing..." }),
       CharacterCount,
       AnnotationExtension,
+      streamingCursorExtension,
     ],
     content: getChapterContent(currentChapterIdx),
     editorProps: {
@@ -148,6 +204,7 @@ export default function StoryEditor({
   // Handle craft tool invocation from toolbar
   const handleCraftTool = useCallback(
     (tool: CraftTool) => {
+      if (streaming.active) return;
       if (!selectedText) {
         // No selection - open panel with hint
         craftPanel.openTab("craft");
@@ -155,7 +212,7 @@ export default function StoryEditor({
       }
       craftPanel.callTool(tool, selectedText, selectionContext, undefined, currentChapterIdx + 1);
     },
-    [selectedText, selectionContext, craftPanel, currentChapterIdx]
+    [selectedText, selectionContext, craftPanel, currentChapterIdx, streaming.active]
   );
 
   // Handle inserting craft result into editor
@@ -299,6 +356,8 @@ export default function StoryEditor({
   // Update editor content when chapter changes
   useEffect(() => {
     if (!editor) return;
+    // Skip content sync during streaming — streaming manages editor content directly
+    if (streamingRef.current.active) return;
     const content = getChapterContent(currentChapterIdx);
     // Only set content if it differs from what we computed on mount
     if (initialContentRef.current === null) {
@@ -309,13 +368,112 @@ export default function StoryEditor({
     initialContentRef.current = content;
   }, [editor, currentChapterIdx, getChapterContent]);
 
-  // Continue story with post-generation continuity pipeline
+  // Stream chapter 1 when entering editor with streamingFormData
+  useEffect(() => {
+    if (!streamingFormData || !editor) return;
+
+    const chapter = story.chapters[0];
+    if (!chapter) return;
+
+    // Clear placeholder content and start streaming
+    editor.commands.setContent({ type: "doc", content: [] });
+    setStreaming({ active: true, fullText: "", source: "generate" });
+
+    let accumulated = "";
+
+    const startStream = async () => {
+      try {
+        const res = await fetch("/api/generate-story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(streamingFormData),
+        });
+
+        if (!res.ok) {
+          let errorMsg = "Failed to generate story";
+          try {
+            const data = await res.json();
+            errorMsg = data.error || errorMsg;
+          } catch {}
+          setError(errorMsg);
+          setStreaming({ active: false, fullText: "", source: "generate" });
+          return;
+        }
+
+        await readSSEStream(res, {
+          onTitle: (title) => {
+            // Fire-and-forget DB update; use storyRef to avoid stale closure
+            updateStoryTitle(storyRef.current.id, title).catch(() => {});
+            onUpdate({ ...storyRef.current, title });
+          },
+          onDelta: (text) => {
+            accumulated += text;
+            setStreaming((prev) => ({ ...prev, fullText: accumulated }));
+            editor.commands.insertContent(text);
+          },
+          onDone: () => {
+            setStreaming({ active: false, fullText: "", source: "generate" });
+            const latestStory = storyRef.current;
+            const ch = latestStory.chapters[0];
+            // Save accumulated content to DB
+            if (ch) {
+              updateChapterContent(ch.id, accumulated).catch(() => {});
+            }
+            // Update word count — read from storyRef to get latest (includes title update)
+            const wordCount = accumulated.trim() ? accumulated.split(/\s+/).length : 0;
+            const updatedStory = {
+              ...latestStory,
+              wordCount,
+              chapters: latestStory.chapters.map((c, i) =>
+                i === 0 ? { ...c, content: accumulated, wordCount } : c
+              ),
+            };
+            onUpdate(updatedStory);
+            onStreamingComplete?.();
+            // Trigger story bible generation now that we have content
+            fetch("/api/story-bible/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ storyId: latestStory.id }),
+            }).catch(() => {});
+          },
+          onError: (errorMsg) => {
+            setError(errorMsg);
+            setStreaming({ active: false, fullText: "", source: "generate" });
+            // Save whatever we accumulated
+            const ch = storyRef.current.chapters[0];
+            if (accumulated && ch) {
+              updateChapterContent(ch.id, accumulated).catch(() => {});
+            }
+          },
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Streaming failed");
+        setStreaming({ active: false, fullText: "", source: "generate" });
+      }
+    };
+
+    startStream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamingFormData, editor]);
+
+  // Continue story with streaming
   const handleContinue = async () => {
+    if (streaming.active) return;
     setLoading(true);
     setError("");
 
     try {
       await flush();
+
+      const chapterNum = story.chapters.length + 1;
+
+      // Jump to new empty chapter view
+      setCurrentChapterIdx(story.chapters.length); // will be out of bounds briefly
+      editor?.commands.setContent({ type: "doc", content: [] });
+      setStreaming({ active: true, fullText: "", source: "continue" });
+
+      let accumulated = "";
 
       const res = await fetch("/api/continue-chapter", {
         method: "POST",
@@ -324,63 +482,80 @@ export default function StoryEditor({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to continue story");
+        let errorMsg = "Failed to continue story";
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
-      const data: ContinueResponse = await res.json();
-      const chapterNum = story.chapters.length + 1;
-      const updated = await addChapterToDB(story.id, chapterNum, data.chapter);
+      await readSSEStream(res, {
+        onDelta: (text) => {
+          accumulated += text;
+          setStreaming((prev) => ({ ...prev, fullText: accumulated }));
+          editor?.commands.insertContent(text);
+        },
+        onDone: async () => {
+          setStreaming({ active: false, fullText: "", source: "continue" });
+          setLoading(false);
 
-      if (!updated) throw new Error("Failed to save chapter");
-      onUpdate(updated);
-      setCurrentChapterIdx(updated.chapters.length - 1);
+          // Save chapter to DB
+          const updated = await addChapterToDB(story.id, chapterNum, accumulated);
+          if (!updated) {
+            setError("Failed to save chapter");
+            return;
+          }
+          onUpdate(updated);
+          setCurrentChapterIdx(updated.chapters.length - 1);
 
-      // Post-generation: generate summary and run continuity check (non-blocking)
-      const newChapter = updated.chapters[updated.chapters.length - 1];
-      if (newChapter?.id) {
-        // Generate chapter summary
-        fetch(`/api/chapters/${newChapter.id}/summary`, { method: "POST" }).catch(
-          () => {}
-        );
+          // Post-generation pipeline (non-blocking)
+          const newChapter = updated.chapters[updated.chapters.length - 1];
+          if (newChapter?.id) {
+            fetch(`/api/chapters/${newChapter.id}/summary`, { method: "POST" }).catch(() => {});
 
-        // Run continuity check
-        fetch("/api/continuity/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            storyId: story.id,
-            chapterId: newChapter.id,
-          }),
-        })
-          .then(async (checkRes) => {
-            if (checkRes.ok) {
-              const checkData = await checkRes.json();
-              if (checkData.annotations && checkData.annotations.length > 0) {
-                // Map API response to ChapterAnnotation shape
-                const newAnnotations: ChapterAnnotation[] = checkData.annotations.map(
-                  (a: { text: string; issue: string; sourceChapter: number; severity: string }, idx: number) => ({
-                    id: `temp-${idx}-${Date.now()}`,
-                    chapterId: newChapter.id,
-                    textMatch: a.text,
-                    annotationType: "continuity",
-                    message: a.issue,
-                    sourceChapter: String(a.sourceChapter),
-                    severity: a.severity,
-                    dismissed: false,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  })
-                );
-                setAnnotations(newAnnotations);
-              }
-            }
-          })
-          .catch(() => {});
-      }
+            fetch("/api/continuity/check", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                storyId: story.id,
+                chapterId: newChapter.id,
+              }),
+            })
+              .then(async (checkRes) => {
+                if (checkRes.ok) {
+                  const checkData = await checkRes.json();
+                  if (checkData.annotations && checkData.annotations.length > 0) {
+                    const newAnnotations: ChapterAnnotation[] = checkData.annotations.map(
+                      (a: { text: string; issue: string; sourceChapter: number; severity: string }, idx: number) => ({
+                        id: `temp-${idx}-${Date.now()}`,
+                        chapterId: newChapter.id,
+                        textMatch: a.text,
+                        annotationType: "continuity",
+                        message: a.issue,
+                        sourceChapter: String(a.sourceChapter),
+                        severity: a.severity,
+                        dismissed: false,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                      })
+                    );
+                    setAnnotations(newAnnotations);
+                  }
+                }
+              })
+              .catch(() => {});
+          }
+        },
+        onError: (errorMsg) => {
+          setError(errorMsg);
+          setStreaming({ active: false, fullText: "", source: "continue" });
+          setLoading(false);
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
+      setStreaming({ active: false, fullText: "", source: "continue" });
       setLoading(false);
     }
   };
@@ -410,6 +585,21 @@ export default function StoryEditor({
 
   return (
     <div className="fixed inset-0 bg-zinc-950 flex flex-col z-40">
+      <style>{`
+        .streaming-cursor {
+          display: inline-block;
+          width: 2px;
+          height: 1.2em;
+          background: #a855f7;
+          margin-left: 1px;
+          vertical-align: text-bottom;
+          animation: pulse-cursor 1s ease-in-out infinite;
+        }
+        @keyframes pulse-cursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
       <EditorToolbar
         story={story}
         currentChapterIdx={currentChapterIdx}
@@ -467,6 +657,12 @@ export default function StoryEditor({
           style={{ position: "relative" }}
         >
           <div className="max-w-3xl mx-auto">
+            {streaming.active && streaming.fullText === "" && (
+              <div className="px-4 sm:px-8 py-6 text-zinc-500 text-sm flex items-center gap-2">
+                <span className="streaming-cursor" style={{ height: '0.9em' }} />
+                Generating...
+              </div>
+            )}
             <EditorContent editor={editor} />
 
             {/* Annotation highlights rendered as overlays */}
@@ -548,7 +744,7 @@ export default function StoryEditor({
       <EditorFooter
         wordCount={wordCount}
         isLatestChapter={isLatestChapter}
-        loading={loading}
+        loading={loading || streaming.active}
         error={error}
         onContinue={handleContinue}
       />
