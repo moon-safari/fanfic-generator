@@ -23,6 +23,9 @@ export interface CraftContext {
   context: string;
   direction: string;
   bibleContext: string;
+  userId: string;
+  storyId: string;
+  chapterNumber: number;
 }
 
 export interface CraftContextError {
@@ -44,11 +47,12 @@ export async function authenticateAndFetchBible(
   }
 
   const body = await req.json();
-  const { storyId, selectedText, context = "", direction = "" } = body as {
+  const { storyId, selectedText, context = "", direction = "", chapterNumber = 0 } = body as {
     storyId: string;
     selectedText: string;
     context?: string;
     direction?: string;
+    chapterNumber?: number;
   };
 
   if (!storyId || !selectedText) {
@@ -103,5 +107,5 @@ export async function authenticateAndFetchBible(
     bibleContext = formatBibleForPrompt(bible);
   }
 
-  return { selectedText, context, direction, bibleContext };
+  return { selectedText, context, direction, bibleContext, userId: user.id, storyId, chapterNumber };
 }
