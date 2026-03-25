@@ -112,7 +112,7 @@ export default function AnnotationTooltip({
   return (
     <div
       ref={tooltipRef}
-      className={`fixed z-[60] w-72 ${colors.bg} border ${colors.border} rounded-lg shadow-xl p-3 animate-in fade-in duration-200`}
+      className={`fixed z-[60] w-72 max-w-[calc(100vw-2rem)] ${colors.bg} border ${colors.border} rounded-lg shadow-xl p-3 animate-in fade-in duration-200`}
       style={{ top: `${position.top}px`, left: `${position.left}px` }}
     >
       <div className="flex items-start justify-between gap-2">
