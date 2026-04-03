@@ -1,11 +1,18 @@
-// src/app/components/editor/CraftTab.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { Copy, AlertCircle, RefreshCw } from "lucide-react";
-import { CraftTool, CraftResult } from "../../types/craft";
-import DescribeResults from "./DescribeResults";
+import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  Copy,
+  Lightbulb,
+  Palette,
+  PencilLine,
+  PlusSquare,
+  RefreshCw,
+} from "lucide-react";
+import { CraftResult, CraftTool } from "../../types/craft";
 import BrainstormResults from "./BrainstormResults";
+import DescribeResults from "./DescribeResults";
 
 interface CraftTabProps {
   activeTool: CraftTool | null;
@@ -20,29 +27,46 @@ interface CraftTabProps {
   onRetry: () => void;
 }
 
+const TOOL_META: Record<
+  CraftTool,
+  { label: string; description: string; Icon: typeof PencilLine }
+> = {
+  rewrite: {
+    label: "Rewrite",
+    description: "Steer existing prose without losing the underlying scene.",
+    Icon: PencilLine,
+  },
+  expand: {
+    label: "Expand",
+    description: "Open the moment up with more texture, pacing, or detail.",
+    Icon: PlusSquare,
+  },
+  describe: {
+    label: "Describe",
+    description: "Surface sensory language and stronger scene texture.",
+    Icon: Palette,
+  },
+  brainstorm: {
+    label: "Brainstorm",
+    description: "Generate options before you commit to the next move.",
+    Icon: Lightbulb,
+  },
+};
+
 function LoadingSkeleton({ tool }: { tool: CraftTool }) {
-  if (tool === "describe") {
-    return (
-      <div className="space-y-2">
-        <div className="h-28 bg-purple-900/20 rounded-lg animate-pulse" />
-        <div className="h-20 bg-zinc-800/50 rounded-lg animate-pulse" />
-        <div className="h-20 bg-zinc-800/50 rounded-lg animate-pulse" />
-      </div>
-    );
-  }
-  if (tool === "brainstorm") {
-    return (
-      <div className="space-y-2">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-24 bg-zinc-800/50 rounded-lg animate-pulse" />
-        ))}
-      </div>
-    );
-  }
   return (
-    <div className="space-y-2">
-      <div className="h-6 w-1/3 bg-zinc-800/50 rounded animate-pulse" />
-      <div className="h-32 bg-zinc-800/50 rounded-lg animate-pulse" />
+    <div className="space-y-3">
+      <div className="h-20 animate-pulse rounded-3xl bg-zinc-900/70" />
+      {tool === "describe" || tool === "brainstorm" ? (
+        [...Array(3)].map((_, index) => (
+          <div
+            key={index}
+            className="h-28 animate-pulse rounded-3xl bg-zinc-900/70"
+          />
+        ))
+      ) : (
+        <div className="h-40 animate-pulse rounded-3xl bg-zinc-900/70" />
+      )}
     </div>
   );
 }
@@ -59,32 +83,37 @@ export default function CraftTab({
   onGenerateMore,
   onRetry,
 }: CraftTabProps) {
-  // No tool selected state
   if (!activeTool && !result && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-4">
-        <p className="text-sm text-zinc-500">
-          Select text in the editor, then click a craft tool in the toolbar.
+      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+        <p className="text-sm font-medium text-white">Pick a writing tool</p>
+        <p className="mt-2 text-sm leading-6 text-zinc-500">
+          Select text in the editor, then use Rewrite, Expand, Describe, or
+          Brainstorm from the toolbar.
         </p>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="p-3">
-        <div className="p-4 rounded-lg border border-red-800/40 bg-red-950/20">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-red-400" />
-            <span className="text-sm font-medium text-red-400">Something went wrong</span>
+      <div className="px-4 py-4">
+        <div className="rounded-3xl border border-red-800/40 bg-red-950/20 p-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-400" />
+            <span className="text-sm font-medium text-red-300">
+              Something went wrong
+            </span>
           </div>
-          <p className="text-xs text-zinc-400 mb-3">{error}</p>
+          <p className="mt-2 break-words text-sm leading-6 text-zinc-300">
+            {error}
+          </p>
           <button
+            type="button"
             onClick={onRetry}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium text-white bg-purple-600 hover:bg-purple-500 transition-colors min-h-[32px]"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="h-4 w-4" />
             Try again
           </button>
         </div>
@@ -92,84 +121,130 @@ export default function CraftTab({
     );
   }
 
-  // Loading state
   if (loading && activeTool) {
+    const meta = TOOL_META[activeTool];
+
     return (
-      <div className="p-3">
-        {(activeTool === "rewrite" || activeTool === "expand") && (
-          <DirectionInput
-            direction={direction}
-            onDirectionChange={onDirectionChange}
-            onRerun={onRerun}
-            disabled
-          />
-        )}
-        <LoadingSkeleton tool={activeTool} />
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="space-y-4 pb-6">
+            <ToolHeader tool={activeTool} />
+            {(activeTool === "rewrite" || activeTool === "expand") && (
+              <DirectionInput
+                direction={direction}
+                onDirectionChange={onDirectionChange}
+                onRerun={onRerun}
+                disabled
+              />
+            )}
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="flex items-center gap-2">
+                <meta.Icon className="h-4 w-4 text-purple-300" />
+                <p className="text-sm font-semibold text-white">{meta.label}</p>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                {meta.description}
+              </p>
+            </div>
+            <LoadingSkeleton tool={activeTool} />
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Results
   return (
-    <div className="p-3 flex flex-col h-full overflow-y-auto">
-      {/* Rewrite / Expand results */}
-      {result && (result.type === "rewrite" || result.type === "expand") && (
-        <>
-          <DirectionInput
-            direction={direction}
-            onDirectionChange={onDirectionChange}
-            onRerun={onRerun}
-          />
-          <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">
-            {result.type === "rewrite" ? "✏️" : "📐"}{" "}
-            {result.type}{direction ? ` · "${direction}"` : ""}
-          </div>
-          <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-700/50">
-            <p className="text-sm text-zinc-200 leading-relaxed">{result.text}</p>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => onInsert(result.text)}
-                className="px-3 py-1.5 rounded text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 transition-colors min-h-[32px]"
-              >
-                ↵ Insert
-              </button>
-              <button
-                onClick={() => navigator.clipboard.writeText(result.text)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded text-xs text-zinc-400 bg-zinc-800 hover:bg-zinc-700 transition-colors min-h-[32px]"
-              >
-                <Copy className="w-3 h-3" />
-                Copy
-              </button>
-            </div>
-          </div>
-          <p className="text-[10px] text-zinc-600 text-center mt-3">
-            Try another direction ↑ or select new text
-          </p>
-        </>
-      )}
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="space-y-4 pb-6">
+          {activeTool && <ToolHeader tool={activeTool} />}
 
-      {/* Describe results */}
-      {result && result.type === "describe" && (
-        <DescribeResults
-          blend={result.blend}
-          senses={result.senses}
-          onInsert={onInsert}
-        />
-      )}
+          {result && (result.type === "rewrite" || result.type === "expand") && (
+            <>
+              <DirectionInput
+                direction={direction}
+                onDirectionChange={onDirectionChange}
+                onRerun={onRerun}
+              />
 
-      {/* Brainstorm results */}
-      {result && result.type === "brainstorm" && (
-        <BrainstormResults
-          ideas={result.ideas}
-          onInsert={onInsert}
-          onGenerateMore={onGenerateMore}
-        />
-      )}
+              <section className="rounded-3xl border border-zinc-800 bg-zinc-950/75 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-purple-500/15 px-2.5 py-1 text-[11px] text-purple-200">
+                    {TOOL_META[result.type].label}
+                  </span>
+                  {direction.trim().length > 0 && (
+                    <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-300">
+                      {direction}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-zinc-200">
+                  {result.text}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onInsert(result.text)}
+                    className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
+                  >
+                    Use in editor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(result.text);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+
+          {result && result.type === "describe" && (
+            <DescribeResults
+              blend={result.blend}
+              senses={result.senses}
+              onInsert={onInsert}
+            />
+          )}
+
+          {result && result.type === "brainstorm" && (
+            <BrainstormResults
+              ideas={result.ideas}
+              onInsert={onInsert}
+              onGenerateMore={onGenerateMore}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// Direction input sub-component
+function ToolHeader({ tool }: { tool: CraftTool }) {
+  const meta = TOOL_META[tool];
+
+  return (
+    <section className="rounded-3xl border border-zinc-800 bg-zinc-950/75 p-4">
+      <div className="flex items-center gap-3">
+        <div className="rounded-2xl bg-purple-500/15 p-2 text-purple-200">
+          <meta.Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-white">{meta.label}</h3>
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            {meta.description}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function DirectionInput({
   direction,
   onDirectionChange,
@@ -181,36 +256,45 @@ function DirectionInput({
   onRerun: (d: string) => void;
   disabled?: boolean;
 }) {
-  const [localDir, setLocalDir] = useState(direction);
+  const [localDirection, setLocalDirection] = useState(direction);
 
-  // Sync local state when parent direction resets (e.g., new tool selected)
   useEffect(() => {
-    setLocalDir(direction);
+    setLocalDirection(direction);
   }, [direction]);
 
   return (
-    <div className="flex gap-2 mb-3">
-      <input
-        type="text"
-        value={localDir}
-        onChange={(e) => {
-          setLocalDir(e.target.value);
-          onDirectionChange(e.target.value);
-        }}
-        placeholder="Direction (e.g., show not tell)"
-        className="flex-1 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500 transition-colors"
-        disabled={disabled}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !disabled) onRerun(localDir);
-        }}
-      />
-      <button
-        onClick={() => onRerun(localDir)}
-        disabled={disabled}
-        className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 transition-colors min-h-[36px]"
-      >
-        Go
-      </button>
-    </div>
+    <section className="rounded-3xl border border-zinc-800 bg-zinc-950/75 p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-0 flex-1 space-y-1.5">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+            Direction
+          </span>
+          <input
+            type="text"
+            value={localDirection}
+            onChange={(event) => {
+              setLocalDirection(event.target.value);
+              onDirectionChange(event.target.value);
+            }}
+            placeholder="Show, don't tell. Sharpen the subtext."
+            className="w-full rounded-2xl border border-zinc-800 bg-black/20 px-3 py-2.5 text-sm text-zinc-200 outline-none transition-colors placeholder:text-zinc-600 focus:border-purple-500"
+            disabled={disabled}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !disabled) {
+                onRerun(localDirection);
+              }
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => onRerun(localDirection)}
+          disabled={disabled}
+          className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Apply
+        </button>
+      </div>
+    </section>
   );
 }

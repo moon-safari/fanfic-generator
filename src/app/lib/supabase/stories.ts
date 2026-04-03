@@ -1,11 +1,20 @@
 import { createClient } from "./client";
-import { Story, Chapter, RelationshipType, Rating } from "../../types/story";
+import {
+  Story,
+  Chapter,
+  ProjectMode,
+  Rating,
+  RelationshipType,
+  StoryModeConfig,
+} from "../../types/story";
 
 const supabase = createClient();
 
 export interface CreateStoryInput {
   title: string;
   firstChapterContent?: string;
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
   fandom: string;
   customFandom?: string;
   characters: string[];
@@ -19,20 +28,24 @@ export interface CreateStoryInput {
 
 /** Fetch all stories for the current user, with chapters inlined */
 export async function getStoriesFromDB(): Promise<Story[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  const { data: stories, error } = await supabase
-    .from("stories")
-    .select("*, chapters(id, content, content_json, summary, chapter_number, word_count)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const { data: stories, error } = await supabase
+      .from("stories")
+      .select("*, chapters(id, content, content_json, summary, chapter_number, word_count)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  if (error || !stories) return [];
+    if (error || !stories) return [];
 
-  return stories.map(dbToStory);
+    return stories.map(dbToStory);
+  } catch {
+    return [];
+  }
 }
 
 /** Fetch a single story by ID */
@@ -61,6 +74,8 @@ export async function createStoryInDB(
     .insert({
       user_id: user.id,
       title: input.title,
+      project_mode: input.projectMode,
+      mode_config: input.modeConfig ?? {},
       fandom: input.fandom,
       custom_fandom: input.customFandom || null,
       characters: input.characters,
@@ -180,6 +195,8 @@ function dbToStory(row: Record<string, unknown>): Story {
   return {
     id: row.id as string,
     title: row.title as string,
+    projectMode: (row.project_mode as ProjectMode | undefined) ?? "fiction",
+    modeConfig: (row.mode_config as StoryModeConfig | undefined) ?? undefined,
     chapters,
     fandom: row.fandom as string,
     customFandom: (row.custom_fandom as string) || undefined,

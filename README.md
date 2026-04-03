@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Writing OS
+
+The operating system for writers.
+
+An AI writing platform with living project memory — Sudowrite's AI quality meets Novelcrafter's project depth, across every kind of writing:
+
+- Fiction (novels, short stories, serialized fiction, fanfic)
+- Newsletters / serialized creator work
+- Screenplays
+- Comics / graphic narrative
+- Game writing / narrative design
+- Non-fiction / articles / essays
+
+The core product loop is:
+
+1. **Write** — draft, rewrite, expand, brainstorm with AI that knows the project
+2. **Remember** — structured project memory (Codex) for characters, facts, lore, plans
+3. **Review** — continuity checks, drift detection, proposed change review
+4. **Adapt** — turn one project into summaries, recaps, teasers, beat sheets, newsletters
+5. **Publish** — export, package, distribute
+
+## What Exists Today
+
+### Writing workspace
+
+- rich editor for chapter drafting and continuation
+- craft tools for rewrite, expand, describe, and brainstorm
+- streaming generation for chapter creation and continuation
+
+### Codex
+
+- structured project memory
+- entry types, custom types, relationships, aliases, and progressions
+- manuscript mention tracking
+- change suggestions with accept/reject review
+- chapter-aware context console with pin/exclude controls
+
+### Adaptation
+
+- chapter adaptations for:
+  - short summary
+  - newsletter recap
+  - screenplay beat sheet
+  - public teaser
+- chained workflows between formats
+- saved adaptation outputs attached to projects
+
+## Architectural Direction
+
+The long-term goal is a Writing OS:
+
+- one project graph
+- one evolving source of truth
+- many writing and publishing outputs
+
+That means the platform should increasingly connect:
+
+- manuscript
+- Codex
+- updates
+- context
+- adaptation artifacts
+- planning
+- continuity review
+- future mode packs
+
+## Security And Backend Principles
+
+- story creation and project access are authenticated
+- project data lives in Supabase with RLS-backed ownership
+- AI calls go through server routes, never directly from the client
+- new product surfaces should be backend-aware and permission-aware from the start
+
+## Key Paths
+
+- homepage: [`src/app/page.tsx`](src/app/page.tsx)
+- editor: [`src/app/components/editor/StoryEditor.tsx`](src/app/components/editor/StoryEditor.tsx)
+- Codex UI: [`src/app/components/codex`](src/app/components/codex)
+- adaptation UI: [`src/app/components/editor/AdaptTab.tsx`](src/app/components/editor/AdaptTab.tsx)
+- API routes: [`src/app/api`](src/app/api)
+- migrations: [`supabase/migrations`](supabase/migrations)
+- strategy/docs: [`docs`](docs)
+
+## Recent Foundation Work
+
+- Codex schema and APIs
+- living change detection
+- mentions and manuscript linking
+- context console and context rules
+- first adaptation pipeline
+- persisted adaptation artifacts
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+cp .env.example .env.local
+# Fill in your Anthropic API key and Supabase credentials
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Required environment variables (see `.env.example`):
+- `ANTHROPIC_API_KEY` — Claude API key
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you are working with Supabase locally or against a hosted project, make sure
+the latest migrations are applied from [`supabase/migrations`](supabase/migrations).
 
-## Learn More
+## Recommended Reading
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md)
+- [`docs/superpowers/specs/2026-03-27-narrative-os-product-thesis.md`](docs/superpowers/specs/2026-03-27-narrative-os-product-thesis.md)
+- [`docs/superpowers/specs/2026-03-28-writing-os-near-term-roadmap.md`](docs/superpowers/specs/2026-03-28-writing-os-near-term-roadmap.md)
+- [`docs/superpowers/specs/2026-03-28-landing-page-positioning-design.md`](docs/superpowers/specs/2026-03-28-landing-page-positioning-design.md)

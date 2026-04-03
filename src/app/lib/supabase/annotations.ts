@@ -1,4 +1,5 @@
 import { createClient } from "./client";
+import { parseAnnotationMetadata } from "../annotationMetadata";
 import { ChapterAnnotation } from "../../types/bible";
 
 const supabase = createClient();
@@ -20,10 +21,14 @@ export async function getChapterAnnotations(
       id: row.id as string,
       chapterId: row.chapter_id as string,
       textMatch: row.text_match as string,
-      annotationType: row.annotation_type as string,
+      annotationType: row.annotation_type as ChapterAnnotation["annotationType"],
       message: row.message as string,
-      sourceChapter: row.source_chapter as string,
+      sourceChapter:
+        row.source_chapter === null || row.source_chapter === undefined
+          ? ""
+          : String(row.source_chapter),
       severity: row.severity as string,
+      metadata: parseAnnotationMetadata(row.annotation_metadata),
       dismissed: row.dismissed as boolean,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
@@ -53,6 +58,7 @@ export async function saveAnnotations(
     message: a.message,
     source_chapter: a.sourceChapter,
     severity: a.severity,
+    annotation_metadata: a.metadata ?? {},
     dismissed: false,
   }));
 

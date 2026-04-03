@@ -5,7 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
-import { Story } from "../../types/story";
+import type { NewsletterModeConfig, Story } from "../../types/story";
 import { ChapterAnnotation } from "../../types/bible";
 import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
@@ -19,12 +19,22 @@ import MobileCraftSheet from "./MobileCraftSheet";
 import UndoToast from "./UndoToast";
 import AnnotationTooltip from "./AnnotationTooltip";
 import { AnnotationExtension, annotationPluginKey } from "./annotationExtension";
+import {
+  CodexMentionExtension,
+  codexMentionPluginKey,
+} from "./codexMentionExtension";
 import { readSSEStream } from "../../lib/stream";
 import { updateStoryTitle, updateChapterContent } from "../../lib/supabase/stories";
 import { StoryFormData } from "../../types/story";
+import { AdaptationOutputType } from "../../types/adaptation";
+import type { PlanningArtifactSubtype } from "../../types/artifact";
+import type { ChapterAnnotationAction } from "../../types/bible";
+import { useChapterAdaptation } from "../../hooks/useChapterAdaptation";
+import { useCodexMentions } from "../../hooks/useCodexMentions";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/core";
+import { requestJson } from "../../lib/request";
 
 interface StoryEditorProps {
   story: Story;
@@ -33,6 +43,26 @@ interface StoryEditorProps {
   onUpdate: (story: Story) => void;
   onDelete: (id: string) => void;
   onStreamingComplete?: () => void;
+}
+
+interface CodexFocusRequest {
+  entryId: string;
+  nonce: number;
+}
+
+interface ArtifactFocusRequest {
+  sectionType: PlanningArtifactSubtype;
+  targetLabel?: string;
+  nonce: number;
+}
+
+interface AnnotationActionResponse {
+  success: boolean;
+  resolutionState: "applied" | "intentional_divergence" | "open";
+  focusTarget?: {
+    sectionType: PlanningArtifactSubtype;
+    targetLabel?: string;
+  };
 }
 
 /** Detect if viewport is mobile-width */
@@ -106,6 +136,11 @@ export default function StoryEditor({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [codexSuggestionRefreshKey, setCodexSuggestionRefreshKey] = useState(0);
+  const [codexFocusRequest, setCodexFocusRequest] =
+    useState<CodexFocusRequest | null>(null);
+  const [artifactFocusRequest, setArtifactFocusRequest] =
+    useState<ArtifactFocusRequest | null>(null);
 
   // Craft tools state
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -114,9 +149,14 @@ export default function StoryEditor({
   const [selectionContext, setSelectionContext] = useState("");
 
   // Undo toast state
-  const [undoToast, setUndoToast] = useState<{ visible: boolean; toolLabel: string }>({
+  const [undoToast, setUndoToast] = useState<{
+    visible: boolean;
+    toolLabel: string;
+    nonce: number;
+  }>({
     visible: false,
     toolLabel: "",
+    nonce: 0,
   });
 
   // Annotations state
@@ -143,6 +183,18 @@ export default function StoryEditor({
 
   const chapter = story.chapters[currentChapterIdx];
   const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
+  const {
+    mentions: currentChapterMentions,
+    syncing: mentionSyncing,
+    error: mentionError,
+    generateMentions,
+    clearError: clearMentionError,
+  } = useCodexMentions({
+    storyId: story.id,
+    chapterId: chapter?.id,
+    enabled: Boolean(chapter?.id),
+  });
+  const adaptation = useChapterAdaptation(story.id, story.projectMode, chapter?.id);
 
   // Track editor readiness for initial content set
   const initialContentRef = useRef<object | null>(null);
@@ -163,6 +215,7 @@ export default function StoryEditor({
       Placeholder.configure({ placeholder: "Start writing..." }),
       CharacterCount,
       AnnotationExtension,
+      CodexMentionExtension,
       streamingCursorExtension,
     ],
     content: getChapterContent(currentChapterIdx),
@@ -221,7 +274,11 @@ export default function StoryEditor({
       if (!editor) return;
       // insertContent replaces current selection or inserts at cursor
       editor.chain().focus().insertContent(text).run();
-      setUndoToast({ visible: true, toolLabel: craftPanel.activeTool || "craft" });
+      setUndoToast((current) => ({
+        visible: true,
+        toolLabel: craftPanel.activeTool || "craft",
+        nonce: current.nonce + 1,
+      }));
     },
     [editor, craftPanel.activeTool]
   );
@@ -230,7 +287,7 @@ export default function StoryEditor({
   const handleUndo = useCallback(() => {
     if (!editor) return;
     editor.commands.undo();
-    setUndoToast({ visible: false, toolLabel: "" });
+    setUndoToast((current) => ({ ...current, visible: false, toolLabel: "" }));
   }, [editor]);
 
   // Handle rerun with new direction — use stored selection as fallback since editor selection may have changed
@@ -286,6 +343,20 @@ export default function StoryEditor({
     editor.view.dispatch(tr);
   }, [editor, annotations]);
 
+  useEffect(() => {
+    if (!editor) return;
+    const { tr } = editor.state;
+    tr.setMeta(codexMentionPluginKey, {
+      mentions: currentChapterMentions.map((mention) => ({
+        id: mention.id,
+        entryId: mention.entryId,
+        startIndex: mention.startIndex,
+        endIndex: mention.endIndex,
+      })),
+    });
+    editor.view.dispatch(tr);
+  }, [currentChapterMentions, editor]);
+
   // Show annotation tooltip on hover (desktop)
   const handleEditorMouseOver = useCallback(
     (e: React.MouseEvent) => {
@@ -316,10 +387,74 @@ export default function StoryEditor({
     setAnnotationAnchorRect(null);
   }, []);
 
+  const handleOpenAnnotationPlanningTarget = useCallback(
+    (annotation: ChapterAnnotation) => {
+      const targetSection = annotation.metadata?.targetSection;
+      if (!targetSection) {
+        return;
+      }
+
+      craftPanel.openTab("artifacts");
+      setArtifactFocusRequest({
+        sectionType: targetSection,
+        targetLabel: annotation.metadata?.targetLabel,
+        nonce: Date.now(),
+      });
+      setActiveAnnotation(null);
+      setAnnotationAnchorRect(null);
+    },
+    [craftPanel]
+  );
+
+  const handleApplyAnnotationAction = useCallback(
+    async (
+      annotation: ChapterAnnotation,
+      action: ChapterAnnotationAction
+    ) => {
+      const result = await requestJson<AnnotationActionResponse>(
+        `/api/annotations/${annotation.id}/action`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        }
+      );
+
+      setAnnotations((prev) => prev.filter((candidate) => candidate.id !== annotation.id));
+      setActiveAnnotation(null);
+      setAnnotationAnchorRect(null);
+
+      if (result.focusTarget) {
+        craftPanel.openTab("artifacts");
+        setArtifactFocusRequest({
+          sectionType: result.focusTarget.sectionType,
+          targetLabel: result.focusTarget.targetLabel,
+          nonce: Date.now(),
+        });
+      }
+    },
+    [craftPanel]
+  );
+
   // Handle annotation click in editor content
   const handleEditorClick = useCallback(
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
+      const mentionEl = target.closest("[data-codex-entry-id]");
+      if (mentionEl) {
+        const entryId = mentionEl.getAttribute("data-codex-entry-id");
+        if (entryId) {
+          craftPanel.openTab("codex");
+          setCodexFocusRequest({
+            entryId,
+            nonce: Date.now(),
+          });
+          setActiveAnnotation(null);
+          setAnnotationAnchorRect(null);
+          return;
+        }
+      }
+
       const annotationEl = target.closest("[data-annotation-id]");
       if (annotationEl) {
         const id = annotationEl.getAttribute("data-annotation-id");
@@ -336,7 +471,66 @@ export default function StoryEditor({
         setAnnotationAnchorRect(null);
       }
     },
-    [annotations, activeAnnotation]
+    [annotations, activeAnnotation, craftPanel]
+  );
+
+  const runChapterPostProcessing = useCallback(
+    async (storyId: string, chapterId: string) => {
+      try {
+        await fetch(`/api/chapters/${chapterId}/summary`, { method: "POST" });
+      } catch {
+        // Continue without a summary if it fails.
+      }
+
+      if (storyRef.current.projectMode !== "newsletter") {
+        try {
+          const suggestionResponse = await fetch("/api/codex/suggestions/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              storyId,
+              chapterId,
+            }),
+          });
+
+          if (suggestionResponse.ok) {
+            setCodexSuggestionRefreshKey((prev) => prev + 1);
+          }
+        } catch {
+          // Change detection is helpful but non-blocking.
+        }
+
+        try {
+          await generateMentions(chapterId);
+        } catch {
+          // Mention indexing should never block writing.
+        }
+      }
+
+      try {
+        const checkRes = await fetch("/api/continuity/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storyId,
+            chapterId,
+          }),
+        });
+
+        if (!checkRes.ok) {
+          return;
+        }
+
+        const checkData = await checkRes.json();
+        if (!checkData.annotations || checkData.annotations.length === 0) {
+          return;
+        }
+        setAnnotations(checkData.annotations as ChapterAnnotation[]);
+      } catch {
+        // Silently fail
+      }
+    },
+    [generateMentions]
   );
 
   // Chapter switching
@@ -351,6 +545,69 @@ export default function StoryEditor({
       setCurrentChapterIdx(newIdx);
     },
     [currentChapterIdx, story.chapters.length]
+  );
+
+  const handleArtifactOpenInAdapt = useCallback(
+    async (chapterNumber: number, outputType: AdaptationOutputType) => {
+      const targetIndex = storyRef.current.chapters.findIndex(
+        (candidate) => candidate.chapterNumber === chapterNumber
+      );
+
+      if (targetIndex === -1) {
+        return;
+      }
+
+      await switchChapter(targetIndex);
+      adaptation.setActiveOutputType(outputType);
+      craftPanel.openTab("adapt");
+    },
+    [adaptation, craftPanel, switchChapter]
+  );
+
+  const handleModeConfigUpdated = useCallback(
+    (modeConfig: NewsletterModeConfig) => {
+      const latestStory = storyRef.current;
+      if (latestStory.projectMode !== "newsletter") {
+        return;
+      }
+
+      onUpdate({
+        ...latestStory,
+        modeConfig,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    [onUpdate]
+  );
+
+  const handleChapterSummaryUpdated = useCallback(
+    (chapterId: string, summary: string) => {
+      const latestStory = storyRef.current;
+
+      onUpdate({
+        ...latestStory,
+        updatedAt: new Date().toISOString(),
+        chapters: latestStory.chapters.map((candidate) =>
+          candidate.id === chapterId
+            ? { ...candidate, summary }
+            : candidate
+        ),
+      });
+    },
+    [onUpdate]
+  );
+
+  const handleAdaptationSummaryUpdated = useCallback(
+    (summary: string) => {
+      const activeChapterId = chapter?.id;
+
+      if (!activeChapterId) {
+        return;
+      }
+
+      handleChapterSummaryUpdated(activeChapterId, summary);
+    },
+    [chapter?.id, handleChapterSummaryUpdated]
   );
 
   // Update editor content when chapter changes
@@ -390,7 +647,10 @@ export default function StoryEditor({
         });
 
         if (!res.ok) {
-          let errorMsg = "Failed to generate story";
+          let errorMsg =
+            story.projectMode === "newsletter"
+              ? "Failed to generate the first issue"
+              : "Failed to generate story";
           try {
             const data = await res.json();
             errorMsg = data.error || errorMsg;
@@ -430,12 +690,25 @@ export default function StoryEditor({
             };
             onUpdate(updatedStory);
             onStreamingComplete?.();
-            // Trigger story bible generation now that we have content
+            // Trigger story-context generation now that we have content.
             fetch("/api/story-bible/generate", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ storyId: latestStory.id }),
             }).catch(() => {});
+            if (latestStory.projectMode !== "newsletter") {
+              fetch("/api/codex/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ storyId: latestStory.id }),
+              })
+                .then(async (response) => {
+                  if (response.ok && ch?.id) {
+                    await generateMentions(ch.id);
+                  }
+                })
+                .catch(() => {});
+            }
           },
           onError: (errorMsg) => {
             setError(errorMsg);
@@ -482,7 +755,10 @@ export default function StoryEditor({
       });
 
       if (!res.ok) {
-        let errorMsg = "Failed to continue story";
+        let errorMsg =
+          story.projectMode === "newsletter"
+            ? "Failed to continue the issue sequence"
+            : "Failed to continue story";
         try {
           const data = await res.json();
           errorMsg = data.error || errorMsg;
@@ -512,39 +788,7 @@ export default function StoryEditor({
           // Post-generation pipeline (non-blocking)
           const newChapter = updated.chapters[updated.chapters.length - 1];
           if (newChapter?.id) {
-            fetch(`/api/chapters/${newChapter.id}/summary`, { method: "POST" }).catch(() => {});
-
-            fetch("/api/continuity/check", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                storyId: story.id,
-                chapterId: newChapter.id,
-              }),
-            })
-              .then(async (checkRes) => {
-                if (checkRes.ok) {
-                  const checkData = await checkRes.json();
-                  if (checkData.annotations && checkData.annotations.length > 0) {
-                    const newAnnotations: ChapterAnnotation[] = checkData.annotations.map(
-                      (a: { text: string; issue: string; sourceChapter: number; severity: string }, idx: number) => ({
-                        id: `temp-${idx}-${Date.now()}`,
-                        chapterId: newChapter.id,
-                        textMatch: a.text,
-                        annotationType: "continuity",
-                        message: a.issue,
-                        sourceChapter: String(a.sourceChapter),
-                        severity: a.severity,
-                        dismissed: false,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                      })
-                    );
-                    setAnnotations(newAnnotations);
-                  }
-                }
-              })
-              .catch(() => {});
+            void runChapterPostProcessing(updated.id, newChapter.id);
           }
         },
         onError: (errorMsg) => {
@@ -582,6 +826,13 @@ export default function StoryEditor({
 
   const wordCount = editor?.storage.characterCount?.words() ?? 0;
   const activeAnnotations = annotations.filter((a) => !a.dismissed);
+  const toolPanelTab =
+    story.projectMode === "newsletter" && craftPanel.activeTab === "codex"
+      ? "artifacts"
+      : craftPanel.activeTab;
+  const toolPanelOpenAction = () => {
+    craftPanel.openTab(story.projectMode === "newsletter" ? "artifacts" : "codex");
+  };
 
   return (
     <div className="fixed inset-0 bg-zinc-950 flex flex-col z-40">
@@ -604,19 +855,18 @@ export default function StoryEditor({
         story={story}
         currentChapterIdx={currentChapterIdx}
         totalChapters={story.chapters.length}
-        showBible={craftPanel.isOpen && craftPanel.activeTab === "bible"}
+        showCodex={craftPanel.isOpen && toolPanelTab !== "craft"}
         annotationCount={activeAnnotations.length}
         activeCraftTool={craftPanel.activeTool}
-        hasSelection={selectedText.length > 0}
         craftLoading={craftPanel.loading}
         onBack={handleBack}
         onPrevChapter={() => switchChapter(currentChapterIdx - 1)}
         onNextChapter={() => switchChapter(currentChapterIdx + 1)}
-        onToggleBible={() => {
-          if (craftPanel.isOpen && craftPanel.activeTab === "bible") {
+        onToggleCodex={() => {
+          if (craftPanel.isOpen && toolPanelTab !== "craft") {
             craftPanel.closePanel();
           } else {
-            craftPanel.openTab("bible");
+            toolPanelOpenAction();
           }
         }}
         onCraftTool={handleCraftTool}
@@ -627,13 +877,13 @@ export default function StoryEditor({
       {/* Delete confirmation banner */}
       {showDeleteConfirm && (
         <div className="px-4 py-3 bg-red-900/30 border-b border-red-700 flex items-center justify-between shrink-0">
-          <p className="text-red-200 text-sm">Delete this story permanently?</p>
+          <p className="text-red-200 text-sm">Delete this project permanently?</p>
           <div className="flex gap-2">
             <button
               onClick={() => onDelete(story.id)}
               className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-500 transition-colors"
             >
-              Delete
+              Delete project
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
@@ -646,12 +896,10 @@ export default function StoryEditor({
       )}
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {/* Editor */}
         <div
-          className={`flex-1 overflow-y-auto transition-opacity duration-300 ${
-            craftPanel.panelWidth === "expanded" ? "opacity-70" : "opacity-100"
-          }`}
+          className="flex-1 overflow-y-auto"
           onClick={handleEditorClick}
           onMouseOver={handleEditorMouseOver}
           style={{ position: "relative" }}
@@ -660,7 +908,7 @@ export default function StoryEditor({
             {streaming.active && streaming.fullText === "" && (
               <div className="px-4 sm:px-8 py-6 text-zinc-500 text-sm flex items-center gap-2">
                 <span className="streaming-cursor" style={{ height: '0.9em' }} />
-                Generating...
+                Writing...
               </div>
             )}
             <EditorContent editor={editor} />
@@ -676,35 +924,88 @@ export default function StoryEditor({
           {/* Undo toast */}
           {undoToast.visible && (
             <UndoToast
+              key={undoToast.nonce}
               toolLabel={undoToast.toolLabel}
               onUndo={handleUndo}
-              onExpire={() => setUndoToast({ visible: false, toolLabel: "" })}
+              onExpire={() =>
+                setUndoToast((current) => ({
+                  ...current,
+                  visible: false,
+                  toolLabel: "",
+                }))
+              }
             />
           )}
         </div>
 
-        {/* Side Panel - desktop always, mobile for Bible/History only */}
+        {/* Side Panel - desktop always, mobile for Codex/History only */}
         {craftPanel.isOpen && (!isMobile || craftPanel.activeTab !== "craft") && (
-          <SidePanel
-            storyId={story.id}
-            activeTab={craftPanel.activeTab}
-            activeTool={craftPanel.activeTool}
-            craftResult={craftPanel.result}
-            craftLoading={craftPanel.loading}
-            craftError={craftPanel.error}
-            craftDirection={craftPanel.direction}
-            currentChapter={currentChapterIdx + 1}
-            panelWidth={craftPanel.panelWidth}
-            onTabChange={craftPanel.setTab}
-            onClose={craftPanel.closePanel}
-            onCraftDirectionChange={craftPanel.setDirection}
-            onCraftRerun={handleCraftRerun}
-            onCraftInsert={handleCraftInsert}
-            onCraftGenerateMore={handleGenerateMore}
-            onCraftRetry={handleCraftRetry}
-            onHistoryReinsert={handleCraftInsert}
-          />
-        )}
+        <SidePanel
+          storyId={story.id}
+          storyTitle={story.title}
+          projectMode={story.projectMode}
+          modeConfig={story.modeConfig}
+          activeTab={toolPanelTab}
+          annotationCount={activeAnnotations.length}
+          activeTool={craftPanel.activeTool}
+          craftResult={craftPanel.result}
+          craftLoading={craftPanel.loading}
+          craftError={craftPanel.error}
+          craftDirection={craftPanel.direction}
+          currentChapter={currentChapterIdx + 1}
+          currentChapterId={chapter?.id}
+          codexSuggestionRefreshKey={codexSuggestionRefreshKey}
+          adaptationActiveOutputType={adaptation.activeOutputType}
+          adaptationSelectedChainId={adaptation.selectedChainId}
+          adaptationCurrentResult={adaptation.currentResult}
+          adaptationResultsByType={adaptation.resultsByType}
+          adaptationLoadingOutputType={adaptation.loadingOutputType}
+          adaptationDeletingOutputType={adaptation.deletingOutputType}
+          adaptationChainLoading={adaptation.chainLoading}
+          adaptationError={adaptation.error}
+          currentChapterMentions={currentChapterMentions}
+          mentionSyncing={mentionSyncing}
+          mentionError={mentionError}
+          codexFocusRequest={codexFocusRequest}
+          artifactFocusRequest={artifactFocusRequest}
+          panelWidth={craftPanel.panelWidth}
+          onPanelWidthChange={craftPanel.setPanelWidth}
+          onTabChange={craftPanel.setTab}
+          onClose={craftPanel.closePanel}
+          onCraftDirectionChange={craftPanel.setDirection}
+          onCraftRerun={handleCraftRerun}
+          onCraftInsert={handleCraftInsert}
+          onCraftGenerateMore={handleGenerateMore}
+          onCraftRetry={handleCraftRetry}
+          onHistoryReinsert={handleCraftInsert}
+          onArtifactInsert={handleCraftInsert}
+          onArtifactOpenInAdapt={handleArtifactOpenInAdapt}
+          onArtifactSummaryUpdated={handleChapterSummaryUpdated}
+          onModeConfigUpdated={handleModeConfigUpdated}
+          onAdaptSelectChainId={adaptation.setSelectedChainId}
+          onAdaptSelectOutputType={adaptation.setActiveOutputType}
+          onAdaptGenerate={async (outputType) => {
+            await adaptation.generate(outputType);
+          }}
+          onAdaptGenerateChain={async () => {
+            await adaptation.generateChain();
+          }}
+          onAdaptDeleteOutput={async (outputType) => {
+            await adaptation.deleteOutput(outputType);
+          }}
+          onAdaptInsert={handleCraftInsert}
+          onAdaptSummaryUpdated={handleAdaptationSummaryUpdated}
+          onAdaptDismissError={adaptation.clearError}
+          onGenerateMentions={
+            chapter?.id
+              ? async () => {
+                  await generateMentions(chapter.id);
+                }
+              : undefined
+          }
+          onDismissMentionError={clearMentionError}
+        />
+      )}
       </div>
 
       {/* Mobile craft sheet */}
@@ -732,8 +1033,11 @@ export default function StoryEditor({
       {activeAnnotation && (
         <AnnotationTooltip
           annotation={activeAnnotation}
+          projectMode={story.projectMode}
           anchorRect={annotationAnchorRect}
           onDismiss={handleDismissAnnotation}
+          onApplyAction={handleApplyAnnotationAction}
+          onOpenPlanningTarget={handleOpenAnnotationPlanningTarget}
           onClose={() => {
             setActiveAnnotation(null);
             setAnnotationAnchorRect(null);
@@ -742,6 +1046,7 @@ export default function StoryEditor({
       )}
 
       <EditorFooter
+        projectMode={story.projectMode}
         wordCount={wordCount}
         isLatestChapter={isLatestChapter}
         loading={loading || streaming.active}

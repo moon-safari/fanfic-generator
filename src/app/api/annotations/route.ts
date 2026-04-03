@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseAnnotationMetadata } from "../../lib/annotationMetadata";
 import { createServerSupabase } from "../../lib/supabase/server";
 
 export async function GET(req: NextRequest) {
@@ -56,10 +57,14 @@ export async function GET(req: NextRequest) {
       id: row.id as string,
       chapterId: row.chapter_id as string,
       textMatch: row.text_match as string,
-      annotationType: row.annotation_type as string,
+      annotationType: row.annotation_type as "continuity_warning" | "planning_drift" | "suggestion",
       message: row.message as string,
-      sourceChapter: row.source_chapter as string,
+      sourceChapter:
+        row.source_chapter === null || row.source_chapter === undefined
+          ? ""
+          : String(row.source_chapter),
       severity: row.severity as string,
+      metadata: parseAnnotationMetadata(row.annotation_metadata),
       dismissed: row.dismissed as boolean,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,

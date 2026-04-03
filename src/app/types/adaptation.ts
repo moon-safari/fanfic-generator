@@ -1,0 +1,44 @@
+import type { StoryContextSource } from "./codex";
+
+export type AdaptationWorkflowStateSource =
+  | "draft"
+  | "memory"
+  | "plans"
+  | "saved_outputs"
+  | "official_package";
+
+export type AdaptationOutputType =
+  | "short_summary"
+  | "newsletter_recap"
+  | "screenplay_beat_sheet"
+  | "public_teaser"
+  | "issue_subject_line"
+  | "issue_deck"
+  | "issue_section_package"
+  | "issue_hook_variants"
+  | "issue_cta_variants"
+  | "issue_send_checklist";
+
+export type AdaptationChainId =
+  | "promo_chain"
+  | "summary_to_recap"
+  | "summary_to_teaser"
+  | "issue_package";
+
+export interface ChapterAdaptationResult {
+  id?: string;
+  storyId: string;
+  outputType: AdaptationOutputType;
+  chapterId: string;
+  chapterNumber: number;
+  content: string;
+  contextSource: StoryContextSource;
+  generatedAt: string;
+  updatedAt: string;
+  persisted: boolean;
+}
+
+export interface AdaptationChainResult {
+  chainId: AdaptationChainId;
+  results: ChapterAdaptationResult[];
+}

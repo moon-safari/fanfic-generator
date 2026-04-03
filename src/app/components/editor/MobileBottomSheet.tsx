@@ -1,18 +1,20 @@
 // src/app/components/editor/MobileBottomSheet.tsx
 "use client";
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback } from "react";
 
 interface MobileBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  maxHeightClass?: string;
 }
 
 export default function MobileBottomSheet({
   isOpen,
   onClose,
   children,
+  maxHeightClass = "max-h-[60vh]",
 }: MobileBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
@@ -67,7 +69,7 @@ export default function MobileBottomSheet({
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 bg-[#13101e] rounded-t-2xl border-t border-zinc-700 max-h-[60vh] overflow-y-auto transition-transform duration-300 ease-out pb-[env(safe-area-inset-bottom)]"
+        className={`absolute bottom-0 left-0 right-0 bg-[#13101e] rounded-t-2xl border-t border-zinc-700 ${maxHeightClass} overflow-y-auto transition-transform duration-300 ease-out pb-[env(safe-area-inset-bottom)]`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerSupabase } from "../../../lib/supabase/server";
 import { getFandomContext } from "../../../lib/fandoms";
 import { buildBibleGenerationPrompt } from "../../../lib/prompts/bible";
+import type { ProjectMode, StoryModeConfig } from "../../../types/story";
 import { BibleSectionType, BibleSectionContent } from "../../../types/bible";
 
 const anthropic = new Anthropic({
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Verify story ownership
     const { data: story, error: storyError } = await supabase
       .from("stories")
-      .select("id, fandom, user_id")
+      .select("id, title, fandom, project_mode, mode_config, user_id")
       .eq("id", storyId)
       .eq("user_id", user.id)
       .single();
@@ -61,8 +62,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Chapter 1 not found" }, { status: 404 });
     }
 
-    const fandomContext = getFandomContext(story.fandom as string);
-    const prompt = buildBibleGenerationPrompt(chapter1.content as string, fandomContext);
+    const projectMode = (story.project_mode as ProjectMode | undefined) ?? "fiction";
+    const fandomContext =
+      projectMode === "fiction" ? getFandomContext(story.fandom as string) : "";
+    const prompt = buildBibleGenerationPrompt(chapter1.content as string, {
+      storyTitle: story.title as string,
+      fandomContext,
+      projectMode,
+      modeConfig: (story.mode_config as StoryModeConfig | undefined) ?? undefined,
+    });
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",

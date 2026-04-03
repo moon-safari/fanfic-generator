@@ -1,13 +1,23 @@
 "use client";
 
 import { TONES } from "../lib/fandoms";
+import type { ToneOption } from "../types/fandom";
 
 interface ToneSelectorProps {
   selected: string[];
   onChange: (tones: string[]) => void;
+  options?: ToneOption[];
+  label?: string;
+  showLabel?: boolean;
 }
 
-export default function ToneSelector({ selected, onChange }: ToneSelectorProps) {
+export default function ToneSelector({
+  selected,
+  onChange,
+  options = TONES,
+  label = "Tone",
+  showLabel = true,
+}: ToneSelectorProps) {
   const toggle = (toneLabel: string) => {
     if (selected.includes(toneLabel)) {
       onChange(selected.filter((t) => t !== toneLabel));
@@ -18,11 +28,13 @@ export default function ToneSelector({ selected, onChange }: ToneSelectorProps) 
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-zinc-300">
-        Tone <span className="text-zinc-500">(pick up to 2)</span>
-      </label>
+      {showLabel && (
+        <label className="block text-sm font-medium text-zinc-300">
+          {label} <span className="text-zinc-500">(pick up to 2)</span>
+        </label>
+      )}
       <div className="flex flex-wrap gap-2">
-        {TONES.map((tone) => (
+        {options.map((tone) => (
           <button
             key={tone.id}
             type="button"

@@ -1,15 +1,14 @@
-// src/app/components/editor/DescribeResults.tsx
 "use client";
 
-import { Copy } from "lucide-react";
+import { Copy, Sparkles } from "lucide-react";
 import { SenseDescription } from "../../types/craft";
 
-const SENSE_CONFIG: Record<string, { emoji: string; color: string }> = {
-  sight: { emoji: "👁", color: "bg-blue-500/10 text-blue-400" },
-  smell: { emoji: "👃", color: "bg-emerald-500/10 text-emerald-400" },
-  sound: { emoji: "👂", color: "bg-amber-500/10 text-amber-400" },
-  touch: { emoji: "🤚", color: "bg-rose-500/10 text-rose-400" },
-  taste: { emoji: "👅", color: "bg-orange-500/10 text-orange-400" },
+const SENSE_CONFIG: Record<string, string> = {
+  sight: "bg-blue-500/15 text-blue-200",
+  smell: "bg-emerald-500/15 text-emerald-200",
+  sound: "bg-amber-500/15 text-amber-200",
+  touch: "bg-rose-500/15 text-rose-200",
+  taste: "bg-orange-500/15 text-orange-200",
 };
 
 interface DescribeResultsProps {
@@ -24,80 +23,79 @@ export default function DescribeResults({
   onInsert,
 }: DescribeResultsProps) {
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
   };
 
   return (
-    <div className="space-y-2">
-      {/* Blend card (featured) */}
+    <div className="space-y-3">
       {blend && (
-        <div className="p-3 rounded-lg bg-gradient-to-br from-purple-950/40 to-zinc-900/60 border border-purple-500/30">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-xs">
-              ✨
-            </span>
-            <span className="text-[10px] font-bold tracking-wider text-purple-400 uppercase">
-              Blend
-            </span>
-            <span className="text-[9px] text-zinc-500 ml-auto">Recommended</span>
+        <section className="rounded-3xl border border-purple-500/30 bg-[radial-gradient(circle_at_top_left,_rgba(168,85,247,0.18),_rgba(24,24,27,0.86)_60%)] p-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-2xl bg-purple-500/15 p-2 text-purple-200">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Blend</p>
+              <p className="text-xs text-purple-200/80">Recommended combined pass</p>
+            </div>
           </div>
-          <p className="text-sm text-zinc-200 leading-relaxed">{blend}</p>
-          <div className="flex gap-2 mt-3">
+          <p className="mt-3 break-words text-sm leading-6 text-zinc-100">
+            {blend}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
+              type="button"
               onClick={() => onInsert(blend)}
-              className="px-3 py-1.5 rounded text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 transition-colors min-h-[32px]"
+              className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
             >
-              ↵ Insert
+              Use in editor
             </button>
             <button
+              type="button"
               onClick={() => handleCopy(blend)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs text-zinc-400 bg-zinc-800 hover:bg-zinc-700 transition-colors min-h-[32px]"
+              className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
             >
-              <Copy className="w-3 h-3" />
+              <Copy className="h-4 w-4" />
               Copy
             </button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Individual sense cards */}
-      {senses.map((sense) => {
-        const config = SENSE_CONFIG[sense.type];
-        if (!config) return null;
-        return (
-          <div
-            key={sense.type}
-            className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-700/50"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${config.color}`}
-              >
-                {config.emoji}
-              </span>
-              <span className="text-[10px] font-bold tracking-wider text-purple-400 uppercase">
-                {sense.type}
-              </span>
-            </div>
-            <p className="text-sm text-zinc-300 leading-relaxed">{sense.text}</p>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => onInsert(sense.text)}
-                className="px-3 py-1.5 rounded text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 transition-colors min-h-[32px]"
-              >
-                ↵ Insert
-              </button>
-              <button
-                onClick={() => handleCopy(sense.text)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded text-xs text-zinc-400 bg-zinc-800 hover:bg-zinc-700 transition-colors min-h-[32px]"
-              >
-                <Copy className="w-3 h-3" />
-                Copy
-              </button>
-            </div>
+      {senses.map((sense) => (
+        <section
+          key={sense.type}
+          className="rounded-3xl border border-zinc-800 bg-zinc-950/70 p-4"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${SENSE_CONFIG[sense.type] ?? "bg-zinc-800 text-zinc-300"}`}
+            >
+              {sense.type}
+            </span>
           </div>
-        );
-      })}
+          <p className="mt-3 break-words text-sm leading-6 text-zinc-300">
+            {sense.text}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onInsert(sense.text)}
+              className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
+            >
+              Use in editor
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopy(sense.text)}
+              className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
+            >
+              <Copy className="h-4 w-4" />
+              Copy
+            </button>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

@@ -1,15 +1,25 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  MoreVertical,
+  ChevronDown,
   Download,
+  Lightbulb,
+  MoreVertical,
+  Palette,
+  PencilLine,
+  PlusSquare,
+  Sparkles,
   Trash2,
 } from "lucide-react";
+import {
+  formatProjectProgressLabel,
+  getProjectUnitLabel,
+} from "../../lib/projectMode";
 import { Story } from "../../types/story";
 import { CraftTool } from "../../types/craft";
 
@@ -17,200 +27,288 @@ interface EditorToolbarProps {
   story: Story;
   currentChapterIdx: number;
   totalChapters: number;
-  showBible: boolean;
+  showCodex: boolean;
   annotationCount?: number;
   onBack: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
-  onToggleBible: () => void;
+  onToggleCodex: () => void;
   onExport: () => void;
   onDelete: () => void;
   activeCraftTool: CraftTool | null;
-  hasSelection: boolean;
   craftLoading: boolean;
   onCraftTool: (tool: CraftTool) => void;
 }
+
+const CRAFT_TOOL_META: Array<{
+  tool: CraftTool;
+  label: string;
+  Icon: typeof PencilLine;
+}> = [
+  { tool: "rewrite", label: "Rewrite", Icon: PencilLine },
+  { tool: "expand", label: "Expand", Icon: PlusSquare },
+  { tool: "describe", label: "Describe", Icon: Palette },
+  { tool: "brainstorm", label: "Brainstorm", Icon: Lightbulb },
+];
 
 export default function EditorToolbar({
   story,
   currentChapterIdx,
   totalChapters,
-  showBible,
+  showCodex,
   annotationCount = 0,
   onBack,
   onPrevChapter,
   onNextChapter,
-  onToggleBible,
+  onToggleCodex,
   onExport,
   onDelete,
   activeCraftTool,
-  hasSelection,
   craftLoading,
   onCraftTool,
 }: EditorToolbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toolsRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
   useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    if (!menuOpen && !toolsOpen) {
+      return;
+    }
+
+    const handler = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedInsideMenu =
+        menuRef.current && menuRef.current.contains(target);
+      const clickedInsideTools =
+        toolsRef.current && toolsRef.current.contains(target);
+
+      if (!clickedInsideMenu) {
         setMenuOpen(false);
       }
+
+      if (!clickedInsideTools) {
+        setToolsOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
+  }, [menuOpen, toolsOpen]);
+
+  const annotationLabel =
+    annotationCount === 1
+      ? "1 editor note"
+      : `${annotationCount} editor notes`;
+  const activeCraftMeta = CRAFT_TOOL_META.find(
+    ({ tool }) => tool === activeCraftTool
+  );
 
   return (
-    <header className="flex items-center justify-between px-3 sm:px-4 h-14 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-sm shrink-0 pt-[env(safe-area-inset-top)]">
-      {/* Left section */}
-      <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur-sm sm:px-4">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onBack}
-          className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors shrink-0"
+          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
           aria-label="Back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <h1 className="text-sm sm:text-base font-semibold text-white truncate max-w-[120px] sm:max-w-[240px]">
-          {story.title}
-        </h1>
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold text-white sm:text-base">
+            {story.title}
+          </h1>
+          <p className="text-xs text-zinc-500">
+            {formatProjectProgressLabel(
+              story.projectMode,
+              currentChapterIdx + 1,
+              totalChapters
+            )}
+          </p>
+        </div>
       </div>
 
-      {/* Center: chapter nav */}
       <div className="flex items-center gap-1">
         <button
           onClick={onPrevChapter}
           disabled={currentChapterIdx === 0}
-          className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="Previous chapter"
+          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label={`Previous ${getProjectUnitLabel(story.projectMode)}`}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-xs sm:text-sm text-zinc-400 whitespace-nowrap">
-          Ch {currentChapterIdx + 1} of {totalChapters}
-        </span>
         <button
           onClick={onNextChapter}
           disabled={currentChapterIdx >= totalChapters - 1}
-          className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="Next chapter"
+          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label={`Next ${getProjectUnitLabel(story.projectMode)}`}
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Right section */}
-      <div className="flex items-center gap-1 shrink-0">
-            {/* Craft tool buttons */}
-            <div className="hidden sm:flex items-center gap-0.5">
-              {(
-                [
-                  { tool: "rewrite" as CraftTool, icon: "✏️", label: "Rewrite" },
-                  { tool: "expand" as CraftTool, icon: "📐", label: "Expand" },
-                  { tool: "describe" as CraftTool, icon: "🎨", label: "Describe" },
-                  { tool: "brainstorm" as CraftTool, icon: "💡", label: "Brainstorm" },
-                ] as const
-              ).map(({ tool, icon, label }) => (
-                <button
-                  key={tool}
-                  onClick={() => onCraftTool(tool)}
-                  className={`px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                    activeCraftTool === tool
-                      ? "bg-purple-600/20 text-purple-400 border border-purple-500/40"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                  }`}
-                  title={label}
-                >
-                  {craftLoading && activeCraftTool === tool ? (
-                    <span className="animate-spin inline-block">⏳</span>
-                  ) : (
-                    icon
-                  )}{" "}
-                  <span className="hidden lg:inline">{label}</span>
-                </button>
-              ))}
-            </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <div className="hidden items-center gap-1 lg:flex">
+          {CRAFT_TOOL_META.map(({ tool, label, Icon }) => {
+            const selected = activeCraftTool === tool;
+            const loadingTool = craftLoading && selected;
 
-            {/* Mobile craft tool icons */}
-            <div className="flex sm:hidden items-center gap-0.5">
-              {(
-                [
-                  { tool: "rewrite" as CraftTool, icon: "✏️" },
-                  { tool: "expand" as CraftTool, icon: "📐" },
-                  { tool: "describe" as CraftTool, icon: "🎨" },
-                  { tool: "brainstorm" as CraftTool, icon: "💡" },
-                ] as const
-              ).map(({ tool, icon }) => (
-                <button
-                  key={tool}
-                  onClick={() => onCraftTool(tool)}
-                  className={`p-2 rounded-lg text-sm min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors ${
-                    activeCraftTool === tool
-                      ? "bg-purple-600/20 text-purple-400"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  {craftLoading && activeCraftTool === tool ? "⏳" : icon}
-                </button>
-              ))}
-            </div>
+            return (
+              <button
+                key={tool}
+                type="button"
+                onClick={() => onCraftTool(tool)}
+                className={`inline-flex min-h-[40px] items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                  selected
+                    ? "bg-purple-600/15 text-purple-100"
+                    : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                }`}
+                aria-label={label}
+                title={label}
+              >
+                {loadingTool ? (
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
+                <span className="hidden xl:inline">{label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-            <span className="hidden sm:block w-px h-5 bg-zinc-700 mx-1" />
+        <div className="relative lg:hidden" ref={toolsRef}>
+          <button
+            type="button"
+            onClick={() => setToolsOpen((value) => !value)}
+            className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-medium transition-colors ${
+              toolsOpen || activeCraftMeta
+                ? "bg-purple-600/15 text-purple-200"
+                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            }`}
+            aria-label={
+              activeCraftMeta
+                ? `Writing tools, active tool ${activeCraftMeta.label}`
+                : "Writing tools"
+            }
+            title={
+              craftLoading && activeCraftMeta
+                ? `Running ${activeCraftMeta.label}`
+                : activeCraftMeta
+                  ? `Writing tools (${activeCraftMeta.label})`
+                  : "Writing tools"
+            }
+          >
+            {craftLoading && activeCraftMeta ? (
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">Writing tools</span>
+            <ChevronDown
+              className={`hidden h-3.5 w-3.5 transition-transform sm:block ${
+                toolsOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {toolsOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-2xl border border-zinc-700 bg-zinc-900 py-1 shadow-lg">
+              {CRAFT_TOOL_META.map(({ tool, label, Icon }) => {
+                const selected = activeCraftTool === tool;
+                const loadingTool = craftLoading && selected;
+
+                return (
+                  <button
+                    key={tool}
+                    type="button"
+                    onClick={() => {
+                      setToolsOpen(false);
+                      onCraftTool(tool);
+                    }}
+                    className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors ${
+                      selected
+                        ? "bg-purple-600/10 text-purple-100"
+                        : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    {loadingTool ? (
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                    <span className="flex-1">{label}</span>
+                    {selected && !loadingTool && (
+                      <span className="text-[11px] text-purple-200">Active</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <span className="mx-1 hidden h-5 w-px bg-zinc-700 sm:block" />
 
         <div className="relative">
           <button
-            onClick={onToggleBible}
-            className={`p-2 rounded-lg transition-colors ${
-              showBible
+            onClick={onToggleCodex}
+            className={`flex min-h-[40px] items-center gap-2 rounded-xl px-2.5 transition-colors ${
+              showCodex
                 ? "bg-purple-600 text-white"
-                : "hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
             }`}
-            aria-label="Story Bible"
-            title="Story Bible"
+            aria-label={
+              annotationCount > 0
+                ? `Story tools, ${annotationLabel}`
+                : "Story tools"
+            }
+            title={
+              annotationCount > 0
+                ? `Story tools (${annotationLabel})`
+                : "Story tools"
+            }
           >
-            <BookOpen className="w-5 h-5" />
+            <BookOpen className="h-5 w-5" />
+            <span className="hidden xl:inline">Story tools</span>
           </button>
           {annotationCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-yellow-500 text-zinc-950 text-[10px] font-bold px-1">
-              {annotationCount > 99 ? "99+" : annotationCount}
-            </span>
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-cyan-400 ring-2 ring-zinc-950" />
           )}
         </div>
 
         <div className="relative" ref={menuRef}>
           <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
             aria-label="More options"
           >
-            <MoreVertical className="w-5 h-5" />
+            <MoreVertical className="h-5 w-5" />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-2xl border border-zinc-700 bg-zinc-900 py-1 shadow-lg">
               <button
                 onClick={() => {
                   setMenuOpen(false);
                   onExport();
                 }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
               >
-                <Download className="w-4 h-4" />
-                Export to .txt
+                <Download className="h-4 w-4" />
+                Download .txt
               </button>
               <button
                 onClick={() => {
                   setMenuOpen(false);
                   onDelete();
                 }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition-colors"
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-400 transition-colors hover:bg-zinc-800 hover:text-red-300"
               >
-                <Trash2 className="w-4 h-4" />
-                Delete story
+                <Trash2 className="h-4 w-4" />
+                Delete project
               </button>
             </div>
           )}

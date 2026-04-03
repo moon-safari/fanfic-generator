@@ -1,6 +1,7 @@
 {
-  "name": "fanfic-generator",
+  "name": "writing-os",
   "version": "0.1.0",
+  "description": "AI writing studio with living project memory",
   "private": true,
   "scripts": {
     "dev": "next dev",

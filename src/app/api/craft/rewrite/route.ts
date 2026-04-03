@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { authenticateAndFetchBible } from "../shared";
+import { authenticateAndFetchStoryContext } from "../shared";
 import { buildRewritePrompt } from "../../../lib/prompts/craft";
 
 const anthropic = new Anthropic({
@@ -9,15 +9,28 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const result = await authenticateAndFetchBible(req);
+    const result = await authenticateAndFetchStoryContext(req);
 
     if ("error" in result) {
       return result.error;
     }
 
-    const { selectedText, context, direction, bibleContext, userId, storyId, chapterNumber } = result;
+    const {
+      selectedText,
+      context,
+      direction,
+      storyContext,
+      userId,
+      storyId,
+      chapterNumber,
+    } = result;
 
-    const prompt = buildRewritePrompt(selectedText, direction, context, bibleContext);
+    const prompt = buildRewritePrompt(
+      selectedText,
+      direction,
+      context,
+      storyContext
+    );
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",

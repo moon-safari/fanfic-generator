@@ -35,7 +35,11 @@ export default function MobileCraftSheet({
   onRetry,
 }: MobileCraftSheetProps) {
   return (
-    <MobileBottomSheet isOpen={isOpen} onClose={onClose}>
+    <MobileBottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      maxHeightClass="max-h-[82vh]"
+    >
       <div className="px-2 pb-4">
         <CraftTab
           activeTool={activeTool}

@@ -1,21 +1,50 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { AuthProvider } from "./lib/supabase/auth-context";
+import {
+  PRODUCT_DESCRIPTION,
+  PRODUCT_NAME,
+  PRODUCT_ONE_LINER,
+} from "./lib/product";
 import "./globals.css";
 
-const geistSans = Geist({
+const geistSans = localFont({
+  src: [
+    {
+      path: "./fonts/geist-latin.woff2",
+      weight: "400 600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/geist-latin-ext.woff2",
+      weight: "400 600",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: [
+    {
+      path: "./fonts/geist-mono-latin.woff2",
+      weight: "400 600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/geist-mono-latin-ext.woff2",
+      weight: "400 600",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "AI Fanfiction Generator",
-  description: "Unlimited personalised stories in your favourite universes",
+  title: `${PRODUCT_NAME} | ${PRODUCT_ONE_LINER}`,
+  description: PRODUCT_DESCRIPTION,
 };
 
 export const viewport: Viewport = {

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, X, User } from "lucide-react";
 import { BibleCharacter, BibleCharactersContent } from "../../types/bible";
 

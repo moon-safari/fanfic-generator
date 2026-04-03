@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "../../lib/supabase/server";
-import { formatBibleForPrompt } from "../../lib/prompts/bible";
-import {
-  BibleSectionType,
-  BibleSectionContent,
-  BibleSection,
-  StoryBible,
-} from "../../types/bible";
-
-const ALL_SECTION_TYPES: BibleSectionType[] = [
-  "characters",
-  "world",
-  "synopsis",
-  "genre",
-  "style_guide",
-  "outline",
-  "notes",
-];
+import { resolvePromptStoryContext } from "../../lib/storyContext";
 
 export interface CraftContext {
   selectedText: string;
   context: string;
   direction: string;
-  bibleContext: string;
+  storyContext: string;
   userId: string;
   storyId: string;
   chapterNumber: number;
@@ -32,7 +16,7 @@ export interface CraftContextError {
   error: NextResponse;
 }
 
-export async function authenticateAndFetchBible(
+export async function authenticateAndFetchStoryContext(
   req: NextRequest
 ): Promise<CraftContext | CraftContextError> {
   const supabase = await createServerSupabase();
@@ -78,34 +62,19 @@ export async function authenticateAndFetchBible(
     };
   }
 
-  // Fetch Bible sections
-  const { data, error: bibleError } = await supabase
-    .from("story_bibles")
-    .select("*")
-    .eq("story_id", storyId);
+  const { text: storyContext } = await resolvePromptStoryContext(
+    supabase,
+    storyId,
+    Math.max(1, chapterNumber || 1)
+  );
 
-  let bibleContext = "";
-
-  if (!bibleError && data && data.length > 0) {
-    const sections = Object.fromEntries(
-      ALL_SECTION_TYPES.map((t) => [t, null])
-    ) as Record<BibleSectionType, BibleSection | null>;
-
-    for (const row of data) {
-      const section: BibleSection = {
-        id: row.id as string,
-        storyId: row.story_id as string,
-        sectionType: row.section_type as BibleSectionType,
-        content: row.content as BibleSectionContent,
-        createdAt: row.created_at as string,
-        updatedAt: row.updated_at as string,
-      };
-      sections[section.sectionType] = section;
-    }
-
-    const bible: StoryBible = { storyId, sections };
-    bibleContext = formatBibleForPrompt(bible);
-  }
-
-  return { selectedText, context, direction, bibleContext, userId: user.id, storyId, chapterNumber };
+  return {
+    selectedText,
+    context,
+    direction,
+    storyContext,
+    userId: user.id,
+    storyId,
+    chapterNumber,
+  };
 }

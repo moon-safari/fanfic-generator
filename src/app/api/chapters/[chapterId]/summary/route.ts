@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getProjectUnitLabel } from "../../../../lib/projectMode";
 import { createServerSupabase } from "../../../../lib/supabase/server";
+import type { ProjectMode } from "../../../../types/story";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ chapterId: string }> }
 ) {
   try {
     const { chapterId } = await params;
+    let sourceText: string | null = null;
+
+    const rawBody = await req.text();
+    if (rawBody.trim()) {
+      let body: { sourceText?: string };
+
+      try {
+        body = JSON.parse(rawBody) as { sourceText?: string };
+      } catch {
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+      }
+
+      if (typeof body.sourceText === "string" && body.sourceText.trim()) {
+        sourceText = body.sourceText.trim();
+      }
+    }
 
     const supabase = await createServerSupabase();
     const {
@@ -36,7 +54,7 @@ export async function POST(
     // Verify story ownership
     const { data: story, error: storyError } = await supabase
       .from("stories")
-      .select("id")
+      .select("id, project_mode")
       .eq("id", chapter.story_id as string)
       .eq("user_id", user.id)
       .single();
@@ -45,10 +63,14 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const prompt = `Summarize this chapter in exactly 2 sentences. Focus on key events, character actions, and plot developments.
+    const projectMode = (story.project_mode as ProjectMode | undefined) ?? "fiction";
+    const unitLabelCapitalized = getProjectUnitLabel(projectMode, {
+      capitalize: true,
+    });
+    const prompt = `Summarize this ${getProjectUnitLabel(projectMode)} in exactly 2 sentences. Focus on key events, voice, and what matters next.
 
-CHAPTER:
-${chapter.content as string}
+${unitLabelCapitalized.toUpperCase()}:
+${sourceText ?? (chapter.content as string)}
 
 Output ONLY the 2-sentence summary. No labels, no headers.`;
 

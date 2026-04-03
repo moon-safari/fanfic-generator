@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { StoryFormData } from "../../types/story";
 import { buildChapter1Prompt } from "../../lib/prompts";
+import { isNewsletterFormData } from "../../lib/projectMode";
 import { createServerSupabase } from "../../lib/supabase/server";
 import { sseEvent } from "../../lib/stream";
 
@@ -27,18 +28,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  if (
-    !body.characters ||
-    !Array.isArray(body.characters) ||
-    body.characters.filter((c: string) => c.trim().length > 0).length < 2 ||
-    !body.tone ||
-    !Array.isArray(body.tone) ||
-    body.tone.length < 1 ||
-    !body.rating ||
-    !body.relationshipType
+  if (isNewsletterFormData(body)) {
+    if (
+      body.title.trim().length < 2
+      || body.newsletterTopic.trim().length < 3
+      || body.audience.trim().length < 3
+      || body.issueAngle.trim().length < 8
+      || !Array.isArray(body.tone)
+      || body.tone.length < 1
+    ) {
+      return NextResponse.json(
+        { error: "Missing required newsletter fields" },
+        { status: 400 }
+      );
+    }
+  } else if (
+    !body.characters
+    || !Array.isArray(body.characters)
+    || body.characters.filter((c: string) => c.trim().length > 0).length < 2
+    || !body.tone
+    || !Array.isArray(body.tone)
+    || body.tone.length < 1
+    || !body.rating
+    || !body.relationshipType
   ) {
     return NextResponse.json(
-      { error: "Missing required fields" },
+      { error: "Missing required fiction fields" },
       { status: 400 }
     );
   }

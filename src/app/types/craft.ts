@@ -17,7 +17,14 @@ export type CraftResult =
   | { type: "describe"; blend: string; senses: SenseDescription[] }
   | { type: "brainstorm"; ideas: BrainstormIdea[] };
 
-export type SidePanelTab = "bible" | "craft" | "history";
+export type SidePanelTab =
+  | "codex"
+  | "artifacts"
+  | "adapt"
+  | "craft"
+  | "history";
+
+export type SidePanelWidth = "normal" | "expanded" | "focus";
 
 export interface CraftHistoryEntry {
   id: string;

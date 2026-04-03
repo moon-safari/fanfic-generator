@@ -2,10 +2,10 @@ export function buildRewritePrompt(
   selectedText: string,
   direction: string,
   context: string,
-  bibleContext: string
+  storyContext: string
 ): string {
   return `You are a skilled fiction editor. Rewrite the selected passage following the given direction.
-${bibleContext ? `\n${bibleContext}\n` : ""}
+${storyContext ? `\n${storyContext}\n` : ""}
 ${context ? `SURROUNDING CONTEXT:\n${context}\n` : ""}
 REWRITE DIRECTION: ${direction}
 
@@ -18,10 +18,10 @@ Output ONLY the rewritten text. No explanations, no commentary, no headers.`;
 export function buildExpandPrompt(
   selectedText: string,
   context: string,
-  bibleContext: string
+  storyContext: string
 ): string {
   return `You are a skilled fiction writer. Expand the selected passage with rich sensory detail, deeper emotion, and vivid description. Target approximately double the original length while preserving all original meaning and events.
-${bibleContext ? `\n${bibleContext}\n` : ""}
+${storyContext ? `\n${storyContext}\n` : ""}
 ${context ? `SURROUNDING CONTEXT:\n${context}\n` : ""}
 SELECTED TEXT TO EXPAND:
 ${selectedText}
@@ -32,12 +32,12 @@ Output ONLY the expanded text. No explanations, no commentary, no headers.`;
 export function buildDescribePrompt(
   selectedText: string,
   context: string,
-  bibleContext: string
+  storyContext: string
 ): string {
   return `You are a skilled fiction writer. Generate vivid sensory descriptions for the selected passage.
 
 For each relevant sense (sight, smell, sound, touch, taste), write a 2-3 sentence description. Skip senses that don't naturally apply. Then write a "blend" that combines the best elements from all senses into one cohesive passage.
-${bibleContext ? `\n${bibleContext}\n` : ""}
+${storyContext ? `\n${storyContext}\n` : ""}
 ${context ? `SURROUNDING CONTEXT:\n${context}\n` : ""}
 SELECTED TEXT:
 ${selectedText}
@@ -58,10 +58,10 @@ Only include senses that are relevant. Always include "blend".`;
 export function buildBrainstormPrompt(
   selectedText: string,
   context: string,
-  bibleContext: string
+  storyContext: string
 ): string {
   return `You are a creative story planner. Generate 5 compelling plot directions that could follow from the selected passage. Each direction should be distinct, dramatically interesting, and feel earned by the story so far.
-${bibleContext ? `\n${bibleContext}\n` : ""}
+${storyContext ? `\n${storyContext}\n` : ""}
 ${context ? `SURROUNDING CONTEXT:\n${context}\n` : ""}
 SELECTED TEXT / CURRENT MOMENT:
 ${selectedText}

@@ -1,180 +1,336 @@
-# Product Roadmap: AI Visual Story Studio
+# Product Roadmap: Writing OS
 
-> From fanfic generator → craft-focused AI writing studio with visual storytelling
+> The OS for Writing — Sudowrite's AI quality meets Novelcrafter's project depth, across every kind of writing.
 
-## Tech Stack & External Services
+## Product Thesis
 
-### AI Models
+We are building the operating system for writers.
 
-| Service | Use Case | Cost | Notes |
-|---------|----------|------|-------|
-| **Claude Sonnet** (Anthropic) | Story generation, continuity, craft tools | ~$0.01-0.03/chapter | Already integrated. Best creative writing model. |
-| **Claude Haiku** (Anthropic) | Quick tools (rewrite, expand, describe) | ~$0.001/call | Fast + cheap for inline editing tools |
-| **Flux 1.1 Pro** (via Replicate) | Scene illustrations, character portraits | ~$0.03-0.05/image | Best quality-to-price ratio. Replicate API. |
-| **Stable Diffusion 3.5** (Stability AI) | Fallback image gen, style variants | ~$0.02-0.04/image | Good for manga/anime styles specifically |
-| **GPT-Image-1** (OpenAI) | Alternative image gen | ~$0.04-0.08/image | Best text-in-image, good photorealism |
-| **Gradium** | Audio narration (TTS) | Free tier ~1hr, $43/mo ~20hrs | Natural voice, streaming |
-| **ElevenLabs** | Premium voice narration | Free 10k chars/mo, $5/mo 30k | Better voice quality, more voices, alternative to Gradium |
+Not a chatbot. Not a one-shot generator. A workspace with living project memory that helps writers:
 
-### Infrastructure (already set up)
-- **Supabase** — Auth (Discord + Google), Postgres DB, file storage for images
-- **Vercel** — Deployment
-- **Stripe** — Payments (to add)
+1. **Write** — draft, rewrite, expand, and brainstorm with AI that knows the project
+2. **Remember** — keep characters, facts, lore, plans, and constraints in structured project memory
+3. **Review** — inspect what the system knows, catch continuity drift, accept or reject proposed changes
+4. **Adapt** — turn one project into many outputs (recaps, teasers, beat sheets, newsletters, pitches)
+5. **Publish** — export, package, and distribute from the same workspace
 
----
+## Target Modes
 
-## Phase 1: Writing Studio Foundation (Current → 2 weeks)
-*Transform "click generate" into a real writing environment*
+The platform serves every kind of long-form writing through mode packs:
 
-### 1.1 Story Bible
-- **Character cards** — Name, description, personality, relationships, appearance notes
-- **World rules** — Setting details, magic systems, technology level, canon rules
-- **Story synopsis** — One-paragraph summary AI references for consistency
-- **Fandom auto-fill** — Pre-populate Story Bible from our fandom data
-- **Model:** Claude Sonnet reads Story Bible as system context for every generation
+| Mode | Status |
+|------|--------|
+| Fiction (novels, short stories, serialized, fanfic) | Live — primary wedge |
+| Newsletters / serialized creator work | v1 live |
+| Screenplays | Planned |
+| Comics / graphic narrative | Planned |
+| Game writing / narrative design | Planned |
+| Non-fiction / articles / essays | Planned |
 
-### 1.2 Rich Text Editor
-- Replace plain text display with a proper editor (Tiptap or Lexical)
-- Users can edit AI output directly — not just read it
-- Selection-based tools (highlight text → rewrite/expand/describe)
-- Paragraph-level regeneration ("rewrite this paragraph")
+Each mode defines its own knowledge schema, planning schema, output schema, review schema, and creator workflow — all built on the same shared engine.
 
-### 1.3 Craft Tools (inline, selection-based)
-- **Rewrite** — Select text, choose direction: "more tense", "more poetic", "shorter", "more dialogue"
-- **Expand** — Turn a sparse paragraph into a rich scene with sensory detail
-- **Describe** — Generate 3-5 description alternatives for a selected noun/scene
-- **Brainstorm** — "What could happen next?" → 5 plot direction options user picks from
-- **Model:** Claude Haiku for speed on Rewrite/Expand/Describe. Sonnet for Brainstorm.
+## Competitive Position
 
-### 1.4 Continuity Engine
-- AI reads all previous chapters + Story Bible before writing
-- Flag contradictions ("In Chapter 2 you said X, but in Chapter 5 you said Y")
-- Character voice consistency tracking
-- **Model:** Claude Haiku for quick continuity checks
+- **Sudowrite**: Best AI prose, weak world-building and project memory
+- **Novelcrafter**: Best project organization, but BYOK and no built-in AI
+- **Writing OS**: Strong AI + structured project memory + easiest onboarding + multi-mode support
 
----
+## Current Wedge
 
-## Phase 2: Visual Storytelling (2-4 weeks after Phase 1)
-*Every story becomes illustrated*
+Fiction remains the deepest mode. Newsletter is the first adjacent mode proving the engine generalizes. Both share the same infrastructure (stories table, project modes, Codex memory, adaptation outputs).
 
-### 2.1 Scene Illustrations
-- "Generate illustration" button per chapter
-- AI extracts key scene from chapter text → generates image prompt → creates image
-- Style selector: photorealistic, anime/manga, watercolor, comic book, oil painting
-- **Model pipeline:** Claude Haiku (extract scene → write image prompt) → Flux 1.1 Pro (generate image)
-- Store images in Supabase Storage, link to chapters
+Newsletter mode is now live in an initial mode-pack form:
 
-### 2.2 Character Portraits
-- Auto-generate from Story Bible character descriptions
-- Reference image system for consistency (Flux IP-Adapter or similar)
-- Portrait appears on character cards in Story Bible
-- **Model:** Flux 1.1 Pro with detailed character description prompt
+- newsletter-specific project creation
+- issue-aware generation and continuation
+- issue-aware adaptation and artifact handling
+- shared newsletter memory and review language while Codex remains fiction-first
+- publication profile editing for subtitle, hook style, CTA style, and recurring sections
+- saved issue-package outputs for subject lines, deck options, recurring section drafts, hook variants, CTA variants, and send-checklist review
+- issue bundle export for current newsletters using saved package assets plus the issue body
+- deterministic issue-readiness checks inside `Artifacts`, with action links to missing package outputs
+- a tighter pre-send view that foregrounds blockers, next-step actions, and bundle readiness without drowning creators in already-passed checks
+- the newsletter `Issue Package` workflow now shows saved vs missing outputs and can generate only the missing package pieces
+- the same workflow now highlights the next missing piece and gives a cleaner package-complete handoff into send-checklist review
+- generated issue-package outputs can now become canonical issue state through official subject line, deck, hook, CTA, and recurring section package selections
+- a seeded newsletter showcase for creator-workflow testing
 
-### 2.3 Cover Art
-- Auto-generate story cover from title + synopsis + characters
-- Multiple style options, user picks favorite
-- Used for library cards, sharing, social preview
-- **Model:** Flux 1.1 Pro
+## Platform Principles
 
-### 2.4 Image Consistency (the hard problem)
-- Save character reference images and feed them back for subsequent generations
-- Use IP-Adapter / face-consistency techniques via Replicate
-- Allow users to upload their own reference images
-- This is iterative — start simple, improve over time
+### 1. Project truth matters more than prompt tricks
 
----
+Codex, context, and continuity should become shared infrastructure across the product.
 
-## Phase 3: Audio & Sharing (4-6 weeks after Phase 1)
-*Stories come alive and go viral*
+### 1a. AI-native beats AI-decorated
 
-### 3.1 Audio Narration
-- "Listen" button per chapter
-- Stream audio as it generates (WebSocket)
-- Voice selection (narrator voices, not character-specific initially)
-- Cache generated audio in Supabase Storage
-- **Model:** Gradium TTS (free tier to start), upgrade to ElevenLabs for premium voices
+We should prefer features where model output becomes durable project state.
 
-### 3.2 Public Story Pages
-- Toggle story to "public" → generates shareable URL
-- Beautiful reading page with cover art, chapter navigation
-- Open Graph meta tags for rich social previews (cover art + title + fandom)
-- Embed-friendly for Tumblr, Twitter, Discord
+Good signs:
 
-### 3.3 Community Library
-- Browse public stories by fandom, rating, tropes
-- Kudos / bookmark system (AO3 inspired)
-- Author profiles
-- "Remix" — fork someone's story setup (characters, setting) into your own
+- the workflow depends on AI
+- project memory improves future work
+- better base models materially improve the product
+- user behavior changes because the system is more than a normal editor
 
----
+Bad signs:
 
-## Phase 4: Monetization & Growth (6-8 weeks after Phase 1)
-*Turn users into customers*
+- AI is just a sparkle button
+- output is disposable
+- users can ignore the AI and get almost the same product
+- the feature does not compound across sessions
 
-### 4.1 Stripe Integration
-- **Free tier:** 5 chapters/month, 3 images/month, no audio
-- **Pro tier ($9.99/mo):** Unlimited chapters, 50 images/month, audio narration, all craft tools
-- **Studio tier ($19.99/mo):** Everything + priority generation, multiple concurrent stories, epub/pdf export, manga mode (future)
+### 2. Writers must be able to inspect and steer the system
 
-### 4.2 Usage Tracking
-- Track chapters generated, images created, audio minutes per billing cycle
-- Soft limits with upgrade prompts (not hard blocks — don't kill the flow)
-- Dashboard showing usage
+The product should expose:
 
-### 4.3 Onboarding
-- Guided first-story flow: pick fandom → fill Story Bible → generate Chapter 1 → try Rewrite tool → see illustration
-- This teaches the product loop naturally
+- what it knows
+- what changed
+- what it is using
+- why it is using it
 
----
+This does not mean every internal mechanism should be visible by default.
+Progressive disclosure matters.
 
-## Phase 5: Advanced Visual Modes (future)
-*The manga/comic dream*
+### 3. One project should power many outputs
 
-### 5.1 Manga/Comic Panel Mode
-- Split chapter into scenes → generate panel layout
-- Dialogue bubbles with character text
-- Panel-to-panel consistency via reference images
-- Style: manga, western comic, graphic novel
-- **This is the hardest feature. Research phase first.**
+Adaptation is not a side feature.
+It is part of the platform strategy.
 
-### 5.2 Storyboard Mode
-- Visual timeline of key scenes across chapters
-- Drag-and-drop scene reordering
-- Each scene = text + illustration thumbnail
+### 4. Security and ownership are core platform concerns
 
-### 5.3 ePub/PDF Export with Illustrations
-- Professional formatted output
-- Cover art + chapter illustrations inline
-- Proper typography, page breaks
-- Manga mode exports as right-to-left
+- authenticated project access
+- RLS-backed ownership in Supabase
+- server-side AI calls only
+- safe rollout patterns with backward-compatible migrations
 
----
+## Phase 1: Writing Studio Core
 
-## Cost Modeling (per active user/month)
+### Status
 
-| Usage | Free User | Pro User | Studio User |
-|-------|-----------|----------|-------------|
-| Chapters | 5 × $0.02 = $0.10 | 20 × $0.02 = $0.40 | 40 × $0.02 = $0.80 |
-| Craft tools | 10 × $0.001 = $0.01 | 100 × $0.001 = $0.10 | 200 × $0.001 = $0.20 |
-| Images | 3 × $0.04 = $0.12 | 50 × $0.04 = $2.00 | 100 × $0.04 = $4.00 |
-| Audio | $0 | 10 ch × $0.05 = $0.50 | 30 ch × $0.05 = $1.50 |
-| **Total cost** | **~$0.23** | **~$3.00** | **~$6.50** |
-| **Revenue** | **$0** | **$9.99** | **$19.99** |
-| **Margin** | negative | ~70% | ~68% |
+Mostly implemented.
 
-Healthy margins on paid tiers. Free tier is cheap enough to subsidize for growth.
+### Includes
 
----
+- rich editor
+- craft tools
+- streaming generation
+- chapter summaries
+- continuity checks
+- Codex foundation
+- updates and suggestion review
+- context console
+- first adaptation workflows
 
-## Build Order (what to do first)
+### Why it matters
 
-1. **Story Bible** — Biggest impact on quality, makes everything downstream better
-2. **Rich Text Editor** — Can't have craft tools without an editor
-3. **Rewrite/Expand/Describe** — The "aha moment" that converts free → paid
-4. **Scene Illustrations** — The visual wow factor, shareability
-5. **Cover Art** — Quick win, makes library beautiful
-6. **Audio Narration** — Premium feature, differentiator
-7. **Public Pages + Sharing** — Growth engine
-8. **Stripe + Tiers** — Actually make money
-9. **Community Library** — Retention + network effects
-10. **Manga/Comic Mode** — The dream, but last because it's hardest
+This phase replaces "generate and read" with a real writing environment.
+
+## Phase 2: Project Memory And Review Depth
+
+### In progress direction
+
+- stronger Codex navigation
+- mentions and manuscript linking
+- living change detection
+- accepted-update feedback loop
+- context steering
+- explainable context
+- better update review
+
+### Next depth opportunities
+
+- artifact library
+- planning and outline layer
+- continuity copilot v2
+- research ingestion
+- series/shared Codex
+
+## Phase 3: Mode Expansion
+
+We should expand by mode packs, not random features.
+
+### Near-term mode packs
+
+1. Fiction Mode
+2. Newsletter Creator Mode
+3. Screenplay Mode
+4. Comics / Graphic Narrative Mode
+5. Game Writing / Narrative Design Mode
+
+### Each mode should define
+
+- knowledge schema
+- planning schema
+- output schema
+- review schema
+- creator workflow shape
+
+## Phase 4: Adaptation Studio
+
+Turn one project into many outputs.
+
+### Early outputs
+
+- short summary
+- newsletter recap
+- screenplay beat sheet
+- public teaser
+
+### Future outputs
+
+- character dossier
+- episode summary
+- pitch sheet
+- social package
+- publishing blurbs
+
+### Goal
+
+Adaptation outputs should become first-class project artifacts, not disposable generations.
+
+## Phase 5: Publishing And Distribution
+
+### Future areas
+
+- public project pages
+- exports
+- shareable artifacts
+- collaborative review
+- distribution surfaces
+
+This phase should only come after the core memory/review loop is strong enough.
+
+## AI-Native Standard
+
+The repo now treats `AI-native` as a product standard, not a marketing phrase.
+
+Reference:
+
+- `docs/superpowers/specs/2026-03-31-ai-native-product-principles.md`
+- `docs/superpowers/specs/2026-04-02-writing-os-value-audit.md`
+
+## Value Bar
+
+We should stop shipping features that are merely plausible.
+
+Every near-term change should clearly do at least one of these:
+
+- make writing materially faster
+- make project truth clearer or safer
+- make later outputs better because saved state is reused
+- remove a meaningful context switch or chunk of confusion
+- complete a core workflow end to end
+
+If a change does none of those clearly, it should not be prioritized.
+
+## Immediate Build Order
+
+1. Landing page and positioning refresh
+2. Artifact library
+3. Newsletter / serialized creator mode
+4. Planning and outline layer
+5. Continuity Copilot v2
+
+Current status:
+
+1. Landing page and positioning refresh - done
+2. Artifact library - done
+3. Newsletter / serialized creator mode - v1 live
+4. Planning and outline layer - partially live through structured outline artifacts plus arc/thread tracking
+5. Continuity Copilot v2 - started through planning-aware continuity, annotation metadata, and one-click planning actions
+
+Immediate next depth:
+
+- browser-led review of the default fiction flow
+- browser-led review of the default newsletter flow
+- fix only concrete high-friction issues that show up in those flows
+- give story tools / side-panel surfaces more usable space
+- continue planning-aware generation and adaptation only where it strengthens flagship workflows
+
+Next mode-pack clarification:
+
+- `newsletter-native memory/review` is product-depth work
+- `newsletter creator mode` is the broader workflow layer on top of that depth
+- after newsletter, the next serious mode-pack candidates are:
+  - screenplay
+  - comics / graphic narrative
+  - game writing / narrative design
+
+Current newsletter depth update:
+
+- newsletter projects now resolve dedicated newsletter memory for prompts
+- `Artifacts` exposes a visible newsletter-memory panel
+- continuity can now flag promise drift and voice drift against synopsis/style guide
+- continuity can now flag hook drift, CTA drift, and recurring segment drift inside the same planning-aware review loop
+- newsletter creator workflow now includes a saved `Issue Package` workflow for subject lines, deck options, recurring section drafts, hook variants, CTA variants, and send-checklist review
+- `Artifacts` now supports current-issue markdown bundle export for newsletter projects
+- canonical issue-package selections now feed readiness and bundle export, turning generated options into durable issue state
+- newsletter issue readiness now also checks whether the current issue body still honors the official framing, hook, CTA, and recurring section package
+- the readiness surface is now being simplified into a clearer `pre-send check` instead of accumulating more dashboard-like subfeatures
+
+Likely next newsletter move:
+
+- stop widening for a moment and simplify the newsletter flow around a small, legible loop:
+  - write issue
+  - choose official package
+  - run pre-send check
+  - export/send
+
+Likely next cross-product move:
+
+- run a simplification reset across newsletter and Codex
+- keep default workflow simple
+- move expert controls behind `Advanced`
+
+Current simplification progress:
+
+- the side panel now defaults to the core workflow tabs, with lower-frequency tools moved behind `Advanced`
+- the default workspace language is shifting toward plain English: `Memory`, `Project`, and `Outputs`
+- Codex now keeps type management, mention syncing, and context visibility out of the default layer
+- Codex type filters are now optional instead of always visible
+- Memory now leads with a compact `facts / mentions / to review` summary instead of a busier control-heavy header
+- Memory review now keeps older handled suggestions collapsed behind a simple recent-activity toggle
+- newsletter setup is now tucked behind a setup drawer so pre-send work stays front and center
+- Project now keeps secondary type/scope filters behind a `More filters` drawer instead of front-loading them
+- Memory detail screens now default to the main fact first, with mention trails and deeper relationship/progression tools behind revealers
+- Project detail screens now foreground the saved content, with metadata and lower-priority newsletter setup behind secondary toggles
+- Memory fact cards now keep aliases, linked facts, and change chips behind a secondary `More fact details` reveal instead of dumping them immediately
+- Project item screens now lead with one primary action and move copy / reopen / delete into a secondary `More actions` layer
+- Memory and Project list views now use quieter summary lines instead of stacked badge columns, so items read more like documents and facts than mini dashboards
+- Memory now uses a single quiet summary line in the header instead of a row of status chips, and saved newsletter setup now defaults to a compact summary before showing deeper context
+- the newsletter pre-send card now favors one obvious export action first, with secondary export behavior hidden until asked for
+- Outputs now favors one obvious workflow action first, with per-output workflow controls and official package management hidden behind explicit reveals
+- side-panel note counts are now plain text instead of another bright badge in the shell
+- the editor toolbar now uses one `Writing tools` entry point instead of exposing a row of craft actions all the time
+- home, create, and library are now moving toward the same rule: default to `start new` or `open saved`, keep lower-priority setup behind `More options`, and tuck sample projects behind a reveal
+- visible action language is now being standardized too: prefer one plain primary action like `Use in editor`, and avoid bouncing between internal verbs like `insert`, `re-insert`, or `prompt view`
+- the last shell cleanup is now reducing redundant signals too: subtler note indicators, calmer footer CTA styling, less duplicate metadata, and less chrome around the active side-panel view
+- onboarding and shell microcopy are now being simplified too: home, login, create, and editor confirmations should prefer plain, mode-neutral wording over internal system language
+
+AI-native newsletter conclusion:
+
+- the strongest compounding newsletter surfaces are memory, planning-aware writing, review, and readiness
+- generated package options can now become canonical issue state, which is the most important AI-native newsletter move so far
+- readiness now reasons about whether the issue still matches that canonical package
+- the next serious newsletter depth step should keep building on canonical state rather than adding more disconnected output types
+
+Current depth update:
+
+- continuation now sees planning guidance for the next unit
+- adaptation now sees planning guidance for the current unit
+- planning is starting to shape writing before drift happens, not only review it afterward
+
+## What Success Looks Like
+
+The product should increasingly feel like:
+
+- a serious writing workspace
+- a memory system for long-form projects
+- a review surface for truth and continuity
+- an adaptation studio for multi-format writing
+
+Not:
+
+- a generic AI text box
+- a fanfic-only niche tool
+- a loose collection of disconnected assistants

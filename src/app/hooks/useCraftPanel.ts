@@ -6,6 +6,7 @@ import {
   CraftTool,
   CraftResult,
   SidePanelTab,
+  SidePanelWidth,
 } from "../types/craft";
 
 interface CraftPanelState {
@@ -17,12 +18,12 @@ interface CraftPanelState {
   result: CraftResult | null;
   error: string | null;
   loading: boolean;
-  panelWidth: "normal" | "expanded";
+  panelWidth: SidePanelWidth;
 }
 
 const initialState: CraftPanelState = {
   isOpen: false,
-  activeTab: "bible",
+  activeTab: "codex",
   activeTool: null,
   selectedText: null,
   direction: "",
@@ -32,6 +33,22 @@ const initialState: CraftPanelState = {
   panelWidth: "normal",
 };
 
+function getPreferredPanelWidth(
+  tab: SidePanelTab,
+  activeTool: CraftTool | null,
+  hasResult: boolean
+): SidePanelWidth {
+  if (tab === "adapt" || tab === "artifacts") {
+    return "expanded";
+  }
+
+  if (tab === "craft" && activeTool === "brainstorm" && hasResult) {
+    return "expanded";
+  }
+
+  return "normal";
+}
+
 export function useCraftPanel(storyId: string) {
   const [state, setState] = useState<CraftPanelState>(initialState);
 
@@ -40,7 +57,10 @@ export function useCraftPanel(storyId: string) {
       ...prev,
       isOpen: true,
       activeTab: tab,
-      panelWidth: tab === "craft" && prev.activeTool === "brainstorm" ? "expanded" : "normal",
+      panelWidth:
+        prev.panelWidth === "focus"
+          ? "focus"
+          : getPreferredPanelWidth(tab, prev.activeTool, Boolean(prev.result)),
     }));
   }, []);
 
@@ -56,7 +76,10 @@ export function useCraftPanel(storyId: string) {
     setState((prev) => ({
       ...prev,
       activeTab: tab,
-      panelWidth: tab === "craft" && prev.activeTool === "brainstorm" && prev.result ? "expanded" : "normal",
+      panelWidth:
+        prev.panelWidth === "focus"
+          ? "focus"
+          : getPreferredPanelWidth(tab, prev.activeTool, Boolean(prev.result)),
     }));
   }, []);
 
@@ -78,7 +101,7 @@ export function useCraftPanel(storyId: string) {
         result: null,
         error: null,
         loading: true,
-        panelWidth: "normal",
+        panelWidth: prev.panelWidth === "focus" ? "focus" : "normal",
       }));
 
       try {
@@ -132,7 +155,10 @@ export function useCraftPanel(storyId: string) {
           ...prev,
           result,
           loading: false,
-          panelWidth: tool === "brainstorm" ? "expanded" : "normal",
+          panelWidth:
+            prev.panelWidth === "focus"
+              ? "focus"
+              : getPreferredPanelWidth("craft", tool, true),
         }));
       } catch (err) {
         setState((prev) => ({
@@ -160,6 +186,21 @@ export function useCraftPanel(storyId: string) {
     }));
   }, []);
 
+  const setPanelWidth = useCallback((panelWidth: SidePanelWidth) => {
+    setState((prev) => ({ ...prev, panelWidth }));
+  }, []);
+
+  const exitFocusMode = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      panelWidth: getPreferredPanelWidth(
+        prev.activeTab,
+        prev.activeTool,
+        Boolean(prev.result)
+      ),
+    }));
+  }, []);
+
   return {
     ...state,
     openTab,
@@ -168,5 +209,7 @@ export function useCraftPanel(storyId: string) {
     callTool,
     setDirection,
     dismiss,
+    setPanelWidth,
+    exitFocusMode,
   };
 }

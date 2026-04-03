@@ -1,8 +1,14 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import {
+  getContinueActionLabel,
+  getLoadingContinueLabel,
+} from "../../lib/projectMode";
+import type { ProjectMode } from "../../types/story";
 
 interface EditorFooterProps {
+  projectMode: ProjectMode;
   wordCount: number;
   isLatestChapter: boolean;
   loading: boolean;
@@ -11,6 +17,7 @@ interface EditorFooterProps {
 }
 
 export default function EditorFooter({
+  projectMode,
   wordCount,
   isLatestChapter,
   loading,
@@ -34,16 +41,18 @@ export default function EditorFooter({
           <button
             onClick={onContinue}
             disabled={loading}
-            className="px-5 py-2 rounded-xl font-semibold text-white text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 active:from-purple-700 active:to-rose-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500 active:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="hidden sm:inline">Writing the next chapter...</span>
+                <span className="hidden sm:inline">
+                  {getLoadingContinueLabel(projectMode)}
+                </span>
                 <span className="sm:hidden">Writing...</span>
               </>
             ) : (
-              "Continue Story \u2192"
+              `${getContinueActionLabel(projectMode)} \u2192`
             )}
           </button>
         )}

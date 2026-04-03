@@ -1,5 +1,12 @@
-import { StoryFormData, Story, Rating, RelationshipType } from "../../types/story";
+import {
+  NewsletterStoryFormData,
+  Rating,
+  RelationshipType,
+  Story,
+  StoryFormData,
+} from "../../types/story";
 import { getFandomContext } from "../fandoms";
+import { getNewsletterModeConfig, isNewsletterFormData } from "../projectMode";
 
 function getRatingInstructions(rating: Rating): string {
   switch (rating) {
@@ -33,7 +40,7 @@ function getRelationshipInstructions(type: RelationshipType, characters: string[
   }
 }
 
-export function buildChapter1Prompt(form: StoryFormData): string {
+function buildFictionChapter1Prompt(form: Exclude<StoryFormData, NewsletterStoryFormData>): string {
   const fandomCtx = getFandomContext(form.fandom);
   const fandomName = form.customFandom || form.fandom || "Original";
   const toneStr = form.tone.join(" + ");
@@ -80,7 +87,74 @@ Title: [Generated Title]
 [Chapter 1 text — no "Chapter 1" header, just the story text]`;
 }
 
-export function buildContinuationPrompt(story: Story, chapterNum: number, bibleContext?: string): string {
+function buildNewsletterIssue1Prompt(form: NewsletterStoryFormData): string {
+  const toneStr = form.tone.join(" + ");
+
+  return `You are a sharp, thoughtful newsletter writer building the first issue of a serialized creator newsletter.
+
+Write with clarity, momentum, specificity, and a distinct human voice.
+Do not sound corporate, vague, or generic.
+
+NEWSLETTER CONFIGURATION:
+- Newsletter title: ${form.title}
+- Topic: ${form.newsletterTopic}
+- Audience: ${form.audience}
+- Current issue angle: ${form.issueAngle}
+- Cadence: ${form.cadence}
+- Voice: ${toneStr}
+
+ISSUE 1 INSTRUCTIONS:
+1. Write approximately 500 to 800 words.
+2. Open with a strong, immediate lead that earns attention quickly.
+3. Stay tightly focused on the current issue angle.
+4. Deliver at least one concrete insight, observation, or useful frame.
+5. Keep the prose readable, crisp, and audience-facing.
+6. End with a forward-looking close that makes the next issue feel alive.
+7. Do not add markdown headings, bullet lists, or explanatory notes unless the prose naturally calls for a very short list.
+
+OUTPUT FORMAT (follow exactly):
+Title: ${form.title}
+
+[Issue 1 text — no separate issue header, just the newsletter text]`;
+}
+
+export function buildChapter1Prompt(form: StoryFormData): string {
+  if (isNewsletterFormData(form)) {
+    return buildNewsletterIssue1Prompt(form);
+  }
+
+  return buildFictionChapter1Prompt(form);
+}
+
+export function buildContinuationPrompt(
+  story: Story,
+  chapterNum: number,
+  storyContext?: string,
+  planningContext?: string
+): string {
+  if (story.projectMode === "newsletter") {
+    return buildNewsletterContinuationPrompt(
+      story,
+      chapterNum,
+      storyContext,
+      planningContext
+    );
+  }
+
+  return buildFictionContinuationPrompt(
+    story,
+    chapterNum,
+    storyContext,
+    planningContext
+  );
+}
+
+function buildFictionContinuationPrompt(
+  story: Story,
+  chapterNum: number,
+  storyContext?: string,
+  planningContext?: string
+): string {
   const fandomCtx = getFandomContext(story.fandom);
   const fandomName = story.customFandom || story.fandom || "Original";
   const toneStr = story.tone.join(" + ");
@@ -110,7 +184,7 @@ ${getRatingInstructions(rating)}
 ${getRelationshipInstructions(relationshipType, story.characters)}
 
 ${fandomCtx}
-${bibleContext ? `\n${bibleContext}\n` : ""}
+${storyContext ? `\n${storyContext}\n` : ""}${planningContext ? `${planningContext}\n` : ""}
 STORY DETAILS:
 - Title: "${story.title}"
 - Characters: ${story.characters.filter(Boolean).join(", ")}
@@ -132,6 +206,65 @@ CHAPTER ${chapterNum} INSTRUCTIONS:
 8. Show character growth or shift in dynamics
 9. Do NOT summarise previous chapters — jump straight into the action
 10. Do NOT hold back on intensity. Match or escalate the established tone.
+11. Use the planning guidance when it is specific, but never force beats that contradict established story truth.
 
 Write Chapter ${chapterNum} now (just the story text, no chapter header):`;
+}
+
+function buildNewsletterContinuationPrompt(
+  story: Story,
+  chapterNum: number,
+  storyContext?: string,
+  planningContext?: string
+): string {
+  const modeConfig = getNewsletterModeConfig(story);
+  const toneStr = story.tone.join(" + ");
+  const issueHistory = story.chapters
+    .map((chapter, index) => {
+      const issueNumber = index + 1;
+      const isRecent = index >= story.chapters.length - 2;
+
+      if (isRecent) {
+        return `--- Issue ${issueNumber} ---\n${chapter.content}`;
+      }
+
+      if (chapter.summary) {
+        return `--- Issue ${issueNumber} (Summary) ---\n${chapter.summary}`;
+      }
+
+      return `--- Issue ${issueNumber} ---\n${chapter.content}`;
+    })
+    .join("\n\n");
+
+  return `You are continuing a serialized newsletter project.
+
+Keep the same audience promise, voice, and series identity while making the next issue feel worth opening.
+Do not drift into generic blog filler.
+
+NEWSLETTER DETAILS:
+- Title: "${story.title}"
+${modeConfig ? `- Topic: ${modeConfig.topic}` : ""}
+${modeConfig ? `- Audience: ${modeConfig.audience}` : ""}
+${modeConfig ? `- Current issue angle: ${modeConfig.issueAngle}` : ""}
+${modeConfig ? `- Cadence: ${modeConfig.cadence}` : ""}
+${modeConfig?.subtitle ? `- Subtitle: ${modeConfig.subtitle}` : ""}
+${modeConfig?.hookApproach ? `- Hook approach: ${modeConfig.hookApproach}` : ""}
+${modeConfig?.ctaStyle ? `- CTA style: ${modeConfig.ctaStyle}` : ""}
+${modeConfig?.recurringSections?.length ? `- Recurring sections: ${modeConfig.recurringSections.join(", ")}` : ""}
+${toneStr ? `- Voice: ${toneStr}` : ""}
+
+${storyContext ? `${storyContext}\n` : ""}${planningContext ? `${planningContext}\n` : ""}PREVIOUS ISSUES:
+${issueHistory}
+
+ISSUE ${chapterNum} INSTRUCTIONS:
+1. Continue the series naturally from what has already been established.
+2. Reference earlier issues only where it sharpens context or continuity.
+3. Stay focused on one clear angle or promise for this issue.
+4. Write approximately 500 to 800 words.
+5. Keep the prose crisp, specific, and audience-facing.
+6. End with a closing line or final paragraph that leaves useful momentum for the next issue.
+7. Do not include markdown fences or meta commentary.
+8. Use the planning guidance when it is specific, but do not let it flatten the issue into generic outline-following prose.
+
+Write Issue ${chapterNum} now (just the issue text, no issue header):`;
 }
