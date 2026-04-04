@@ -500,7 +500,7 @@ export default function StoryEditor({
   // Chapter switching — coordinates flush at call site via beforeSwitch callback
   const handleSwitchChapter = useCallback(
     (newIdx: number) => chapterEditor.switchChapter(newIdx, () => flush()),
-    [chapterEditor, flush]
+    [chapterEditor.switchChapter, flush]
   );
 
   const handleArtifactOpenInAdapt = useCallback(
