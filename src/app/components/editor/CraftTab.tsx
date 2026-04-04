@@ -127,6 +127,12 @@ export default function CraftTab({
     return (
       <div className="flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          {activeTool && (
+            <p className="px-4 pt-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+              Writing tools <span className="text-zinc-600">›</span>{" "}
+              <span className="text-zinc-400">{TOOL_META[activeTool].label}</span>
+            </p>
+          )}
           <div className="space-y-4 pb-6">
             <ToolHeader tool={activeTool} />
             {(activeTool === "rewrite" || activeTool === "expand") && (
@@ -156,6 +162,12 @@ export default function CraftTab({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {activeTool && (
+          <p className="px-4 pt-3 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+            Writing tools <span className="text-zinc-600">›</span>{" "}
+            <span className="text-zinc-400">{TOOL_META[activeTool].label}</span>
+          </p>
+        )}
         <div className="space-y-4 pb-6">
           {activeTool && <ToolHeader tool={activeTool} />}
 
