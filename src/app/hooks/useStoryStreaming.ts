@@ -39,6 +39,7 @@ export interface UseStoryStreamingReturn {
   handleContinue: () => Promise<void>;
   startInitialStream: () => void;
   streamError: StreamError | null;
+  clearStreamError: () => void;
 }
 
 export function useStoryStreaming({
@@ -260,6 +261,11 @@ export function useStoryStreaming({
     }
   }, [streaming.active, storyRef, flush, setChapterIdx, editor, onUpdate, onPostProcess]);
 
+  const clearStreamError = useCallback(() => {
+    setStreamError(null);
+    setError("");
+  }, []);
+
   return {
     streaming,
     loading,
@@ -268,5 +274,6 @@ export function useStoryStreaming({
     handleContinue,
     startInitialStream,
     streamError,
+    clearStreamError,
   };
 }

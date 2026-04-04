@@ -333,6 +333,13 @@ export default function StoryEditor({
     editor.view.dispatch(tr);
   }, [currentChapterMentions, editor]);
 
+  // Auto-dismiss continuity notification toast after 8 seconds
+  useEffect(() => {
+    if (!chapterAnnotations.pendingNotification) return;
+    const timer = setTimeout(() => chapterAnnotations.clearNotification(), 8000);
+    return () => clearTimeout(timer);
+  }, [chapterAnnotations.pendingNotification, chapterAnnotations.clearNotification]);
+
   // Annotation planning target navigation — coordinates between hook and side panel
   const handleOpenAnnotationPlanningTarget = useCallback(
     (annotation: ChapterAnnotation) => {
@@ -665,6 +672,56 @@ export default function StoryEditor({
           onGenerateMore={handleGenerateMore}
           onRetry={handleCraftRetry}
         />
+      )}
+
+      {/* Continuity check notification toast */}
+      {chapterAnnotations.pendingNotification && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-amber-700/50 bg-amber-950/90 px-4 py-3 shadow-lg backdrop-blur">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-amber-200">
+              {chapterAnnotations.pendingNotification.count} continuity issue
+              {chapterAnnotations.pendingNotification.count !== 1 ? "s" : ""} found
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.querySelector(
+                  `[data-annotation-id="${chapterAnnotations.pendingNotification!.firstAnnotation.id}"]`
+                );
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                chapterAnnotations.clearNotification();
+              }}
+              className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-500"
+            >
+              Review
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Streaming failure recovery banner */}
+      {storyStreaming.streamError && (
+        <div className="mx-4 mt-2 rounded-2xl border border-red-800/40 bg-red-950/30 p-4">
+          <p className="text-sm font-medium text-red-300">Generation interrupted</p>
+          <p className="mt-1 text-sm text-zinc-400">{storyStreaming.streamError.message}</p>
+          <div className="mt-3 flex gap-2">
+            {storyStreaming.streamError.hasPartialContent ? (
+              <button
+                onClick={() => storyStreaming.clearStreamError()}
+                className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
+              >
+                Keep what was generated
+              </button>
+            ) : (
+              <button
+                onClick={onBack}
+                className="rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:bg-zinc-800"
+              >
+                Go back
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Annotation Tooltip */}
