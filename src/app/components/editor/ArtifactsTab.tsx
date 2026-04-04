@@ -21,6 +21,7 @@ import {
 import { getAdaptationPreset } from "../../lib/adaptations";
 import { getNewsletterModeConfig, getProjectUnitLabel } from "../../lib/projectMode";
 import { useArtifacts } from "../../hooks/useArtifacts";
+import { usePlanningDrafts } from "../../hooks/usePlanningDrafts";
 import type { ArtifactFocusRequest } from "../../hooks/useCodexFocus";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import {
@@ -153,14 +154,16 @@ export default function ArtifactsTab({
     null
   );
   const [focusNotice, setFocusNotice] = useState<ArtifactFocusRequest | null>(null);
-  const [planningDrafts, setPlanningDrafts] = useState<
-    Partial<Record<PlanningArtifact["sectionType"], PlanningArtifactContent>>
-  >({});
+  const {
+    planningDrafts,
+    savingSections,
+    handlePlanningChange: handlePlanningChangeRaw,
+  } = usePlanningDrafts({
+    savePlanningArtifact,
+    onSaved: (savedArtifact) => setSelectedArtifactId(savedArtifact.id),
+  });
   const [newsletterProfileDraft, setNewsletterProfileDraft] =
     useState<NewsletterModeConfig | null>(newsletterModeConfig);
-  const [savingSections, setSavingSections] = useState<
-    PlanningArtifact["sectionType"][]
-  >([]);
   const [savingNewsletterProfile, setSavingNewsletterProfile] = useState(false);
   const [newsletterProfileError, setNewsletterProfileError] = useState<string | null>(
     null
@@ -175,9 +178,6 @@ export default function ArtifactsTab({
   const [exportingBundle, setExportingBundle] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const saveTimersRef = useRef<
-    Partial<Record<PlanningArtifact["sectionType"], ReturnType<typeof setTimeout>>>
-  >({});
   const newsletterProfileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -404,14 +404,7 @@ export default function ArtifactsTab({
   );
 
   useEffect(() => {
-    const timers = saveTimersRef.current;
     return () => {
-      for (const timer of Object.values(timers)) {
-        if (timer) {
-          clearTimeout(timer);
-        }
-      }
-
       if (newsletterProfileTimerRef.current) {
         clearTimeout(newsletterProfileTimerRef.current);
       }
@@ -487,52 +480,11 @@ export default function ArtifactsTab({
     storyId,
   ]);
 
-  const updateSavingState = (
-    sectionType: PlanningArtifact["sectionType"],
-    saving: boolean
-  ) => {
-    setSavingSections((prev) => {
-      if (saving) {
-        return prev.includes(sectionType) ? prev : [...prev, sectionType];
-      }
-
-      return prev.filter((item) => item !== sectionType);
-    });
-  };
-
   const handlePlanningChange = (nextContent: PlanningArtifactContent) => {
     if (!selectedArtifact || selectedArtifact.kind !== "planning") {
       return;
     }
-
-    const artifact = selectedArtifact;
-    setPlanningDrafts((prev) => ({
-      ...prev,
-      [artifact.sectionType]: nextContent,
-    }));
-
-    const existingTimer = saveTimersRef.current[artifact.sectionType];
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    saveTimersRef.current[artifact.sectionType] = setTimeout(() => {
-      updateSavingState(artifact.sectionType, true);
-      void savePlanningArtifact(artifact, nextContent)
-        .then((savedArtifact) => {
-          setSelectedArtifactId(savedArtifact.id);
-          setPlanningDrafts((prev) => ({
-            ...prev,
-            [savedArtifact.sectionType]: savedArtifact.rawContent,
-          }));
-        })
-        .catch(() => {
-          // Hook already surfaces the error state.
-        })
-        .finally(() => {
-          updateSavingState(artifact.sectionType, false);
-        });
-    }, 700);
+    handlePlanningChangeRaw(selectedArtifact, nextContent);
   };
 
   const handleNewsletterProfileChange = (nextValue: NewsletterModeConfig) => {
