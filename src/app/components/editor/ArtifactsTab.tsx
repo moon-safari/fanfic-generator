@@ -22,29 +22,25 @@ import { getAdaptationPreset } from "../../lib/adaptations";
 import { getNewsletterModeConfig, getProjectUnitLabel } from "../../lib/projectMode";
 import { useArtifacts } from "../../hooks/useArtifacts";
 import { usePlanningDrafts } from "../../hooks/usePlanningDrafts";
+import { useReadinessReport } from "../../hooks/useReadinessReport";
 import type { ArtifactFocusRequest } from "../../hooks/useCodexFocus";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import {
-  buildReadinessGroups,
   formatArtifactListMeta,
   formatScopeLabel,
   formatTimestamp,
-  getAggregateReadinessStatus,
   getNewsletterSelectionFieldForOutputType,
-  getReadinessErrorMessage,
   getReadinessStatusClasses,
   getReadinessStatusLabel,
   labelArtifactKind,
   labelContextSource,
   parseNumberedOptions,
-  READINESS_GROUPS,
   summarizeSelectionValue,
   useElementSize,
   useMinWidth,
 } from "../../lib/artifactsHelpers";
 import type {
   FilterOption,
-  ReadinessGroupSummary,
   ScopeFilter,
   ScopeOption,
 } from "../../lib/artifactsHelpers";
@@ -67,9 +63,6 @@ import type {
   NewsletterIssuePackageSelection,
   NewsletterIssuePackageSelectionField,
   NewsletterIssuePackageSelectionValues,
-  NewsletterIssueReadinessCheck,
-  NewsletterIssueReadinessReport,
-  NewsletterIssueReadinessStatus,
 } from "../../types/newsletter";
 import {
   EMPTY_NEWSLETTER_ISSUE_PACKAGE_SELECTION_VALUES,
@@ -169,12 +162,24 @@ export default function ArtifactsTab({
     null
   );
   const [showNewsletterSetup, setShowNewsletterSetup] = useState(false);
-  const [readinessReport, setReadinessReport] =
-    useState<NewsletterIssueReadinessReport | null>(null);
-  const [readinessLoading, setReadinessLoading] = useState(false);
-  const [readinessError, setReadinessError] = useState<string | null>(null);
-  const [readinessRefreshNonce, setReadinessRefreshNonce] = useState(0);
-  const [showReadinessDetails, setShowReadinessDetails] = useState(false);
+  const {
+    readinessReport,
+    readinessLoading,
+    readinessError,
+    readinessGroups,
+    visibleReadinessChecks,
+    hiddenReadyCheckCount,
+    nextRecommendedPreset,
+    showReadinessDetails,
+    refreshReadiness,
+    toggleReadinessDetails,
+  } = useReadinessReport({
+    storyId,
+    currentChapterId,
+    currentChapter,
+    projectMode,
+    artifacts,
+  });
   const [exportingBundle, setExportingBundle] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -369,39 +374,6 @@ export default function ArtifactsTab({
     projectMode === "newsletter"
     && Boolean(newsletterProfileDraft)
     && Boolean(currentChapterId);
-  const visibleReadinessChecks = useMemo(() => {
-    if (!readinessReport) {
-      return [];
-    }
-
-    const nonReadyChecks = readinessReport.checks.filter(
-      (check) => check.status !== "ready"
-    );
-
-    return nonReadyChecks.length > 0 ? nonReadyChecks : readinessReport.checks;
-  }, [readinessReport]);
-  const hiddenReadyCheckCount = readinessReport
-    ? readinessReport.checks.length - visibleReadinessChecks.length
-    : 0;
-  const readinessGroups = useMemo(
-    () => buildReadinessGroups(readinessReport),
-    [readinessReport]
-  );
-  const nextRecommendedPreset = readinessReport?.nextRecommendedOutputType
-    ? getAdaptationPreset(readinessReport.nextRecommendedOutputType)
-    : null;
-  const newsletterArtifactRefreshToken = useMemo(
-    () =>
-      artifacts
-        .filter(
-          (artifact) =>
-            artifact.kind === "adaptation"
-            && artifact.chapterNumber === currentChapter
-        )
-        .map((artifact) => `${artifact.id}:${artifact.updatedAt}`)
-        .join("|"),
-    [artifacts, currentChapter]
-  );
 
   useEffect(() => {
     return () => {
@@ -438,48 +410,6 @@ export default function ArtifactsTab({
     };
   }, [artifacts, focusRequest]);
 
-  useEffect(() => {
-    if (projectMode !== "newsletter" || !currentChapterId) {
-      setReadinessReport(null);
-      setReadinessError(null);
-      setReadinessLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setReadinessLoading(true);
-    setReadinessError(null);
-
-    void requestJson<{ report: NewsletterIssueReadinessReport }>(
-      `/api/newsletter/${storyId}/preflight?chapterId=${currentChapterId}`
-    )
-      .then((data) => {
-        if (!cancelled) {
-          setReadinessReport(data.report);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setReadinessError(getReadinessErrorMessage(error));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setReadinessLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    currentChapterId,
-    newsletterArtifactRefreshToken,
-    projectMode,
-    readinessRefreshNonce,
-    storyId,
-  ]);
-
   const handlePlanningChange = (nextContent: PlanningArtifactContent) => {
     if (!selectedArtifact || selectedArtifact.kind !== "planning") {
       return;
@@ -508,7 +438,7 @@ export default function ArtifactsTab({
         .then((data) => {
           setNewsletterProfileDraft(data.modeConfig);
           onModeConfigUpdated?.(data.modeConfig);
-          setReadinessRefreshNonce((prev) => prev + 1);
+          refreshReadiness();
         })
         .catch((error: unknown) => {
           setNewsletterProfileError(
@@ -820,7 +750,7 @@ export default function ArtifactsTab({
                     </p>
                     <button
                       type="button"
-                      onClick={() => setReadinessRefreshNonce((prev) => prev + 1)}
+                      onClick={() => refreshReadiness()}
                       className="mt-3 rounded-xl border border-red-400/40 px-3 py-1.5 text-xs font-medium text-red-100 transition-colors hover:border-red-300 hover:text-white"
                     >
                       Try again
@@ -910,14 +840,14 @@ export default function ArtifactsTab({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <button
                         type="button"
-                        onClick={() => setShowReadinessDetails((prev) => !prev)}
+                        onClick={() => toggleReadinessDetails()}
                         className="text-xs font-medium text-zinc-400 transition-colors hover:text-white"
                       >
                         {showReadinessDetails ? "Hide detailed checks" : "Show detailed checks"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => setReadinessRefreshNonce((prev) => prev + 1)}
+                        onClick={() => refreshReadiness()}
                         className="text-xs font-medium text-zinc-400 transition-colors hover:text-white"
                       >
                         Refresh check
@@ -1144,7 +1074,7 @@ export default function ArtifactsTab({
                 onSummaryUpdated={onSummaryUpdated}
                 onPackageSelectionUpdated={(chapterId) => {
                   if (chapterId === currentChapterId) {
-                    setReadinessRefreshNonce((prev) => prev + 1);
+                    refreshReadiness();
                   }
                 }}
                 onDeleteArtifact={(artifact) => {
@@ -1179,7 +1109,7 @@ export default function ArtifactsTab({
                 onSummaryUpdated={onSummaryUpdated}
                 onPackageSelectionUpdated={(chapterId) => {
                   if (chapterId === currentChapterId) {
-                    setReadinessRefreshNonce((prev) => prev + 1);
+                    refreshReadiness();
                   }
                 }}
                 onDeleteArtifact={(artifact) => {
