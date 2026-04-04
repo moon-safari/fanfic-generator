@@ -5,14 +5,12 @@ import {
   Check,
   ChevronDown,
   Copy,
-  Mail,
   PencilRuler,
   RefreshCw,
   ScrollText,
   Trash2,
   WandSparkles,
 } from "lucide-react";
-import { buildNewsletterMemorySnapshot } from "../../lib/newsletterMemory";
 import {
   formatPlanningArtifactContent,
   getArtifactSubtypeLabel,
@@ -62,7 +60,6 @@ import type {
   ProjectMode,
   StoryModeConfig,
 } from "../../types/story";
-import NewsletterPublicationProfile from "./NewsletterPublicationProfile";
 import NewsletterSetupPanel from "./NewsletterSetupPanel";
 import NewsletterReadinessPanel from "./NewsletterReadinessPanel";
 import NotesEditor from "../story-bible/NotesEditor";
@@ -337,30 +334,6 @@ export default function ArtifactsTab({
           projectMode
         )
       : selectedArtifact?.content ?? "";
-  const newsletterMemory =
-    projectMode === "newsletter" && newsletterProfileDraft
-      ? buildNewsletterMemorySnapshot({
-          storyTitle,
-          modeConfig: newsletterProfileDraft,
-          synopsis: artifacts.find(
-            (artifact): artifact is PlanningArtifact =>
-              artifact.kind === "planning" && artifact.sectionType === "synopsis"
-          )?.rawContent as BibleSynopsisContent | undefined,
-          styleGuide: artifacts.find(
-            (artifact): artifact is PlanningArtifact =>
-              artifact.kind === "planning" && artifact.sectionType === "style_guide"
-          )?.rawContent as BibleStyleGuideContent | undefined,
-          outline: artifacts.find(
-            (artifact): artifact is PlanningArtifact =>
-              artifact.kind === "planning" && artifact.sectionType === "outline"
-          )?.rawContent as BibleOutlineContent | undefined,
-          notes: artifacts.find(
-            (artifact): artifact is PlanningArtifact =>
-              artifact.kind === "planning" && artifact.sectionType === "notes"
-          )?.rawContent as BibleNotesContent | undefined,
-          currentUnitNumber: currentChapter,
-        })
-      : null;
   const canExportIssueBundle =
     projectMode === "newsletter"
     && Boolean(newsletterProfileDraft)
@@ -956,7 +929,6 @@ function ArtifactDetail({
     "success"
   );
   const {
-    packageSelectionDrafts,
     setPackageSelectionDrafts,
     packageSelectionLoading,
     packageSelectionSavingField,

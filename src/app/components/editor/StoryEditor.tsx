@@ -158,7 +158,7 @@ export default function StoryEditor({
     editor: editor ?? null,
     streamingActive: streamingRef.current.active,
   });
-  const { currentChapterIdx, currentChapter: chapter, getChapterContent } = chapterEditor;
+  const { currentChapterIdx, currentChapter: chapter } = chapterEditor;
   const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
   const {
     mentions: currentChapterMentions,
@@ -256,7 +256,7 @@ export default function StoryEditor({
     generateMentions,
     flush,
   });
-  const { streaming, loading, error, setError, handleContinue } = storyStreaming;
+  const { streaming, loading, error, handleContinue } = storyStreaming;
   streamingRef.current = streaming;
 
   // Handle craft tool invocation from toolbar
@@ -338,6 +338,7 @@ export default function StoryEditor({
     if (!chapterAnnotations.pendingNotification) return;
     const timer = setTimeout(() => chapterAnnotations.clearNotification(), 8000);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: depend on specific stable hook properties, not the whole object
   }, [chapterAnnotations.pendingNotification, chapterAnnotations.clearNotification]);
 
   // Annotation planning target navigation — coordinates between hook and side panel
@@ -382,6 +383,7 @@ export default function StoryEditor({
   // Chapter switching — coordinates flush at call site via beforeSwitch callback
   const handleSwitchChapter = useCallback(
     (newIdx: number) => chapterEditor.switchChapter(newIdx, () => flush()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: depend on stable method reference, not the whole chapterEditor object
     [chapterEditor.switchChapter, flush]
   );
 

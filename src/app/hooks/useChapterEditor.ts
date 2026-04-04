@@ -41,10 +41,12 @@ export function useChapterEditor({
   );
 
   const streamingActiveRef = useRef(streamingActive);
+  // eslint-disable-next-line react-hooks/refs -- intentional: sync ref to latest prop for async callbacks without adding to deps
   streamingActiveRef.current = streamingActive;
 
   // Ref to always read latest chapters — keeps getChapterContent stable across renders
   const chaptersRef = useRef(story.chapters);
+  // eslint-disable-next-line react-hooks/refs -- intentional: sync ref to latest chapters so getChapterContent callback stays stable
   chaptersRef.current = story.chapters;
 
   const currentChapter = story.chapters[currentChapterIdx];

@@ -22,7 +22,6 @@ import type {
   ChapterAdaptationResult,
 } from "../../types/adaptation";
 import type { CodexMention } from "../../types/codex";
-import type { PlanningArtifactSubtype } from "../../types/artifact";
 import type {
   CodexFocusRequest,
   ArtifactFocusRequest,

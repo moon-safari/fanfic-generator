@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Mail } from "lucide-react";
 import { buildNewsletterMemorySnapshot } from "../../lib/newsletterMemory";
-import type {
-  NewsletterModeConfig,
-  ProjectMode,
-  StoryModeConfig,
-} from "../../types/story";
+import type { NewsletterModeConfig } from "../../types/story";
 import type {
   BibleNotesContent,
   BibleOutlineContent,

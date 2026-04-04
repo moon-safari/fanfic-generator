@@ -103,7 +103,6 @@ export function useAutosave({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   void saveErrorTick; // consumed to make lastSaveError reactive
 
   return { flush, lastSaveError: lastSaveErrorRef.current };

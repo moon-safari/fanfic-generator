@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getErrorMessage, requestJson } from "../lib/request";
+import { requestJson } from "../lib/request";
 import {
   buildReadinessGroups,
   getReadinessErrorMessage,
@@ -48,6 +48,7 @@ export function useReadinessReport({
 
   useEffect(() => {
     if (projectMode !== "newsletter" || !currentChapterId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reset derived state when chapter/mode conditions are not met
       setReadinessReport(null);
       setReadinessError(null);
       setReadinessLoading(false);
