@@ -29,6 +29,7 @@ interface EditorToolbarProps {
   totalChapters: number;
   showCodex: boolean;
   annotationCount?: number;
+  streamingActive?: boolean;
   onBack: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
@@ -57,6 +58,7 @@ export default function EditorToolbar({
   totalChapters,
   showCodex,
   annotationCount = 0,
+  streamingActive = false,
   onBack,
   onPrevChapter,
   onNextChapter,
@@ -133,16 +135,16 @@ export default function EditorToolbar({
       <div className="flex items-center gap-1">
         <button
           onClick={onPrevChapter}
-          disabled={currentChapterIdx === 0}
-          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          disabled={streamingActive || currentChapterIdx <= 0}
+          className={`flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 ${streamingActive ? "opacity-40 cursor-not-allowed" : ""}`}
           aria-label={`Previous ${getProjectUnitLabel(story.projectMode)}`}
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
         <button
           onClick={onNextChapter}
-          disabled={currentChapterIdx >= totalChapters - 1}
-          className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+          disabled={streamingActive || currentChapterIdx >= totalChapters - 1}
+          className={`flex min-h-[40px] min-w-[40px] items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 ${streamingActive ? "opacity-40 cursor-not-allowed" : ""}`}
           aria-label={`Next ${getProjectUnitLabel(story.projectMode)}`}
         >
           <ChevronRight className="h-4 w-4" />

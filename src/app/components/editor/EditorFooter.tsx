@@ -13,6 +13,7 @@ interface EditorFooterProps {
   isLatestChapter: boolean;
   loading: boolean;
   error: string;
+  saveError?: string | null;
   onContinue: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function EditorFooter({
   isLatestChapter,
   loading,
   error,
+  saveError,
   onContinue,
 }: EditorFooterProps) {
   return (
@@ -29,6 +31,11 @@ export default function EditorFooter({
       {error && (
         <div className="px-4 py-2 bg-red-900/50 border-b border-red-700 text-red-200 text-sm">
           {error}
+        </div>
+      )}
+      {saveError && (
+        <div className="px-4 py-1.5 text-xs text-red-400">
+          Save failed — retrying...
         </div>
       )}
 

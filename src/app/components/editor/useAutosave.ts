@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Editor } from "@tiptap/react";
 import { createClient } from "../../lib/supabase/client";
 
@@ -8,17 +8,26 @@ interface UseAutosaveOptions {
   editor: Editor | null;
   chapterId: string | undefined;
   debounceMs?: number;
+  onError?: (err: Error) => void;
 }
 
 export function useAutosave({
   editor,
   chapterId,
   debounceMs = 3000,
+  onError,
 }: UseAutosaveOptions) {
   const lastSavedRef = useRef<string>("");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chapterIdRef = useRef(chapterId);
   chapterIdRef.current = chapterId;
+
+  const [saveErrorTick, setSaveErrorTick] = useState(0);
+  const lastSaveErrorRef = useRef<string | null>(null);
+
+  // Keep onError in a ref so save callback doesn't need to redeclare
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const save = useCallback(async () => {
     if (!editor || !chapterIdRef.current) return;
@@ -44,6 +53,11 @@ export function useAutosave({
 
     if (!error) {
       lastSavedRef.current = contentStr;
+      lastSaveErrorRef.current = null;
+    } else {
+      lastSaveErrorRef.current = error.message;
+      setSaveErrorTick((t) => t + 1);
+      onErrorRef.current?.(new Error(error.message));
     }
   }, [editor]);
 
@@ -89,5 +103,8 @@ export function useAutosave({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { flush };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  void saveErrorTick; // consumed to make lastSaveError reactive
+
+  return { flush, lastSaveError: lastSaveErrorRef.current };
 }

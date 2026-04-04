@@ -178,10 +178,11 @@ export default function StoryEditor({
     isMobile,
   });
 
-  const { flush } = useAutosave({
+  const autosave = useAutosave({
     editor,
     chapterId: chapter?.id,
   });
+  const { flush } = autosave;
 
   const runChapterPostProcessing = useCallback(
     async (storyId: string, chapterId: string) => {
@@ -493,6 +494,7 @@ export default function StoryEditor({
         totalChapters={story.chapters.length}
         showCodex={craftPanel.isOpen && toolPanelTab !== "craft"}
         annotationCount={activeAnnotations.length}
+        streamingActive={storyStreaming.streaming.active}
         activeCraftTool={craftPanel.activeTool}
         craftLoading={craftPanel.loading}
         onBack={handleBack}
@@ -684,6 +686,7 @@ export default function StoryEditor({
         isLatestChapter={isLatestChapter}
         loading={loading || streaming.active}
         error={error}
+        saveError={autosave.lastSaveError}
         onContinue={handleContinue}
       />
     </div>
