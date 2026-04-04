@@ -120,6 +120,8 @@ docs/                            - product, strategy, and build specs
 6. Streaming generation with progressive Tiptap insertion
 7. Craft tools (brainstorm, rewrite, expand, describe) with side panel
 8. Mobile polish (safe areas, touch targets, bottom sheets)
+9. Mega-component decomposition (StoryEditor 1058→751 lines, ArtifactsTab 2646→1623 lines)
+10. Fiction flow friction fixes (streaming recovery, chapter nav guard, continuity toast, autosave feedback, craft breadcrumb)
 
 ### What's next
 
