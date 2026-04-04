@@ -21,6 +21,7 @@ import {
 import { getAdaptationPreset } from "../../lib/adaptations";
 import { getNewsletterModeConfig, getProjectUnitLabel } from "../../lib/projectMode";
 import { useArtifacts } from "../../hooks/useArtifacts";
+import { usePackageSelection } from "../../hooks/usePackageSelection";
 import { usePlanningDrafts } from "../../hooks/usePlanningDrafts";
 import { useReadinessReport } from "../../hooks/useReadinessReport";
 import type { ArtifactFocusRequest } from "../../hooks/useCodexFocus";
@@ -29,12 +30,10 @@ import {
   formatArtifactListMeta,
   formatScopeLabel,
   formatTimestamp,
-  getNewsletterSelectionFieldForOutputType,
   getReadinessStatusClasses,
   getReadinessStatusLabel,
   labelArtifactKind,
   labelContextSource,
-  parseNumberedOptions,
   summarizeSelectionValue,
   useElementSize,
   useMinWidth,
@@ -59,13 +58,7 @@ import type {
   ProjectArtifactKind,
   ProjectArtifactSubtype,
 } from "../../types/artifact";
-import type {
-  NewsletterIssuePackageSelection,
-  NewsletterIssuePackageSelectionField,
-  NewsletterIssuePackageSelectionValues,
-} from "../../types/newsletter";
 import {
-  EMPTY_NEWSLETTER_ISSUE_PACKAGE_SELECTION_VALUES,
   NEWSLETTER_ISSUE_PACKAGE_SELECTION_FIELD_LABELS,
 } from "../../types/newsletter";
 import type {
@@ -1243,37 +1236,35 @@ function ArtifactDetail({
   const [summarySaveTone, setSummarySaveTone] = useState<"success" | "error">(
     "success"
   );
-  const [packageSelection, setPackageSelection] =
-    useState<NewsletterIssuePackageSelection | null>(null);
-  const [packageSelectionDrafts, setPackageSelectionDrafts] =
-    useState<NewsletterIssuePackageSelectionValues>(
-      EMPTY_NEWSLETTER_ISSUE_PACKAGE_SELECTION_VALUES
-    );
-  const [packageSelectionLoading, setPackageSelectionLoading] = useState(false);
-  const [packageSelectionSavingField, setPackageSelectionSavingField] =
-    useState<NewsletterIssuePackageSelectionField | null>(null);
-  const [packageSelectionError, setPackageSelectionError] = useState<string | null>(
-    null
-  );
-  const [packageSelectionMessage, setPackageSelectionMessage] = useState<string | null>(
-    null
-  );
-  const [packageSelectionTone, setPackageSelectionTone] =
-    useState<"success" | "error">("success");
-  const [showOfficialEditor, setShowOfficialEditor] = useState(false);
+  const {
+    packageSelectionDrafts,
+    setPackageSelectionDrafts,
+    packageSelectionLoading,
+    packageSelectionSavingField,
+    packageSelectionError,
+    packageSelectionMessage,
+    packageSelectionTone,
+    showOfficialEditor,
+    setShowOfficialEditor,
+    selectionField,
+    currentSelectionValue,
+    currentSelectionDraftValue,
+    hasUnsavedSelectionDraft,
+    parsedArtifactOptions,
+    showArtifactOfficialChoices,
+    singleArtifactOfficialValue,
+    persistSelectionField,
+  } = usePackageSelection({
+    artifact: artifact?.kind === "adaptation" ? artifact : null,
+    storyId,
+    projectMode,
+    onPackageSelectionUpdated,
+  });
 
   useEffect(() => {
     setSavingSummary(false);
     setSummarySaveMessage(null);
     setSummarySaveTone("success");
-    setPackageSelection(null);
-    setPackageSelectionDrafts(EMPTY_NEWSLETTER_ISSUE_PACKAGE_SELECTION_VALUES);
-    setPackageSelectionLoading(false);
-    setPackageSelectionSavingField(null);
-    setPackageSelectionError(null);
-    setPackageSelectionMessage(null);
-    setPackageSelectionTone("success");
-    setShowOfficialEditor(false);
   }, [artifact?.id]);
 
   const unitLabelCapitalized = getProjectUnitLabel(projectMode, {
@@ -1283,32 +1274,6 @@ function ArtifactDetail({
     artifact?.kind === "adaptation"
     && (artifact.subtype === "short_summary" || artifact.subtype === "newsletter_recap")
     && artifact.content.trim().length > 0;
-  const selectionField =
-    projectMode === "newsletter" && artifact?.kind === "adaptation"
-      ? getNewsletterSelectionFieldForOutputType(artifact.subtype)
-      : null;
-  const currentSelectionValue = selectionField
-    ? packageSelection?.[selectionField] ?? ""
-    : "";
-  const currentSelectionDraftValue = selectionField
-    ? packageSelectionDrafts[selectionField] ?? ""
-    : "";
-  const hasUnsavedSelectionDraft =
-    selectionField !== null
-    && currentSelectionDraftValue.trim() !== currentSelectionValue.trim();
-  const parsedArtifactOptions =
-    selectionField !== null ? parseNumberedOptions(artifact?.content ?? "") : [];
-  const showArtifactOfficialChoices =
-    selectionField !== null
-    && selectionField !== "sectionPackage"
-    && parsedArtifactOptions.length > 1;
-  const singleArtifactOfficialValue =
-    selectionField === null
-      ? ""
-      : showArtifactOfficialChoices
-        ? ""
-        : parsedArtifactOptions[0] ?? artifact?.content.trim() ?? "";
-
   const handlePromoteArtifactToSummary = async () => {
     if (!canPromoteArtifactToSummary || !artifact || artifact.kind !== "adaptation") {
       return;
@@ -1341,115 +1306,6 @@ function ArtifactDetail({
       );
     } finally {
       setSavingSummary(false);
-    }
-  };
-
-  useEffect(() => {
-    if (
-      !artifact
-      || projectMode !== "newsletter"
-      || artifact.kind !== "adaptation"
-      || !selectionField
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    setPackageSelectionLoading(true);
-    setPackageSelectionError(null);
-
-    void requestJson<{ selection: NewsletterIssuePackageSelection }>(
-      `/api/newsletter/${storyId}/package?chapterId=${artifact.chapterId}`
-    )
-      .then((data) => {
-        if (cancelled) {
-          return;
-        }
-
-        setPackageSelection(data.selection);
-        setPackageSelectionDrafts({
-          subjectLine: data.selection.subjectLine,
-          deck: data.selection.deck,
-          hook: data.selection.hook,
-          cta: data.selection.cta,
-          sectionPackage: data.selection.sectionPackage,
-        });
-      })
-      .catch((selectionError: unknown) => {
-        if (cancelled) {
-          return;
-        }
-
-        setPackageSelectionError(
-          getErrorMessage(
-            selectionError,
-            "Failed to load official package state"
-          )
-        );
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setPackageSelectionLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [artifact, projectMode, selectionField, storyId]);
-
-  const persistSelectionField = async (
-    field: NewsletterIssuePackageSelectionField,
-    value: string
-  ) => {
-    if (!artifact || artifact.kind !== "adaptation") {
-      return;
-    }
-
-    setPackageSelectionSavingField(field);
-    setPackageSelectionError(null);
-    setPackageSelectionMessage(null);
-    setPackageSelectionTone("success");
-
-    try {
-      const data = await requestJson<{ selection: NewsletterIssuePackageSelection }>(
-        `/api/newsletter/${storyId}/package`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chapterId: artifact.chapterId,
-            field,
-            value,
-          }),
-        }
-      );
-
-      setPackageSelection(data.selection);
-      setPackageSelectionDrafts((prev) => ({
-        ...prev,
-        [field]: data.selection[field],
-      }));
-      setPackageSelectionMessage(
-        value.trim()
-          ? `Official ${NEWSLETTER_ISSUE_PACKAGE_SELECTION_FIELD_LABELS[
-              field
-            ].toLowerCase()} updated from this saved output.`
-          : `Official ${NEWSLETTER_ISSUE_PACKAGE_SELECTION_FIELD_LABELS[
-              field
-            ].toLowerCase()} cleared.`
-      );
-      onPackageSelectionUpdated?.(artifact.chapterId);
-    } catch (selectionError: unknown) {
-      setPackageSelectionTone("error");
-      setPackageSelectionError(
-        getErrorMessage(
-          selectionError,
-          "Failed to update official package state"
-        )
-      );
-    } finally {
-      setPackageSelectionSavingField(null);
     }
   };
 
