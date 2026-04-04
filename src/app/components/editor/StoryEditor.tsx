@@ -10,6 +10,8 @@ import { ChapterAnnotation } from "../../types/bible";
 import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
 import { useAutosave } from "./useAutosave";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { textToTiptapDoc } from "../../lib/editorUtils";
 import { useCraftPanel } from "../../hooks/useCraftPanel";
 import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
@@ -62,35 +64,6 @@ interface AnnotationActionResponse {
   focusTarget?: {
     sectionType: PlanningArtifactSubtype;
     targetLabel?: string;
-  };
-}
-
-/** Detect if viewport is mobile-width */
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia(query).matches;
-  });
-
-  useEffect(() => {
-    const mql = window.matchMedia(query);
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, [query]);
-
-  return matches;
-}
-
-/** Convert plain text to Tiptap document JSON */
-function textToTiptapDoc(text: string): object {
-  const paragraphs = text.split("\n\n").filter(Boolean);
-  return {
-    type: "doc",
-    content: paragraphs.map((p) => ({
-      type: "paragraph",
-      content: [{ type: "text", text: p.replace(/\n/g, " ") }],
-    })),
   };
 }
 
