@@ -6,7 +6,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import type { NewsletterModeConfig, Story } from "../../types/story";
-import { ChapterAnnotation } from "../../types/bible";
 import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
 import { useAutosave } from "./useAutosave";
@@ -14,6 +13,7 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterEditor";
 import { useCraftPanel } from "../../hooks/useCraftPanel";
 import { useCodexFocus } from "../../hooks/useCodexFocus";
+import { useChapterAnnotations } from "../../hooks/useChapterAnnotations";
 import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
 import EditorFooter from "./EditorFooter";
@@ -21,7 +21,7 @@ import SidePanel from "./SidePanel";
 import MobileCraftSheet from "./MobileCraftSheet";
 import UndoToast from "./UndoToast";
 import AnnotationTooltip from "./AnnotationTooltip";
-import { AnnotationExtension, annotationPluginKey } from "./annotationExtension";
+import { AnnotationExtension } from "./annotationExtension";
 import {
   CodexMentionExtension,
   codexMentionPluginKey,
@@ -30,15 +30,12 @@ import { readSSEStream } from "../../lib/stream";
 import { updateStoryTitle, updateChapterContent } from "../../lib/supabase/stories";
 import { StoryFormData } from "../../types/story";
 import { AdaptationOutputType } from "../../types/adaptation";
-import type { PlanningArtifactSubtype } from "../../types/artifact";
-import type { ChapterAnnotationAction } from "../../types/bible";
+import type { ChapterAnnotation, ChapterAnnotationAction } from "../../types/bible";
 import { useChapterAdaptation } from "../../hooks/useChapterAdaptation";
 import { useCodexMentions } from "../../hooks/useCodexMentions";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/core";
-import { requestJson } from "../../lib/request";
-
 interface StoryEditorProps {
   story: Story;
   streamingFormData?: StoryFormData | null;
@@ -46,15 +43,6 @@ interface StoryEditorProps {
   onUpdate: (story: Story) => void;
   onDelete: (id: string) => void;
   onStreamingComplete?: () => void;
-}
-
-interface AnnotationActionResponse {
-  success: boolean;
-  resolutionState: "applied" | "intentional_divergence" | "open";
-  focusTarget?: {
-    sectionType: PlanningArtifactSubtype;
-    targetLabel?: string;
-  };
 }
 
 /** Streaming cursor decoration — pulsing purple cursor at end of doc */
@@ -115,11 +103,6 @@ export default function StoryEditor({
     toolLabel: "",
     nonce: 0,
   });
-
-  // Annotations state
-  const [annotations, setAnnotations] = useState<ChapterAnnotation[]>([]);
-  const [activeAnnotation, setActiveAnnotation] = useState<ChapterAnnotation | null>(null);
-  const [annotationAnchorRect, setAnnotationAnchorRect] = useState<DOMRect | null>(null);
 
   // Streaming state
   const [streaming, setStreaming] = useState<{
@@ -199,6 +182,11 @@ export default function StoryEditor({
     enabled: Boolean(chapter?.id),
   });
   const adaptation = useChapterAdaptation(story.id, story.projectMode, chapter?.id);
+  const chapterAnnotations = useChapterAnnotations({
+    chapterId: chapter?.id,
+    editor: editor ?? null,
+    isMobile,
+  });
 
   const { flush } = useAutosave({
     editor,
@@ -265,35 +253,6 @@ export default function StoryEditor({
     craftPanel.callTool(craftPanel.activeTool, text, selectionContext, craftPanel.direction, currentChapterIdx + 1);
   }, [selectedText, selectionContext, craftPanel, currentChapterIdx]);
 
-  // Fetch annotations when chapter changes
-  useEffect(() => {
-    if (!chapter?.id) return;
-    const fetchAnnotations = async () => {
-      try {
-        const res = await fetch(`/api/annotations?chapterId=${chapter.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setAnnotations(data.annotations ?? []);
-        }
-      } catch {
-        // Silently fail - annotations are non-critical
-      }
-    };
-    fetchAnnotations();
-  }, [chapter?.id]);
-
-  // Push annotations into the Tiptap plugin as decorations
-  useEffect(() => {
-    if (!editor) return;
-    const { tr } = editor.state;
-    tr.setMeta(annotationPluginKey, {
-      annotations: annotations
-        .filter((a) => !a.dismissed)
-        .map((a) => ({ id: a.id, textMatch: a.textMatch, severity: a.severity })),
-    });
-    editor.view.dispatch(tr);
-  }, [editor, annotations]);
-
   useEffect(() => {
     if (!editor) return;
     const { tr } = editor.state;
@@ -308,70 +267,26 @@ export default function StoryEditor({
     editor.view.dispatch(tr);
   }, [currentChapterMentions, editor]);
 
-  // Show annotation tooltip on hover (desktop)
-  const handleEditorMouseOver = useCallback(
-    (e: React.MouseEvent) => {
-      if (isMobile) return;
-      const target = e.target as HTMLElement;
-      const annotationEl = target.closest("[data-annotation-id]");
-      if (annotationEl) {
-        const id = annotationEl.getAttribute("data-annotation-id");
-        const annotation = annotations.find((a) => a.id === id);
-        if (annotation && annotation.id !== activeAnnotation?.id) {
-          setActiveAnnotation(annotation);
-          setAnnotationAnchorRect(annotationEl.getBoundingClientRect());
-        }
-      }
-    },
-    [annotations, activeAnnotation, isMobile]
-  );
-
-  // Dismiss annotation
-  const handleDismissAnnotation = useCallback(async (id: string) => {
-    try {
-      await fetch(`/api/annotations/${id}/dismiss`, { method: "POST" });
-      setAnnotations((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      // Silently fail
-    }
-    setActiveAnnotation(null);
-    setAnnotationAnchorRect(null);
-  }, []);
-
+  // Annotation planning target navigation — coordinates between hook and side panel
   const handleOpenAnnotationPlanningTarget = useCallback(
     (annotation: ChapterAnnotation) => {
-      const targetSection = annotation.metadata?.targetSection;
-      if (!targetSection) {
-        return;
+      const target = chapterAnnotations.handleOpenPlanningTarget(annotation);
+      if (target) {
+        craftPanel.openTab("artifacts");
+        codexFocus.focusArtifact(target.sectionType, target.targetLabel);
       }
-
-      craftPanel.openTab("artifacts");
-      codexFocus.focusArtifact(targetSection, annotation.metadata?.targetLabel);
-      setActiveAnnotation(null);
-      setAnnotationAnchorRect(null);
     },
-    [craftPanel, codexFocus]
+    [chapterAnnotations, craftPanel, codexFocus]
   );
 
+  // Annotation action — coordinates focus target navigation
   const handleApplyAnnotationAction = useCallback(
     async (
       annotation: ChapterAnnotation,
       action: ChapterAnnotationAction
     ) => {
-      const result = await requestJson<AnnotationActionResponse>(
-        `/api/annotations/${annotation.id}/action`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action }),
-        }
-      );
-
-      setAnnotations((prev) => prev.filter((candidate) => candidate.id !== annotation.id));
-      setActiveAnnotation(null);
-      setAnnotationAnchorRect(null);
-
-      if (result.focusTarget) {
+      const result = await chapterAnnotations.handleApplyAction(annotation, action);
+      if (result?.focusTarget) {
         craftPanel.openTab("artifacts");
         codexFocus.focusArtifact(
           result.focusTarget.sectionType,
@@ -379,37 +294,16 @@ export default function StoryEditor({
         );
       }
     },
-    [craftPanel, codexFocus]
+    [chapterAnnotations, craftPanel, codexFocus]
   );
 
-  // Handle annotation click in editor content
+  // Thin dispatcher: mention click → annotation click
   const handleEditorClick = useCallback(
     (e: React.MouseEvent) => {
-      if (codexFocus.handleMentionClick(e)) {
-        craftPanel.openTab("codex");
-        setActiveAnnotation(null);
-        setAnnotationAnchorRect(null);
-        return;
-      }
-
-      const target = e.target as HTMLElement;
-      const annotationEl = target.closest("[data-annotation-id]");
-      if (annotationEl) {
-        const id = annotationEl.getAttribute("data-annotation-id");
-        const annotation = annotations.find((a) => a.id === id);
-        if (annotation) {
-          setActiveAnnotation(annotation);
-          setAnnotationAnchorRect(annotationEl.getBoundingClientRect());
-          return;
-        }
-      }
-      // Close annotation tooltip on click elsewhere
-      if (activeAnnotation) {
-        setActiveAnnotation(null);
-        setAnnotationAnchorRect(null);
-      }
+      if (codexFocus.handleMentionClick(e)) return;
+      chapterAnnotations.handleClick(e);
     },
-    [annotations, activeAnnotation, craftPanel, codexFocus]
+    [codexFocus, chapterAnnotations]
   );
 
   const runChapterPostProcessing = useCallback(
@@ -463,12 +357,13 @@ export default function StoryEditor({
         if (!checkData.annotations || checkData.annotations.length === 0) {
           return;
         }
-        setAnnotations(checkData.annotations as ChapterAnnotation[]);
+        // Refresh annotations via hook (sets pendingNotification for warnings/errors)
+        await chapterAnnotations.refresh(chapterId);
       } catch {
         // Silently fail
       }
     },
-    [generateMentions]
+    [generateMentions, chapterAnnotations]
   );
 
   // Chapter switching — coordinates flush at call site via beforeSwitch callback
@@ -740,7 +635,7 @@ export default function StoryEditor({
   };
 
   const wordCount = editor?.storage.characterCount?.words() ?? 0;
-  const activeAnnotations = annotations.filter((a) => !a.dismissed);
+  const activeAnnotations = chapterAnnotations.annotations.filter((a) => !a.dismissed);
   const toolPanelTab =
     story.projectMode === "newsletter" && craftPanel.activeTab === "codex"
       ? "artifacts"
@@ -816,7 +711,7 @@ export default function StoryEditor({
         <div
           className="flex-1 overflow-y-auto"
           onClick={handleEditorClick}
-          onMouseOver={handleEditorMouseOver}
+          onMouseOver={chapterAnnotations.handleMouseOver}
           style={{ position: "relative" }}
         >
           <div className="max-w-3xl mx-auto">
@@ -945,18 +840,15 @@ export default function StoryEditor({
       )}
 
       {/* Annotation Tooltip */}
-      {activeAnnotation && (
+      {chapterAnnotations.activeAnnotation && (
         <AnnotationTooltip
-          annotation={activeAnnotation}
+          annotation={chapterAnnotations.activeAnnotation}
           projectMode={story.projectMode}
-          anchorRect={annotationAnchorRect}
-          onDismiss={handleDismissAnnotation}
+          anchorRect={chapterAnnotations.annotationAnchorRect}
+          onDismiss={chapterAnnotations.handleDismiss}
           onApplyAction={handleApplyAnnotationAction}
           onOpenPlanningTarget={handleOpenAnnotationPlanningTarget}
-          onClose={() => {
-            setActiveAnnotation(null);
-            setAnnotationAnchorRect(null);
-          }}
+          onClose={chapterAnnotations.closeTooltip}
         />
       )}
 
