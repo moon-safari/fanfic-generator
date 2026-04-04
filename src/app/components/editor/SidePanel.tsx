@@ -23,6 +23,10 @@ import type {
 } from "../../types/adaptation";
 import type { CodexMention } from "../../types/codex";
 import type { PlanningArtifactSubtype } from "../../types/artifact";
+import type {
+  CodexFocusRequest,
+  ArtifactFocusRequest,
+} from "../../hooks/useCodexFocus";
 import {
   SidePanelTab,
   CraftResult,
@@ -34,17 +38,6 @@ import AdaptTab from "./AdaptTab";
 import ArtifactsTab from "./ArtifactsTab";
 import CraftTab from "./CraftTab";
 import HistoryTab from "./HistoryTab";
-
-interface CodexFocusRequest {
-  entryId: string;
-  nonce: number;
-}
-
-interface ArtifactFocusRequest {
-  sectionType: PlanningArtifactSubtype;
-  targetLabel?: string;
-  nonce: number;
-}
 
 interface SidePanelProps {
   storyId: string;

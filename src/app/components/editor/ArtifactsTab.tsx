@@ -21,6 +21,7 @@ import {
 import { getAdaptationPreset } from "../../lib/adaptations";
 import { getNewsletterModeConfig, getProjectUnitLabel } from "../../lib/projectMode";
 import { useArtifacts } from "../../hooks/useArtifacts";
+import type { ArtifactFocusRequest } from "../../hooks/useCodexFocus";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import type { SidePanelWidth } from "../../types/craft";
 import type { AdaptationOutputType } from "../../types/adaptation";
@@ -77,12 +78,6 @@ interface ArtifactsTabProps {
   ) => void;
   onSummaryUpdated?: (chapterId: string, summary: string) => void;
   onModeConfigUpdated?: (modeConfig: NewsletterModeConfig) => void;
-}
-
-interface ArtifactFocusRequest {
-  sectionType: PlanningArtifact["sectionType"];
-  targetLabel?: string;
-  nonce: number;
 }
 
 type ArtifactKindFilter = "all" | ProjectArtifactKind;

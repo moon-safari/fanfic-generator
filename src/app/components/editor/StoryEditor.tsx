@@ -13,6 +13,7 @@ import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterEditor";
 import { useCraftPanel } from "../../hooks/useCraftPanel";
+import { useCodexFocus } from "../../hooks/useCodexFocus";
 import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
 import EditorFooter from "./EditorFooter";
@@ -45,17 +46,6 @@ interface StoryEditorProps {
   onUpdate: (story: Story) => void;
   onDelete: (id: string) => void;
   onStreamingComplete?: () => void;
-}
-
-interface CodexFocusRequest {
-  entryId: string;
-  nonce: number;
-}
-
-interface ArtifactFocusRequest {
-  sectionType: PlanningArtifactSubtype;
-  targetLabel?: string;
-  nonce: number;
 }
 
 interface AnnotationActionResponse {
@@ -107,10 +97,7 @@ export default function StoryEditor({
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [codexSuggestionRefreshKey, setCodexSuggestionRefreshKey] = useState(0);
-  const [codexFocusRequest, setCodexFocusRequest] =
-    useState<CodexFocusRequest | null>(null);
-  const [artifactFocusRequest, setArtifactFocusRequest] =
-    useState<ArtifactFocusRequest | null>(null);
+  const codexFocus = useCodexFocus();
 
   // Craft tools state
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -359,15 +346,11 @@ export default function StoryEditor({
       }
 
       craftPanel.openTab("artifacts");
-      setArtifactFocusRequest({
-        sectionType: targetSection,
-        targetLabel: annotation.metadata?.targetLabel,
-        nonce: Date.now(),
-      });
+      codexFocus.focusArtifact(targetSection, annotation.metadata?.targetLabel);
       setActiveAnnotation(null);
       setAnnotationAnchorRect(null);
     },
-    [craftPanel]
+    [craftPanel, codexFocus]
   );
 
   const handleApplyAnnotationAction = useCallback(
@@ -390,35 +373,26 @@ export default function StoryEditor({
 
       if (result.focusTarget) {
         craftPanel.openTab("artifacts");
-        setArtifactFocusRequest({
-          sectionType: result.focusTarget.sectionType,
-          targetLabel: result.focusTarget.targetLabel,
-          nonce: Date.now(),
-        });
+        codexFocus.focusArtifact(
+          result.focusTarget.sectionType,
+          result.focusTarget.targetLabel
+        );
       }
     },
-    [craftPanel]
+    [craftPanel, codexFocus]
   );
 
   // Handle annotation click in editor content
   const handleEditorClick = useCallback(
     (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const mentionEl = target.closest("[data-codex-entry-id]");
-      if (mentionEl) {
-        const entryId = mentionEl.getAttribute("data-codex-entry-id");
-        if (entryId) {
-          craftPanel.openTab("codex");
-          setCodexFocusRequest({
-            entryId,
-            nonce: Date.now(),
-          });
-          setActiveAnnotation(null);
-          setAnnotationAnchorRect(null);
-          return;
-        }
+      if (codexFocus.handleMentionClick(e)) {
+        craftPanel.openTab("codex");
+        setActiveAnnotation(null);
+        setAnnotationAnchorRect(null);
+        return;
       }
 
+      const target = e.target as HTMLElement;
       const annotationEl = target.closest("[data-annotation-id]");
       if (annotationEl) {
         const id = annotationEl.getAttribute("data-annotation-id");
@@ -435,7 +409,7 @@ export default function StoryEditor({
         setAnnotationAnchorRect(null);
       }
     },
-    [annotations, activeAnnotation, craftPanel]
+    [annotations, activeAnnotation, craftPanel, codexFocus]
   );
 
   const runChapterPostProcessing = useCallback(
@@ -907,8 +881,8 @@ export default function StoryEditor({
           currentChapterMentions={currentChapterMentions}
           mentionSyncing={mentionSyncing}
           mentionError={mentionError}
-          codexFocusRequest={codexFocusRequest}
-          artifactFocusRequest={artifactFocusRequest}
+          codexFocusRequest={codexFocus.codexFocusRequest}
+          artifactFocusRequest={codexFocus.artifactFocusRequest}
           panelWidth={craftPanel.panelWidth}
           onPanelWidthChange={craftPanel.setPanelWidth}
           onTabChange={craftPanel.setTab}

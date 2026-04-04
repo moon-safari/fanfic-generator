@@ -28,11 +28,7 @@ import EntryDetail from "./EntryDetail";
 import EntryForm from "./EntryForm";
 import EntryList from "./EntryList";
 import SuggestionList from "./SuggestionList";
-
-interface CodexFocusRequest {
-  entryId: string;
-  nonce: number;
-}
+import type { CodexFocusRequest } from "../../hooks/useCodexFocus";
 
 interface ContextNotice {
   tone: "success" | "warning";
