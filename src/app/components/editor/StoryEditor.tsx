@@ -11,7 +11,7 @@ import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
 import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { textToTiptapDoc } from "../../lib/editorUtils";
+import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterEditor";
 import { useCraftPanel } from "../../hooks/useCraftPanel";
 import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
@@ -103,9 +103,6 @@ export default function StoryEditor({
   onDelete,
   onStreamingComplete,
 }: StoryEditorProps) {
-  const [currentChapterIdx, setCurrentChapterIdx] = useState(
-    story.chapters.length - 1
-  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -154,33 +151,8 @@ export default function StoryEditor({
     createStreamingCursorExtension(() => streamingRef.current.active)
   ).current;
 
-  const chapter = story.chapters[currentChapterIdx];
-  const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
-  const {
-    mentions: currentChapterMentions,
-    syncing: mentionSyncing,
-    error: mentionError,
-    generateMentions,
-    clearError: clearMentionError,
-  } = useCodexMentions({
-    storyId: story.id,
-    chapterId: chapter?.id,
-    enabled: Boolean(chapter?.id),
-  });
-  const adaptation = useChapterAdaptation(story.id, story.projectMode, chapter?.id);
-
-  // Track editor readiness for initial content set
-  const initialContentRef = useRef<object | null>(null);
-
-  const getChapterContent = useCallback(
-    (idx: number): object => {
-      const ch = story.chapters[idx];
-      if (!ch) return { type: "doc", content: [] };
-      if (ch.contentJson) return ch.contentJson;
-      return textToTiptapDoc(ch.content);
-    },
-    [story.chapters]
-  );
+  // Initial content for useEditor — computed once from story.chapters
+  const initialChapterIdx = useRef(story.chapters.length - 1).current;
 
   const editor = useEditor({
     extensions: [
@@ -191,7 +163,7 @@ export default function StoryEditor({
       CodexMentionExtension,
       streamingCursorExtension,
     ],
-    content: getChapterContent(currentChapterIdx),
+    content: resolveChapterContent(story.chapters, initialChapterIdx),
     editorProps: {
       attributes: {
         class:
@@ -219,13 +191,32 @@ export default function StoryEditor({
     },
   });
 
+  // useChapterEditor owns chapter index, switching, and content sync.
+  // Called after useEditor so it receives the real editor instance for the content-sync effect.
+  const chapterEditor = useChapterEditor({
+    story,
+    editor: editor ?? null,
+    streamingActive: streaming.active,
+  });
+  const { currentChapterIdx, currentChapter: chapter, getChapterContent } = chapterEditor;
+  const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
+  const {
+    mentions: currentChapterMentions,
+    syncing: mentionSyncing,
+    error: mentionError,
+    generateMentions,
+    clearError: clearMentionError,
+  } = useCodexMentions({
+    storyId: story.id,
+    chapterId: chapter?.id,
+    enabled: Boolean(chapter?.id),
+  });
+  const adaptation = useChapterAdaptation(story.id, story.projectMode, chapter?.id);
+
   const { flush } = useAutosave({
     editor,
     chapterId: chapter?.id,
   });
-
-  const flushRef = useRef(flush);
-  flushRef.current = flush;
 
   // Handle craft tool invocation from toolbar
   const handleCraftTool = useCallback(
@@ -506,18 +497,10 @@ export default function StoryEditor({
     [generateMentions]
   );
 
-  // Chapter switching
-  const switchChapter = useCallback(
-    async (newIdx: number) => {
-      if (newIdx === currentChapterIdx) return;
-      if (newIdx < 0 || newIdx >= story.chapters.length) return;
-
-      // Flush current chapter
-      await flushRef.current();
-
-      setCurrentChapterIdx(newIdx);
-    },
-    [currentChapterIdx, story.chapters.length]
+  // Chapter switching — coordinates flush at call site via beforeSwitch callback
+  const handleSwitchChapter = useCallback(
+    (newIdx: number) => chapterEditor.switchChapter(newIdx, () => flush()),
+    [chapterEditor, flush]
   );
 
   const handleArtifactOpenInAdapt = useCallback(
@@ -530,11 +513,11 @@ export default function StoryEditor({
         return;
       }
 
-      await switchChapter(targetIndex);
+      await handleSwitchChapter(targetIndex);
       adaptation.setActiveOutputType(outputType);
       craftPanel.openTab("adapt");
     },
-    [adaptation, craftPanel, switchChapter]
+    [adaptation, craftPanel, handleSwitchChapter]
   );
 
   const handleModeConfigUpdated = useCallback(
@@ -582,21 +565,6 @@ export default function StoryEditor({
     },
     [chapter?.id, handleChapterSummaryUpdated]
   );
-
-  // Update editor content when chapter changes
-  useEffect(() => {
-    if (!editor) return;
-    // Skip content sync during streaming — streaming manages editor content directly
-    if (streamingRef.current.active) return;
-    const content = getChapterContent(currentChapterIdx);
-    // Only set content if it differs from what we computed on mount
-    if (initialContentRef.current === null) {
-      initialContentRef.current = content;
-      return; // Skip first render, editor already has this content
-    }
-    editor.commands.setContent(content);
-    initialContentRef.current = content;
-  }, [editor, currentChapterIdx, getChapterContent]);
 
   // Stream chapter 1 when entering editor with streamingFormData
   useEffect(() => {
@@ -715,7 +683,7 @@ export default function StoryEditor({
       const chapterNum = story.chapters.length + 1;
 
       // Jump to new empty chapter view
-      setCurrentChapterIdx(story.chapters.length); // will be out of bounds briefly
+      chapterEditor.setChapterIdx(story.chapters.length); // will be out of bounds briefly
       editor?.commands.setContent({ type: "doc", content: [] });
       setStreaming({ active: true, fullText: "", source: "continue" });
 
@@ -756,7 +724,7 @@ export default function StoryEditor({
             return;
           }
           onUpdate(updated);
-          setCurrentChapterIdx(updated.chapters.length - 1);
+          chapterEditor.setChapterIdx(updated.chapters.length - 1);
 
           // Post-generation pipeline (non-blocking)
           const newChapter = updated.chapters[updated.chapters.length - 1];
@@ -833,8 +801,8 @@ export default function StoryEditor({
         activeCraftTool={craftPanel.activeTool}
         craftLoading={craftPanel.loading}
         onBack={handleBack}
-        onPrevChapter={() => switchChapter(currentChapterIdx - 1)}
-        onNextChapter={() => switchChapter(currentChapterIdx + 1)}
+        onPrevChapter={() => handleSwitchChapter(currentChapterIdx - 1)}
+        onNextChapter={() => handleSwitchChapter(currentChapterIdx + 1)}
         onToggleCodex={() => {
           if (craftPanel.isOpen && toolPanelTab !== "craft") {
             craftPanel.closePanel();
