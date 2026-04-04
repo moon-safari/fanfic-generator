@@ -6,7 +6,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import type { NewsletterModeConfig, Story } from "../../types/story";
-import { addChapterToDB } from "../../lib/supabase/stories";
 import { exportStoryToText } from "../../lib/storage";
 import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -14,6 +13,7 @@ import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterE
 import { useCraftPanel } from "../../hooks/useCraftPanel";
 import { useCodexFocus } from "../../hooks/useCodexFocus";
 import { useChapterAnnotations } from "../../hooks/useChapterAnnotations";
+import { useStoryStreaming } from "../../hooks/useStoryStreaming";
 import { CraftTool } from "../../types/craft";
 import EditorToolbar from "./EditorToolbar";
 import EditorFooter from "./EditorFooter";
@@ -26,8 +26,6 @@ import {
   CodexMentionExtension,
   codexMentionPluginKey,
 } from "./codexMentionExtension";
-import { readSSEStream } from "../../lib/stream";
-import { updateStoryTitle, updateChapterContent } from "../../lib/supabase/stories";
 import { StoryFormData } from "../../types/story";
 import { AdaptationOutputType } from "../../types/adaptation";
 import type { ChapterAnnotation, ChapterAnnotationAction } from "../../types/bible";
@@ -81,8 +79,6 @@ export default function StoryEditor({
   onDelete,
   onStreamingComplete,
 }: StoryEditorProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [codexSuggestionRefreshKey, setCodexSuggestionRefreshKey] = useState(0);
   const codexFocus = useCodexFocus();
@@ -104,14 +100,8 @@ export default function StoryEditor({
     nonce: 0,
   });
 
-  // Streaming state
-  const [streaming, setStreaming] = useState<{
-    active: boolean;
-    fullText: string;
-    source: "generate" | "continue";
-  }>({ active: false, fullText: "", source: "generate" });
-  const streamingRef = useRef(streaming);
-  streamingRef.current = streaming;
+  // Ref for streaming cursor decoration — updated below after hook call
+  const streamingRef = useRef<{ active: boolean; fullText: string; source: "initial" | "continue" | null }>({ active: false, fullText: "", source: null });
 
   // Ref to track latest story prop — avoids stale closures in streaming callbacks
   const storyRef = useRef(story);
@@ -166,7 +156,7 @@ export default function StoryEditor({
   const chapterEditor = useChapterEditor({
     story,
     editor: editor ?? null,
-    streamingActive: streaming.active,
+    streamingActive: streamingRef.current.active,
   });
   const { currentChapterIdx, currentChapter: chapter, getChapterContent } = chapterEditor;
   const isLatestChapter = currentChapterIdx === story.chapters.length - 1;
@@ -192,6 +182,81 @@ export default function StoryEditor({
     editor,
     chapterId: chapter?.id,
   });
+
+  const runChapterPostProcessing = useCallback(
+    async (storyId: string, chapterId: string) => {
+      try {
+        await fetch(`/api/chapters/${chapterId}/summary`, { method: "POST" });
+      } catch {
+        // Continue without a summary if it fails.
+      }
+
+      if (storyRef.current.projectMode !== "newsletter") {
+        try {
+          const suggestionResponse = await fetch("/api/codex/suggestions/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              storyId,
+              chapterId,
+            }),
+          });
+
+          if (suggestionResponse.ok) {
+            setCodexSuggestionRefreshKey((prev) => prev + 1);
+          }
+        } catch {
+          // Change detection is helpful but non-blocking.
+        }
+
+        try {
+          await generateMentions(chapterId);
+        } catch {
+          // Mention indexing should never block writing.
+        }
+      }
+
+      try {
+        const checkRes = await fetch("/api/continuity/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storyId,
+            chapterId,
+          }),
+        });
+
+        if (!checkRes.ok) {
+          return;
+        }
+
+        const checkData = await checkRes.json();
+        if (!checkData.annotations || checkData.annotations.length === 0) {
+          return;
+        }
+        // Refresh annotations via hook (sets pendingNotification for warnings/errors)
+        await chapterAnnotations.refresh(chapterId);
+      } catch {
+        // Silently fail
+      }
+    },
+    [generateMentions, chapterAnnotations]
+  );
+
+  // Streaming — initial generation + continuation
+  const storyStreaming = useStoryStreaming({
+    editor: editor ?? null,
+    storyRef,
+    streamingFormData,
+    onUpdate,
+    onPostProcess: runChapterPostProcessing,
+    onStreamingComplete,
+    setChapterIdx: chapterEditor.setChapterIdx,
+    generateMentions,
+    flush,
+  });
+  const { streaming, loading, error, setError, handleContinue } = storyStreaming;
+  streamingRef.current = streaming;
 
   // Handle craft tool invocation from toolbar
   const handleCraftTool = useCallback(
@@ -306,66 +371,6 @@ export default function StoryEditor({
     [codexFocus, chapterAnnotations]
   );
 
-  const runChapterPostProcessing = useCallback(
-    async (storyId: string, chapterId: string) => {
-      try {
-        await fetch(`/api/chapters/${chapterId}/summary`, { method: "POST" });
-      } catch {
-        // Continue without a summary if it fails.
-      }
-
-      if (storyRef.current.projectMode !== "newsletter") {
-        try {
-          const suggestionResponse = await fetch("/api/codex/suggestions/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              storyId,
-              chapterId,
-            }),
-          });
-
-          if (suggestionResponse.ok) {
-            setCodexSuggestionRefreshKey((prev) => prev + 1);
-          }
-        } catch {
-          // Change detection is helpful but non-blocking.
-        }
-
-        try {
-          await generateMentions(chapterId);
-        } catch {
-          // Mention indexing should never block writing.
-        }
-      }
-
-      try {
-        const checkRes = await fetch("/api/continuity/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            storyId,
-            chapterId,
-          }),
-        });
-
-        if (!checkRes.ok) {
-          return;
-        }
-
-        const checkData = await checkRes.json();
-        if (!checkData.annotations || checkData.annotations.length === 0) {
-          return;
-        }
-        // Refresh annotations via hook (sets pendingNotification for warnings/errors)
-        await chapterAnnotations.refresh(chapterId);
-      } catch {
-        // Silently fail
-      }
-    },
-    [generateMentions, chapterAnnotations]
-  );
-
   // Chapter switching — coordinates flush at call site via beforeSwitch callback
   const handleSwitchChapter = useCallback(
     (newIdx: number) => chapterEditor.switchChapter(newIdx, () => flush()),
@@ -434,185 +439,6 @@ export default function StoryEditor({
     },
     [chapter?.id, handleChapterSummaryUpdated]
   );
-
-  // Stream chapter 1 when entering editor with streamingFormData
-  useEffect(() => {
-    if (!streamingFormData || !editor) return;
-
-    const chapter = story.chapters[0];
-    if (!chapter) return;
-
-    // Clear placeholder content and start streaming
-    editor.commands.setContent({ type: "doc", content: [] });
-    setStreaming({ active: true, fullText: "", source: "generate" });
-
-    let accumulated = "";
-
-    const startStream = async () => {
-      try {
-        const res = await fetch("/api/generate-story", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(streamingFormData),
-        });
-
-        if (!res.ok) {
-          let errorMsg =
-            story.projectMode === "newsletter"
-              ? "Failed to generate the first issue"
-              : "Failed to generate story";
-          try {
-            const data = await res.json();
-            errorMsg = data.error || errorMsg;
-          } catch {}
-          setError(errorMsg);
-          setStreaming({ active: false, fullText: "", source: "generate" });
-          return;
-        }
-
-        await readSSEStream(res, {
-          onTitle: (title) => {
-            // Fire-and-forget DB update; use storyRef to avoid stale closure
-            updateStoryTitle(storyRef.current.id, title).catch(() => {});
-            onUpdate({ ...storyRef.current, title });
-          },
-          onDelta: (text) => {
-            accumulated += text;
-            setStreaming((prev) => ({ ...prev, fullText: accumulated }));
-            editor.commands.insertContent(text);
-          },
-          onDone: () => {
-            setStreaming({ active: false, fullText: "", source: "generate" });
-            const latestStory = storyRef.current;
-            const ch = latestStory.chapters[0];
-            // Save accumulated content to DB
-            if (ch) {
-              updateChapterContent(ch.id, accumulated).catch(() => {});
-            }
-            // Update word count — read from storyRef to get latest (includes title update)
-            const wordCount = accumulated.trim() ? accumulated.split(/\s+/).length : 0;
-            const updatedStory = {
-              ...latestStory,
-              wordCount,
-              chapters: latestStory.chapters.map((c, i) =>
-                i === 0 ? { ...c, content: accumulated, wordCount } : c
-              ),
-            };
-            onUpdate(updatedStory);
-            onStreamingComplete?.();
-            // Trigger story-context generation now that we have content.
-            fetch("/api/story-bible/generate", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ storyId: latestStory.id }),
-            }).catch(() => {});
-            if (latestStory.projectMode !== "newsletter") {
-              fetch("/api/codex/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ storyId: latestStory.id }),
-              })
-                .then(async (response) => {
-                  if (response.ok && ch?.id) {
-                    await generateMentions(ch.id);
-                  }
-                })
-                .catch(() => {});
-            }
-          },
-          onError: (errorMsg) => {
-            setError(errorMsg);
-            setStreaming({ active: false, fullText: "", source: "generate" });
-            // Save whatever we accumulated
-            const ch = storyRef.current.chapters[0];
-            if (accumulated && ch) {
-              updateChapterContent(ch.id, accumulated).catch(() => {});
-            }
-          },
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Streaming failed");
-        setStreaming({ active: false, fullText: "", source: "generate" });
-      }
-    };
-
-    startStream();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamingFormData, editor]);
-
-  // Continue story with streaming
-  const handleContinue = async () => {
-    if (streaming.active) return;
-    setLoading(true);
-    setError("");
-
-    try {
-      await flush();
-
-      const chapterNum = story.chapters.length + 1;
-
-      // Jump to new empty chapter view
-      chapterEditor.setChapterIdx(story.chapters.length); // will be out of bounds briefly
-      editor?.commands.setContent({ type: "doc", content: [] });
-      setStreaming({ active: true, fullText: "", source: "continue" });
-
-      let accumulated = "";
-
-      const res = await fetch("/api/continue-chapter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storyId: story.id }),
-      });
-
-      if (!res.ok) {
-        let errorMsg =
-          story.projectMode === "newsletter"
-            ? "Failed to continue the issue sequence"
-            : "Failed to continue story";
-        try {
-          const data = await res.json();
-          errorMsg = data.error || errorMsg;
-        } catch {}
-        throw new Error(errorMsg);
-      }
-
-      await readSSEStream(res, {
-        onDelta: (text) => {
-          accumulated += text;
-          setStreaming((prev) => ({ ...prev, fullText: accumulated }));
-          editor?.commands.insertContent(text);
-        },
-        onDone: async () => {
-          setStreaming({ active: false, fullText: "", source: "continue" });
-          setLoading(false);
-
-          // Save chapter to DB
-          const updated = await addChapterToDB(story.id, chapterNum, accumulated);
-          if (!updated) {
-            setError("Failed to save chapter");
-            return;
-          }
-          onUpdate(updated);
-          chapterEditor.setChapterIdx(updated.chapters.length - 1);
-
-          // Post-generation pipeline (non-blocking)
-          const newChapter = updated.chapters[updated.chapters.length - 1];
-          if (newChapter?.id) {
-            void runChapterPostProcessing(updated.id, newChapter.id);
-          }
-        },
-        onError: (errorMsg) => {
-          setError(errorMsg);
-          setStreaming({ active: false, fullText: "", source: "continue" });
-          setLoading(false);
-        },
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setStreaming({ active: false, fullText: "", source: "continue" });
-      setLoading(false);
-    }
-  };
 
   const handleExport = () => {
     const text = exportStoryToText(story);
