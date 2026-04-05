@@ -13,6 +13,7 @@ interface ContextNotice {
 interface ContextConsoleProps {
   storyId: string;
   currentChapter: number;
+  contentUnitLabel?: string;
   refreshKey?: number;
   notice?: ContextNotice | null;
   onDismissNotice?: () => void;
@@ -22,6 +23,7 @@ interface ContextConsoleProps {
 export default function ContextConsole({
   storyId,
   currentChapter,
+  contentUnitLabel = "chapter",
   refreshKey = 0,
   notice = null,
   onDismissNotice,
@@ -117,7 +119,7 @@ export default function ContextConsole({
             <div>
               <h3 className="text-sm font-semibold text-white">Context Console</h3>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                This is the chapter-aware story truth the system can use right now.
+                This is the {contentUnitLabel}-aware story truth the system can use right now.
               </p>
             </div>
             <button
@@ -142,7 +144,7 @@ export default function ContextConsole({
               value={`Ch. ${context.resolvedThroughChapter}`}
             />
             <StatPill
-              label="Next chapter"
+              label={`Next ${contentUnitLabel}`}
               value={`Ch. ${context.generationChapter}`}
             />
             <StatPill label="Included" value={String(context.includedEntryCount)} />
@@ -159,7 +161,7 @@ export default function ContextConsole({
           </div>
 
           <p className="mt-3 text-xs text-zinc-500">
-            The next chapter prompt starts with pinned and priority entries, then
+            The next {contentUnitLabel} prompt starts with pinned and priority entries, then
             the rest of the included Memory truth. Current active relationships:{" "}
             {context.relationshipCount}.
           </p>
@@ -174,14 +176,14 @@ export default function ContextConsole({
           {hasNoIncludedMemoryEntries && (
             <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100">
               Every Memory entry is currently excluded from prompt context. Future
-              writing can still use chapter summaries and manuscript text, but no
+              writing can still use {contentUnitLabel} summaries and manuscript text, but no
               Memory entries are being injected until you reset at least one entry.
             </div>
           )}
 
           {context.source === "none" && (
             <div className="mt-4 rounded-2xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">
-              No story context is available yet. Generate Chapter 1 or build the
+              No story context is available yet. Generate {contentUnitLabel} 1 or build the
               Memory first.
             </div>
           )}
@@ -192,7 +194,7 @@ export default function ContextConsole({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h4 className="text-sm font-semibold text-white">
-                  Next Chapter Focus
+                  Next {contentUnitLabel.charAt(0).toUpperCase() + contentUnitLabel.slice(1)} Focus
                 </h4>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">
                   These entries will be surfaced before supporting context when you
@@ -251,7 +253,7 @@ export default function ContextConsole({
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">
-                No entries are specially emphasized yet. The next chapter will use
+                No entries are specially emphasized yet. The next {contentUnitLabel} will use
                 the included Memory in its normal resolved order.
               </div>
             )}

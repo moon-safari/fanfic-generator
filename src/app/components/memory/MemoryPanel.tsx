@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { getModeConfig } from "../../lib/modes/registry";
 import { useMemory } from "../../hooks/useMemory";
 import { useMemorySuggestions } from "../../hooks/useMemorySuggestions";
 import type {
@@ -93,6 +94,8 @@ export default function MemoryPanel({
   onGenerateMentions,
   onDismissMentionError,
 }: MemoryPanelProps) {
+  const modeConfig = getModeConfig(projectMode);
+  const contentUnitLabel = modeConfig.contentUnitSingular.charAt(0).toUpperCase() + modeConfig.contentUnitSingular.slice(1);
   const {
     entries,
     relationships,
@@ -541,6 +544,7 @@ export default function MemoryPanel({
         <ContextConsole
           storyId={storyId}
           currentChapter={currentChapter}
+          contentUnitLabel={modeConfig.contentUnitSingular}
           refreshKey={contextRefreshKey}
           notice={contextNotice}
           onDismissNotice={() => setContextNotice(null)}
@@ -709,6 +713,7 @@ export default function MemoryPanel({
                     customTypes={customTypes}
                     currentChapter={currentChapter}
                     currentChapterMentions={currentChapterMentions}
+                    contentUnitLabel={contentUnitLabel}
                     saving={saving}
                     onSelectEntry={(entryId) => {
                       setDismissedFocusNonce(focusRequest?.nonce ?? null);
@@ -840,6 +845,7 @@ export default function MemoryPanel({
                   customTypes={customTypes}
                   currentChapter={currentChapter}
                   currentChapterMentions={currentChapterMentions}
+                  contentUnitLabel={contentUnitLabel}
                   saving={saving}
                   onSelectEntry={(entryId) => {
                     setDismissedFocusNonce(focusRequest?.nonce ?? null);

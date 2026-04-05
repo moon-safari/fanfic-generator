@@ -8,6 +8,7 @@ import CustomFieldEditor from "./CustomFieldEditor";
 interface ProgressionEditorProps {
   entry: MemoryEntry;
   currentChapter: number;
+  contentUnitLabel?: string;
   saving?: boolean;
   onCreate: (input: {
     chapterNumber: number;
@@ -37,6 +38,7 @@ interface ProgressionDraft {
 export default function ProgressionEditor({
   entry,
   currentChapter,
+  contentUnitLabel = "Chapter",
   saving = false,
   onCreate,
   onUpdate,
@@ -88,7 +90,7 @@ export default function ProgressionEditor({
 
       {sortedProgressions.length === 0 && !creating ? (
         <div className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-xs text-zinc-500">
-          No chapter-based changes yet.
+          No {contentUnitLabel.toLowerCase()}-based changes yet.
         </div>
       ) : (
         <div className="space-y-3">
@@ -96,6 +98,7 @@ export default function ProgressionEditor({
             <EditableProgressionCard
               key={progression.id}
               progression={progression}
+              contentUnitLabel={contentUnitLabel}
               saving={saving}
               onSave={(input) => onUpdate(progression.id, input)}
               onDelete={() => onDelete(progression.id)}
@@ -104,7 +107,7 @@ export default function ProgressionEditor({
 
           {creating && (
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-3">
-              <ProgressionFields draft={newDraft} onChange={setNewDraft} />
+              <ProgressionFields draft={newDraft} onChange={setNewDraft} contentUnitLabel={contentUnitLabel} />
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
@@ -138,11 +141,13 @@ export default function ProgressionEditor({
 
 function EditableProgressionCard({
   progression,
+  contentUnitLabel = "Chapter",
   saving,
   onSave,
   onDelete,
 }: {
   progression: MemoryProgression;
+  contentUnitLabel?: string;
   saving: boolean;
   onSave: (input: {
     chapterNumber?: number;
@@ -171,7 +176,7 @@ function EditableProgressionCard({
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-3">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-white">Chapter {progression.chapterNumber}</p>
+          <p className="text-sm font-medium text-white">{contentUnitLabel} {progression.chapterNumber}</p>
           <p className="text-xs text-zinc-500">Layered change on top of the base entry.</p>
         </div>
         <button
@@ -186,7 +191,7 @@ function EditableProgressionCard({
         </button>
       </div>
 
-      <ProgressionFields draft={draft} onChange={setDraft} />
+      <ProgressionFields draft={draft} onChange={setDraft} contentUnitLabel={contentUnitLabel} />
 
       <div className="mt-3">
         <button
@@ -208,14 +213,16 @@ function EditableProgressionCard({
 function ProgressionFields({
   draft,
   onChange,
+  contentUnitLabel = "Chapter",
 }: {
   draft: ProgressionDraft;
   onChange: (draft: ProgressionDraft) => void;
+  contentUnitLabel?: string;
 }) {
   return (
     <div className="space-y-3">
       <label className="space-y-1.5">
-        <span className="text-xs font-medium text-zinc-400">Chapter number</span>
+        <span className="text-xs font-medium text-zinc-400">{contentUnitLabel} number</span>
         <input
           value={draft.chapterNumber}
           onChange={(event) =>
@@ -234,7 +241,7 @@ function ProgressionFields({
             onChange({ ...draft, descriptionOverride: event.target.value })
           }
           rows={3}
-          placeholder="What changed about this entry in this chapter?"
+          placeholder={`What changed about this entry in this ${contentUnitLabel.toLowerCase()}?`}
           className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-purple-500"
         />
       </label>

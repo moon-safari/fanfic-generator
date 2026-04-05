@@ -24,6 +24,7 @@ interface EntryDetailProps {
   customTypes: MemoryCustomType[];
   currentChapter: number;
   currentChapterMentions: MemoryMention[];
+  contentUnitLabel?: string;
   saving?: boolean;
   onSelectEntry: (entryId: string) => void;
   onSave: (updates: CreateMemoryEntryInput | UpdateMemoryEntryInput) => Promise<void>;
@@ -61,6 +62,7 @@ export default function EntryDetail({
   customTypes,
   currentChapter,
   currentChapterMentions,
+  contentUnitLabel = "Chapter",
   saving = false,
   onSelectEntry,
   onSave,
@@ -169,7 +171,7 @@ export default function EntryDetail({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-purple-300/80">
-              Chapter {currentChapter} truth
+              {contentUnitLabel} {currentChapter} truth
             </p>
             <h3 className="mt-1 text-lg font-semibold text-white">{resolved.name}</h3>
             <p className="mt-1 text-sm text-zinc-300">{resolved.entryType}</p>
@@ -188,7 +190,7 @@ export default function EntryDetail({
             {currentChapterMatches.length} mentions in Ch. {currentChapter}
           </span>
           <span className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-zinc-200">
-            {mentionSummary.totalMentions} across {mentionSummary.totalChapters} chapter
+            {mentionSummary.totalMentions} across {mentionSummary.totalChapters} {contentUnitLabel.toLowerCase()}
             {mentionSummary.totalChapters === 1 ? "" : "s"}
           </span>
         </div>
@@ -306,13 +308,13 @@ export default function EntryDetail({
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-            {currentChapterMatches.length} in this chapter
+            {currentChapterMatches.length} in this {contentUnitLabel.toLowerCase()}
           </span>
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
             {mentionSummary.totalMentions} total mentions
           </span>
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-            {mentionSummary.totalChapters} chapter
+            {mentionSummary.totalChapters} {contentUnitLabel.toLowerCase()}
             {mentionSummary.totalChapters === 1 ? "" : "s"}
           </span>
         </div>
@@ -339,7 +341,7 @@ export default function EntryDetail({
                 {currentChapterMatches.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                      This chapter
+                      This {contentUnitLabel.toLowerCase()}
                     </p>
                     {currentChapterMatches.map((mention) => (
                       <div
@@ -359,14 +361,14 @@ export default function EntryDetail({
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-zinc-800 px-3 py-3 text-xs text-zinc-500">
-                    No tracked mentions for this fact in Chapter {currentChapter} yet.
+                    No tracked mentions for this fact in {contentUnitLabel} {currentChapter} yet.
                   </div>
                 )}
 
                 {mentionSummary.chapterCounts.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                      Chapter trail
+                      {contentUnitLabel} trail
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {mentionSummary.chapterCounts.map(([chapterNumber, count]) => (
@@ -408,7 +410,7 @@ export default function EntryDetail({
           <div>
             <h4 className="text-sm font-semibold text-white">Advanced</h4>
             <p className="text-xs text-zinc-500">
-              Links, chapter-by-chapter changes, and deeper memory controls.
+              Links, {contentUnitLabel.toLowerCase()}-by-{contentUnitLabel.toLowerCase()} changes, and deeper memory controls.
             </p>
           </div>
           <button
@@ -443,6 +445,7 @@ export default function EntryDetail({
               <ProgressionEditor
                 entry={entry}
                 currentChapter={currentChapter}
+                contentUnitLabel={contentUnitLabel}
                 saving={saving}
                 onCreate={onCreateProgression}
                 onUpdate={onUpdateProgression}
