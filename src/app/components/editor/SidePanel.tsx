@@ -318,6 +318,7 @@ export default function SidePanel({
             storyId={storyId}
             currentChapter={currentChapter}
             currentChapterId={currentChapterId}
+            projectMode={projectMode}
             panelWidth={panelWidth}
             focusMode={focusModeActive}
             suggestionRefreshKey={memorySuggestionRefreshKey}

@@ -10,12 +10,13 @@ import {
   Search,
 } from "lucide-react";
 import { resolveMemoryEntryAtChapter } from "../../lib/prompts/memory";
+import { getModeConfig } from "../../lib/modes/registry";
 import type {
   MemoryCustomType,
   MemoryEntry,
   MemoryMention,
-  CoreEntryType,
 } from "../../types/memory";
+import type { ProjectMode } from "../../types/story";
 
 interface EntryListProps {
   entries: MemoryEntry[];
@@ -23,6 +24,7 @@ interface EntryListProps {
   currentChapter: number;
   currentChapterMentions: MemoryMention[];
   selectedEntryId: string | null;
+  projectMode?: ProjectMode;
   compact?: boolean;
   scrollMode?: "internal" | "natural";
   showSummaryBadges?: boolean;
@@ -30,36 +32,20 @@ interface EntryListProps {
   onCreate: () => void;
 }
 
-const CORE_TYPE_ORDER: CoreEntryType[] = [
-  "character",
-  "location",
-  "lore",
-  "object",
-  "faction",
-  "event",
-];
-
-const CORE_TYPE_LABELS: Record<CoreEntryType, string> = {
-  character: "Characters",
-  location: "Locations",
-  lore: "Lore",
-  object: "Objects",
-  faction: "Factions",
-  event: "Events",
-};
-
 export default function EntryList({
   entries,
   customTypes,
   currentChapter,
   currentChapterMentions,
   selectedEntryId,
+  projectMode = "fiction",
   compact = false,
   scrollMode = "internal",
   showSummaryBadges = true,
   onSelect,
   onCreate,
 }: EntryListProps) {
+  const modeConfig = getModeConfig(projectMode);
   const [query, setQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeTypeFilter, setActiveTypeFilter] = useState<string>("all");
@@ -76,8 +62,8 @@ export default function EntryList({
   }, [currentChapterMentions]);
 
   const availableFilters = useMemo(
-    () => getTypeFilters(entries, customTypes),
-    [entries, customTypes]
+    () => getTypeFilters(entries, customTypes, modeConfig.coreTypes, modeConfig.typeLabels),
+    [entries, customTypes, modeConfig.coreTypes, modeConfig.typeLabels]
   );
   const groups = useMemo(
     () =>
@@ -85,9 +71,11 @@ export default function EntryList({
         entries,
         customTypes,
         query,
-        activeTypeFilter === "all" ? null : activeTypeFilter
+        activeTypeFilter === "all" ? null : activeTypeFilter,
+        modeConfig.coreTypes,
+        modeConfig.typeLabels
       ),
-    [entries, customTypes, query, activeTypeFilter]
+    [entries, customTypes, query, activeTypeFilter, modeConfig.coreTypes, modeConfig.typeLabels]
   );
 
   const toggleGroup = (groupKey: string) => {
@@ -348,7 +336,9 @@ function groupEntries(
   entries: MemoryEntry[],
   customTypes: MemoryCustomType[],
   query: string,
-  typeFilter: string | null
+  typeFilter: string | null,
+  coreTypes: string[],
+  typeLabels: Record<string, string>
 ) {
   const normalizedQuery = query.trim().toLowerCase();
   const filteredEntries =
@@ -368,15 +358,16 @@ function groupEntries(
     groups.set(entry.entryType, current);
   }
 
+  const coreTypeSet = new Set(coreTypes);
   const orderedKeys = [
-    ...CORE_TYPE_ORDER.filter((type) => groups.has(type)),
+    ...coreTypes.filter((type) => groups.has(type)),
     ...customTypes
       .map((customType) => customType.name)
       .filter((type) => groups.has(type)),
     ...Array.from(groups.keys())
       .filter(
         (type) =>
-          !CORE_TYPE_ORDER.includes(type as CoreEntryType) &&
+          !coreTypeSet.has(type) &&
           !customTypes.some((customType) => customType.name === type)
       )
       .sort((a, b) => a.localeCompare(b)),
@@ -384,14 +375,19 @@ function groupEntries(
 
   return orderedKeys.map((key) => ({
     key,
-    label: CORE_TYPE_LABELS[key as CoreEntryType] ?? `${labelize(key)}s`,
+    label: typeLabels[key] ?? `${labelize(key)}s`,
     entries: (groups.get(key) ?? []).sort(
       (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)
     ),
   }));
 }
 
-function getTypeFilters(entries: MemoryEntry[], customTypes: MemoryCustomType[]) {
+function getTypeFilters(
+  entries: MemoryEntry[],
+  customTypes: MemoryCustomType[],
+  coreTypes: string[],
+  typeLabels: Record<string, string>
+) {
   const entryTypeSet = new Set(entries.map((entry) => entry.entryType));
   const countsByType = new Map<string, number>();
 
@@ -399,10 +395,11 @@ function getTypeFilters(entries: MemoryEntry[], customTypes: MemoryCustomType[])
     countsByType.set(entry.entryType, (countsByType.get(entry.entryType) ?? 0) + 1);
   }
 
+  const coreTypeSet = new Set(coreTypes);
   return [
-    ...CORE_TYPE_ORDER.filter((type) => entryTypeSet.has(type)).map((type) => ({
+    ...coreTypes.filter((type) => entryTypeSet.has(type)).map((type) => ({
       key: type,
-      label: CORE_TYPE_LABELS[type],
+      label: typeLabels[type] ?? labelize(type),
       color: getTypeColor(type, customTypes),
       count: countsByType.get(type) ?? 0,
     })),
@@ -417,7 +414,7 @@ function getTypeFilters(entries: MemoryEntry[], customTypes: MemoryCustomType[])
     ...Array.from(entryTypeSet)
       .filter(
         (entryType) =>
-          !CORE_TYPE_ORDER.includes(entryType as CoreEntryType) &&
+          !coreTypeSet.has(entryType) &&
           !customTypes.some((customType) => customType.name === entryType)
       )
       .sort((a, b) => a.localeCompare(b))

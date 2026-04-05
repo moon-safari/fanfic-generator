@@ -23,6 +23,7 @@ import type {
   UpdateMemoryEntryInput,
 } from "../../types/memory";
 import type { SidePanelWidth } from "../../types/craft";
+import type { ProjectMode } from "../../types/story";
 import ContextConsole from "./ContextConsole";
 import EntryDetail from "./EntryDetail";
 import EntryForm from "./EntryForm";
@@ -39,6 +40,7 @@ interface MemoryPanelProps {
   storyId: string;
   currentChapter: number;
   currentChapterId?: string;
+  projectMode?: ProjectMode;
   panelWidth: SidePanelWidth;
   focusMode?: boolean;
   suggestionRefreshKey?: number;
@@ -80,6 +82,7 @@ export default function MemoryPanel({
   storyId,
   currentChapter,
   currentChapterId,
+  projectMode = "fiction",
   panelWidth,
   focusMode = false,
   suggestionRefreshKey = 0,
@@ -662,6 +665,7 @@ export default function MemoryPanel({
                   <EntryForm
                     key="new-entry"
                     customTypes={customTypes}
+                    projectMode={projectMode}
                     saving={saving}
                     submitLabel="Create fact"
                     onSubmit={handleCreateEntry}
@@ -756,6 +760,7 @@ export default function MemoryPanel({
                   customTypes={customTypes}
                   currentChapter={currentChapter}
                   currentChapterMentions={currentChapterMentions}
+                  projectMode={projectMode}
                   selectedEntryId={effectiveSelectedEntry?.id ?? null}
                   compact
                   scrollMode="natural"
@@ -813,6 +818,7 @@ export default function MemoryPanel({
                   <EntryForm
                     key="new-entry"
                     customTypes={customTypes}
+                    projectMode={projectMode}
                     saving={saving}
                     submitLabel="Create fact"
                     onSubmit={handleCreateEntry}

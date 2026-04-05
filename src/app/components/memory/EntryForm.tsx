@@ -8,11 +8,14 @@ import type {
   CreateMemoryEntryInput,
   UpdateMemoryEntryInput,
 } from "../../types/memory";
+import type { ProjectMode } from "../../types/story";
+import { getModeConfig } from "../../lib/modes/registry";
 import CustomFieldEditor from "./CustomFieldEditor";
 
 interface EntryFormProps {
   entry?: MemoryEntry | null;
   customTypes: MemoryCustomType[];
+  projectMode?: ProjectMode;
   saving?: boolean;
   submitLabel: string;
   onSubmit: (input: CreateMemoryEntryInput | UpdateMemoryEntryInput) => Promise<void>;
@@ -20,27 +23,20 @@ interface EntryFormProps {
   onDelete?: () => Promise<void>;
 }
 
-const CORE_ENTRY_TYPES = [
-  "character",
-  "location",
-  "lore",
-  "object",
-  "faction",
-  "event",
-] as const;
-
 export default function EntryForm({
   entry,
   customTypes,
+  projectMode = "fiction",
   saving = false,
   submitLabel,
   onSubmit,
   onCancel,
   onDelete,
 }: EntryFormProps) {
+  const modeConfig = getModeConfig(projectMode);
   const initialState = getInitialFormState(entry);
   const [name, setName] = useState(initialState.name);
-  const [entryType, setEntryType] = useState(initialState.entryType);
+  const [entryType, setEntryType] = useState(initialState.entryType || modeConfig.coreTypes[0] || "character");
   const [description, setDescription] = useState(initialState.description);
   const [aliases, setAliases] = useState(initialState.aliases);
   const [tags, setTags] = useState(initialState.tags);
@@ -53,8 +49,8 @@ export default function EntryForm({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const typeSuggestions = useMemo(
-    () => [...CORE_ENTRY_TYPES, ...customTypes.map((customType) => customType.name)],
-    [customTypes]
+    () => [...modeConfig.coreTypes, ...customTypes.map((customType) => customType.name)],
+    [customTypes, modeConfig.coreTypes]
   );
 
   const handleEntryTypeChange = (value: string) => {
@@ -132,7 +128,7 @@ export default function EntryForm({
             list="memory-entry-types"
             value={entryType}
             onChange={(event) => handleEntryTypeChange(event.target.value)}
-            placeholder="character"
+            placeholder={modeConfig.coreTypes[0] || "character"}
             className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-purple-500"
           />
           <datalist id="memory-entry-types">
@@ -288,7 +284,7 @@ function normalizeColor(value: string): string {
 function getInitialFormState(entry?: MemoryEntry | null) {
   return {
     name: entry?.name ?? "",
-    entryType: entry?.entryType ?? "character",
+    entryType: entry?.entryType ?? "",
     description: entry?.description ?? "",
     aliases: (entry?.aliases ?? []).join(", "),
     tags: (entry?.tags ?? []).join(", "),
