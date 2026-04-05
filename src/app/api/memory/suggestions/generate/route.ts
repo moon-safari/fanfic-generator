@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { buildMemorySuggestionPrompt } from "../../../../lib/prompts/memorySuggestions";
+import { getModeConfig } from "../../../../lib/modes/registry";
 import { fetchMemoryData } from "../../../../lib/supabase/memory";
 import {
   clearPendingMemorySuggestionsForChapter,
@@ -35,7 +35,6 @@ const anthropic = new Anthropic({
 type ChapterRow = {
   id: string;
   content: string;
-  summary: string | null;
   chapter_number: number;
 };
 
@@ -58,20 +57,14 @@ export async function POST(req: NextRequest) {
     }
 
     const projectMode = (auth.story.project_mode as ProjectMode | undefined) ?? "fiction";
-    if (projectMode === "newsletter") {
-      return NextResponse.json(
-        {
-          suggestions: [],
-          skipped: true,
-          reason: "Memory change detection is not enabled for newsletter projects yet.",
-        },
-        { status: 200 }
-      );
+    const config = getModeConfig(projectMode);
+    if (!config.supportsSuggestions) {
+      return NextResponse.json({ suggestions: [] }, { status: 200 });
     }
 
     const { data: chapter, error: chapterError } = await auth.supabase
       .from("chapters")
-      .select("id, content, summary, chapter_number")
+      .select("id, content, chapter_number")
       .eq("id", chapterId)
       .eq("story_id", storyId)
       .single();
@@ -81,11 +74,14 @@ export async function POST(req: NextRequest) {
     }
 
     const memory = await fetchMemoryData(auth.supabase, storyId);
-    const prompt = buildMemorySuggestionPrompt(
+    const prompt = config.buildSuggestionPrompt(
       chapter.content as string,
-      (chapter.summary as string | null) ?? "",
-      chapter.chapter_number as number,
-      memory
+      memory.entries.map((e) => ({
+        name: e.name,
+        entryType: e.entryType,
+        description: e.description,
+      })),
+      chapter.chapter_number as number
     );
 
     const message = await anthropic.messages.create({
