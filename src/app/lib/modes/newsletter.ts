@@ -8,6 +8,7 @@ function buildNewsletterMemoryPrompt(
 ): string {
   const existingNames = existingEntries.map((e) => e.name).join(", ");
 
+  // NOTE: Prompt uses "type" (not "entryType") to match parseGeneratedEntries() parser.
   return `You are a publication analyst. Read the following newsletter issue and extract structured project memory entries.
 
 ${existingNames ? `Already known entries: ${existingNames}\nOnly create entries for NEW topics, sources, audience segments, etc. not already listed.\n` : ""}
@@ -17,18 +18,16 @@ Issue text:
 ${content}`;
 }
 
-// NOTE: Prompt uses "type" (not "entryType") to match parseGeneratedEntries() parser.
-
 function buildNewsletterSuggestionPrompt(
   content: string,
   existingEntries: { name: string; entryType: string; description?: string }[],
-  chapterNumber: number
+  contentUnitNumber: number
 ): string {
   const entrySummary = existingEntries
     .map((e) => `- ${e.name} (${e.entryType})${e.description ? ": " + e.description.slice(0, 100) : ""}`)
     .join("\n");
 
-  return `You are a publication analyst reviewing issue ${chapterNumber}. Based on this issue, suggest updates to the project memory.
+  return `You are a publication analyst reviewing issue ${contentUnitNumber}. Based on this issue, suggest updates to the project memory.
 
 Current memory entries:
 ${entrySummary || "(none)"}

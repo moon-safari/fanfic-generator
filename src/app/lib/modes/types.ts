@@ -29,7 +29,7 @@ export interface ModeConfig {
   buildSuggestionPrompt: (
     content: string,
     existingEntries: { name: string; entryType: string; description?: string }[],
-    chapterNumber: number
+    contentUnitNumber: number
   ) => string;
 
   buildContextPreamble: (storyTitle: string) => string;

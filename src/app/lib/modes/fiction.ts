@@ -11,6 +11,8 @@ function buildFictionMemoryPrompt(
     ? `\nFandom/setting context: ${context.fandom}`
     : "";
 
+  // NOTE: Prompt uses "type" (not "entryType") to match the existing parseGeneratedEntries()
+  // parser in the generation route, which reads item.type.
   return `You are a story analyst. Read the following chapter text and extract structured project memory entries.${fandomLine}
 
 ${existingNames ? `Already known entries: ${existingNames}\nOnly create entries for NEW characters, locations, lore, etc. not already listed.\n` : ""}
@@ -20,19 +22,16 @@ Chapter text:
 ${content}`;
 }
 
-// NOTE: Prompt uses "type" (not "entryType") to match the existing parseGeneratedEntries()
-// parser in the generation route, which reads item.type.
-
 function buildFictionSuggestionPrompt(
   content: string,
   existingEntries: { name: string; entryType: string; description?: string }[],
-  chapterNumber: number
+  contentUnitNumber: number
 ): string {
   const entrySummary = existingEntries
     .map((e) => `- ${e.name} (${e.entryType})${e.description ? ": " + e.description.slice(0, 100) : ""}`)
     .join("\n");
 
-  return `You are a story analyst reviewing chapter ${chapterNumber}. Based on this chapter, suggest updates to the project memory.
+  return `You are a story analyst reviewing chapter ${contentUnitNumber}. Based on this chapter, suggest updates to the project memory.
 
 Current memory entries:
 ${entrySummary || "(none)"}
