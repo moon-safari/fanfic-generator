@@ -1,6 +1,6 @@
 # Memory Mode-Agnostic Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Rename Codex → Memory and add a ModeConfig registry so project memory works across all writing modes (fiction, newsletters, screenplays, etc.).
 
@@ -69,7 +69,7 @@ src/app/types/story.ts                    — expand ProjectMode type
 
 This is non-breaking — new files only, no existing code changes.
 
-- [ ] **Step 1: Create types.ts**
+- [x] **Step 1: Create types.ts**
 
 ```typescript
 // src/app/lib/modes/types.ts
@@ -114,7 +114,7 @@ export interface ModeConfig {
 }
 ```
 
-- [ ] **Step 2: Create fiction.ts**
+- [x] **Step 2: Create fiction.ts**
 
 ```typescript
 // src/app/lib/modes/fiction.ts
@@ -201,7 +201,7 @@ export const fictionMode: ModeConfig = {
 };
 ```
 
-- [ ] **Step 3: Create newsletter.ts**
+- [x] **Step 3: Create newsletter.ts**
 
 ```typescript
 // src/app/lib/modes/newsletter.ts
@@ -281,7 +281,7 @@ export const newsletterMode: ModeConfig = {
 };
 ```
 
-- [ ] **Step 4: Create registry.ts**
+- [x] **Step 4: Create registry.ts**
 
 ```typescript
 // src/app/lib/modes/registry.ts
@@ -302,12 +302,12 @@ export function getModeConfig(mode: ProjectMode): ModeConfig {
 export type { ModeConfig } from "./types";
 ```
 
-- [ ] **Step 5: Verify TypeScript compiles**
+- [x] **Step 5: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors (new files only, no breaking changes)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/app/lib/modes/
@@ -326,13 +326,13 @@ The rename has 3 phases within this task:
 
 ### Phase A: Move files/directories
 
-- [ ] **Step 1: Move type file**
+- [x] **Step 1: Move type file**
 
 ```bash
 git mv src/app/types/codex.ts src/app/types/memory.ts
 ```
 
-- [ ] **Step 2: Move data layer files**
+- [x] **Step 2: Move data layer files**
 
 ```bash
 git mv src/app/lib/supabase/codex.ts src/app/lib/supabase/memory.ts
@@ -340,14 +340,14 @@ git mv src/app/lib/supabase/codexMentions.ts src/app/lib/supabase/memoryMentions
 git mv src/app/lib/supabase/codexSuggestions.ts src/app/lib/supabase/memorySuggestions.ts
 ```
 
-- [ ] **Step 3: Move prompt files**
+- [x] **Step 3: Move prompt files**
 
 ```bash
 git mv src/app/lib/prompts/codex.ts src/app/lib/prompts/memory.ts
 git mv src/app/lib/prompts/codexSuggestions.ts src/app/lib/prompts/memorySuggestions.ts
 ```
 
-- [ ] **Step 4: Move lib/codex directory**
+- [x] **Step 4: Move lib/codex directory**
 
 ```bash
 mkdir -p src/app/lib/memory
@@ -355,7 +355,7 @@ git mv src/app/lib/codex/mentions.ts src/app/lib/memory/mentions.ts
 rmdir src/app/lib/codex
 ```
 
-- [ ] **Step 5: Move hook files**
+- [x] **Step 5: Move hook files**
 
 ```bash
 git mv src/app/hooks/useCodex.ts src/app/hooks/useMemory.ts
@@ -364,25 +364,25 @@ git mv src/app/hooks/useCodexSuggestions.ts src/app/hooks/useMemorySuggestions.t
 git mv src/app/hooks/useCodexFocus.ts src/app/hooks/useMemoryFocus.ts
 ```
 
-- [ ] **Step 6: Move component directory**
+- [x] **Step 6: Move component directory**
 
 ```bash
 git mv src/app/components/codex src/app/components/memory
 ```
 
-- [ ] **Step 7: Move API route directory**
+- [x] **Step 7: Move API route directory**
 
 ```bash
 git mv src/app/api/codex src/app/api/memory
 ```
 
-- [ ] **Step 8: Move editor extension**
+- [x] **Step 8: Move editor extension**
 
 ```bash
 git mv src/app/components/editor/codexMentionExtension.ts src/app/components/editor/memoryMentionExtension.ts
 ```
 
-- [ ] **Step 9: Move demo files**
+- [x] **Step 9: Move demo files**
 
 ```bash
 git mv src/app/lib/demo/codexShowcase.ts src/app/lib/demo/memoryShowcase.ts
@@ -458,23 +458,23 @@ Update every file that imported from old paths:
 
 > **Note:** `lib/prompts/index.ts` is NOT a codex re-export barrel — it's the main generation prompts file. Do not modify it in this task.
 
-- [ ] **Step 10: Apply all identifier renames across all moved files**
+- [x] **Step 10: Apply all identifier renames across all moved files**
 
 Use search-and-replace across all files in the moved directories. The key patterns:
 - `Codex` → `Memory` (capitalized, for types/components)
 - `codex` → `memory` (lowercase, for variables/imports/paths)
 - Be careful NOT to rename database table references (`from("codex_entries")` etc.)
 
-- [ ] **Step 11: Update all consumer file imports**
+- [x] **Step 11: Update all consumer file imports**
 
 Update every file listed in Phase C above.
 
-- [ ] **Step 12: Verify TypeScript compiles**
+- [x] **Step 12: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 13: Verify no stale codex references**
+- [x] **Step 13: Verify no stale codex references**
 
 Run: `grep -ri "codex" src/ --include="*.ts" --include="*.tsx" | grep -v "codex_" | grep -v '"codexMentions"'`
 
@@ -482,12 +482,12 @@ Expected: zero results. If any lines appear, they are stale references that need
 
 The only acceptable remaining `codex` strings are database table names (`codex_entries`, `codex_relationships`, etc.) and the Tiptap plugin key `"codexMentions"` — both are filtered out by the grep above.
 
-- [ ] **Step 14: Run ESLint**
+- [x] **Step 14: Run ESLint**
 
 Run: `npm run lint`
 Expected: zero errors
 
-- [ ] **Step 15: Commit**
+- [x] **Step 15: Commit**
 
 ```bash
 git add -A
@@ -501,11 +501,11 @@ git commit -m "refactor: rename Codex to Memory across entire codebase"
 **Files:**
 - Modify: `src/app/api/memory/generate/route.ts`
 
-- [ ] **Step 1: Read current route**
+- [x] **Step 1: Read current route**
 
 Read `src/app/api/memory/generate/route.ts` to understand the current fiction-specific logic: fandom lookup, hardcoded prompt, newsletter skip.
 
-- [ ] **Step 2: Replace hardcoded logic with mode config**
+- [x] **Step 2: Replace hardcoded logic with mode config**
 
 Import `getModeConfig` from `../../../lib/modes/registry`. Replace the fiction-specific prompt building:
 
@@ -529,12 +529,12 @@ Keep the Claude API call and response parsing unchanged — only the prompt cons
 
 > **Important:** The existing `parseGeneratedEntries()` reads `item.type`, not `item.entryType`. The mode config prompt builders already use `type` in their JSON schema instructions to match this parser. Do not change the parser or the prompt JSON key.
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/api/memory/generate/route.ts
@@ -548,11 +548,11 @@ git commit -m "feat: wire mode config into memory generation route"
 **Files:**
 - Modify: `src/app/api/memory/suggestions/generate/route.ts`
 
-- [ ] **Step 1: Read current route**
+- [x] **Step 1: Read current route**
 
 Read `src/app/api/memory/suggestions/generate/route.ts` to find the hardcoded suggestion prompt.
 
-- [ ] **Step 2: Replace with mode config**
+- [x] **Step 2: Replace with mode config**
 
 ```typescript
 import { getModeConfig } from "../../../../lib/modes/registry";
@@ -575,12 +575,12 @@ const prompt = config.buildSuggestionPrompt(
 
 > **Cleanup:** The old route passed `chapter.summary` to the prompt builder. The new mode config builders don't use `summary`. Remove the `chapter.summary` reference from the chapter SELECT query and any destructuring to avoid an unused variable TypeScript error.
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/api/memory/suggestions/generate/route.ts
@@ -594,11 +594,11 @@ git commit -m "feat: wire mode config into suggestion generation route"
 **Files:**
 - Modify: `src/app/lib/prompts/memory.ts`
 
-- [ ] **Step 1: Read current file**
+- [x] **Step 1: Read current file**
 
 Read `src/app/lib/prompts/memory.ts` to find `CORE_TYPE_LABELS`, `CORE_FIELD_ORDER`, and `formatMemoryForPrompt`.
 
-- [ ] **Step 2: Make formatMemoryForPrompt mode-aware**
+- [x] **Step 2: Make formatMemoryForPrompt mode-aware**
 
 Add optional `modeConfig` parameter to `MemoryPromptOptions`:
 
@@ -615,16 +615,16 @@ In `formatMemoryForPrompt`, use `modeConfig.typeLabels` instead of `CORE_TYPE_LA
 
 Remove the hardcoded `CORE_TYPE_LABELS` and `CORE_FIELD_ORDER` constants (they're now in mode configs as `typeLabels` and `fieldSuggestions`).
 
-- [ ] **Step 3: Update callers**
+- [x] **Step 3: Update callers**
 
 Update any callers of `formatMemoryForPrompt` to pass the mode config when available. The main callers are in `storyContext.ts` and the generation routes.
 
-- [ ] **Step 4: Verify TypeScript compiles**
+- [x] **Step 4: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/lib/prompts/memory.ts src/app/lib/storyContext.ts
@@ -640,11 +640,11 @@ git commit -m "feat: make formatMemoryForPrompt mode-aware via ModeConfig"
 - Modify: `src/app/components/memory/EntryForm.tsx`
 - Modify: `src/app/components/memory/MemoryPanel.tsx`
 
-- [ ] **Step 1: Read EntryList.tsx**
+- [x] **Step 1: Read EntryList.tsx**
 
 Find the hardcoded `CORE_TYPE_ORDER` array and type display logic.
 
-- [ ] **Step 2: Make EntryList mode-aware**
+- [x] **Step 2: Make EntryList mode-aware**
 
 Add `projectMode` (or `modeConfig`) prop. Replace `CORE_TYPE_ORDER` with `config.coreTypes`. Replace hardcoded type labels with `config.typeLabels`. Custom types still append after core types. Change any `CoreEntryType` type annotations to `string` so mode-specific types compile.
 
@@ -657,24 +657,24 @@ const typeOrder = config.coreTypes;
 // Group entries by type, ordered by typeOrder, then custom types
 ```
 
-- [ ] **Step 3: Read EntryForm.tsx**
+- [x] **Step 3: Read EntryForm.tsx**
 
 Find `CORE_ENTRY_TYPES` and type suggestion logic.
 
-- [ ] **Step 4: Make EntryForm mode-aware**
+- [x] **Step 4: Make EntryForm mode-aware**
 
 Replace `CORE_ENTRY_TYPES` with mode config's `coreTypes`. Replace field suggestions with `config.fieldSuggestions`. Change any `CoreEntryType` type annotations for `entryType` props/variables to `string` so newsletter mode types (`"topic"`, `"source"`, etc.) compile without errors.
 
-- [ ] **Step 5: Thread projectMode through MemoryPanel**
+- [x] **Step 5: Thread projectMode through MemoryPanel**
 
 `MemoryPanel` receives `story` as a prop (which has `projectMode`). Pass `story.projectMode` to `EntryList` and `EntryForm`.
 
-- [ ] **Step 6: Verify TypeScript compiles**
+- [x] **Step 6: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/app/components/memory/EntryList.tsx src/app/components/memory/EntryForm.tsx src/app/components/memory/MemoryPanel.tsx
@@ -690,34 +690,34 @@ git commit -m "feat: make Memory UI components mode-aware via ModeConfig"
 - Modify: `src/app/components/memory/EntryDetail.tsx`
 - Modify: `src/app/components/memory/ContextConsole.tsx`
 
-- [ ] **Step 1: Read ProgressionEditor.tsx**
+- [x] **Step 1: Read ProgressionEditor.tsx**
 
 Find hardcoded "chapter" strings.
 
-- [ ] **Step 2: Replace with content unit naming**
+- [x] **Step 2: Replace with content unit naming**
 
 Add `contentUnitSingular` prop (or derive from projectMode via getModeConfig). Replace hardcoded "chapter" strings:
 - "Chapter" → capitalize(contentUnitSingular)
 - "chapters" → contentUnitPlural
 
-- [ ] **Step 3: Update EntryDetail.tsx**
+- [x] **Step 3: Update EntryDetail.tsx**
 
 Find any "chapter" references in mention display or progression display. Replace with content unit naming.
 
-- [ ] **Step 4: Update ContextConsole.tsx**
+- [x] **Step 4: Update ContextConsole.tsx**
 
 Find any "chapter" references. Replace with content unit naming.
 
-- [ ] **Step 5: Thread contentUnit props through MemoryPanel**
+- [x] **Step 5: Thread contentUnit props through MemoryPanel**
 
 Ensure `MemoryPanel` passes the content unit strings from mode config to child components.
 
-- [ ] **Step 6: Verify TypeScript compiles**
+- [x] **Step 6: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/app/components/memory/ProgressionEditor.tsx src/app/components/memory/EntryDetail.tsx src/app/components/memory/ContextConsole.tsx src/app/components/memory/MemoryPanel.tsx
@@ -732,17 +732,17 @@ git commit -m "feat: replace hardcoded 'chapter' strings with mode-aware content
 - Modify: `CLAUDE.md`
 - Modify: `README.md`
 
-- [ ] **Step 1: TypeScript check**
+- [x] **Step 1: TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: zero errors
 
-- [ ] **Step 2: ESLint check**
+- [x] **Step 2: ESLint check**
 
 Run: `npm run lint`
 Expected: zero errors
 
-- [ ] **Step 3: Verify no stale codex references**
+- [x] **Step 3: Verify no stale codex references**
 
 Run: `grep -ri "codex" src/ --include="*.ts" --include="*.tsx" -l`
 
@@ -752,7 +752,7 @@ Run: `grep -ri "Codex" src/ --include="*.ts" --include="*.tsx" | grep -v "codex_
 
 Expected: zero results (no user-facing "Codex" strings remain).
 
-- [ ] **Step 4: Update CLAUDE.md**
+- [x] **Step 4: Update CLAUDE.md**
 
 In the "What's shipped" section, add:
 ```
@@ -766,14 +766,14 @@ components/memory/              - project memory UI
 
 Replace any remaining references to "Codex" with "Memory" in CLAUDE.md (except historical references in changelog-style sections).
 
-- [ ] **Step 5: Update README.md**
+- [x] **Step 5: Update README.md**
 
 Update:
 - "Codex" references → "Memory"
 - Key paths section: `components/codex/` → `components/memory/`
 - Feature descriptions
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add CLAUDE.md README.md
