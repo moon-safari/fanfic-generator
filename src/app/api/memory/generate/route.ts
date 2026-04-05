@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { getFandomContext } from "../../../lib/fandoms";
-import { buildMemoryGenerationPrompt } from "../../../lib/prompts/memory";
+import { getModeConfig } from "../../../lib/modes/registry";
 import {
   fetchMemoryData,
   mapMemoryEntryRow,
@@ -17,6 +16,7 @@ import type {
   MemoryGenerateEntryInput,
   MemoryGenerateRelationshipInput,
 } from "../../../types/memory";
+import type { ProjectMode } from "../../../types/story";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -62,16 +62,14 @@ export async function POST(req: NextRequest) {
       return auth.error;
     }
 
-    if ((auth.story.project_mode as string | undefined) === "newsletter") {
-      return NextResponse.json(
-        {
-          entries: [],
-          relationships: [],
-          skipped: true,
-          reason: "Memory auto-generation is not enabled for newsletter mode yet.",
-        },
-        { status: 200 }
-      );
+    const config = getModeConfig((auth.story.project_mode as string | undefined) as ProjectMode ?? "fiction");
+    if (!config.supportsAutoGeneration) {
+      return NextResponse.json({
+        entries: [],
+        relationships: [],
+        skipped: true,
+        reason: "not_supported",
+      }, { status: 200 });
     }
 
     const { data: chapter1, error: chapterError } = await auth.supabase
@@ -85,10 +83,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Chapter 1 not found" }, { status: 404 });
     }
 
-    const fandomContext = getFandomContext((auth.story.fandom as string) || "");
-    const prompt = buildMemoryGenerationPrompt(
+    // Fetch existing entries to avoid duplicates in the prompt
+    const existingMemory = await fetchMemoryData(auth.supabase, storyId);
+    const prompt = config.buildMemoryGenerationPrompt(
       chapter1.content as string,
-      fandomContext
+      existingMemory.entries.map((e) => ({ name: e.name, entryType: e.entryType })),
+      { fandom: (auth.story.fandom as string) || "" }
     );
 
     const message = await anthropic.messages.create({
@@ -123,7 +123,6 @@ export async function POST(req: NextRequest) {
 
     const generatedEntries = parseGeneratedEntries(parsed.entries);
     const generatedRelationships = parseGeneratedRelationships(parsed.relationships);
-    const existingMemory = await fetchMemoryData(auth.supabase, storyId);
 
     const existingNames = new Set(
       existingMemory.entries.map((entry) => normalizeNameKey(entry.name))
