@@ -6,6 +6,7 @@ import {
   CoreEntryType,
   ResolvedMemoryEntry,
 } from "../../types/memory";
+import type { ModeConfig } from "../modes/types";
 
 const CORE_TYPE_LABELS: Record<CoreEntryType, string> = {
   character: "Characters",
@@ -29,53 +30,7 @@ export interface MemoryPromptOptions {
   includeEntryIds?: string[];
   pinnedEntryIds?: string[];
   priorityEntryIds?: string[];
-}
-
-export function buildMemoryGenerationPrompt(
-  chapter1: string,
-  fandomContext: string
-): string {
-  return `You are a story analyst. Extract an initial Memory from the provided chapter text.
-${fandomContext ? `\nFANDOM CONTEXT:\n${fandomContext}\n` : ""}
-Return ONLY a valid JSON object with this shape:
-
-{
-  "entries": [
-    {
-      "name": "Entry name",
-      "type": "character|location|lore|object|faction|event",
-      "description": "Short grounded summary",
-      "aliases": ["Optional alias"],
-      "tags": ["Optional tag"],
-      "fields": {
-        "role": "Optional field value"
-      }
-    }
-  ],
-  "relationships": [
-    {
-      "source": "Source entry name",
-      "target": "Target entry name",
-      "forwardLabel": "mentors",
-      "reverseLabel": "mentored by"
-    }
-  ]
-}
-
-Rules:
-- Only extract things that are clearly supported by the text or fandom context.
-- Do not invent unsupported details.
-- Keep descriptions concise but useful.
-- Prefer the six core types.
-- For characters, include role, personality, appearance, and voice when inferable.
-- For locations, include climate, significance, era, and inhabitants when inferable.
-- For factions, include leader and goals when inferable.
-- For events, include date or chapter if the text makes it clear.
-- Use aliases only for true alternate names, nicknames, or titles.
-- If a relationship is unclear, omit it.
-
-CHAPTER TEXT:
-${chapter1}`;
+  modeConfig?: ModeConfig;
 }
 
 export function resolveMemoryEntryAtChapter(
@@ -191,6 +146,7 @@ export function formatMemoryForPrompt(
     groups.set(entry.entryType, group);
   }
 
+  const modeConfig = options.modeConfig;
   const sections: string[] = ["=== MEMORY ==="];
 
   if (pinnedEntries.length > 0) {
@@ -198,7 +154,7 @@ export function formatMemoryForPrompt(
 
     for (const entry of pinnedEntries) {
       sections.push(
-        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById)
+        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById, modeConfig)
       );
     }
   }
@@ -208,17 +164,17 @@ export function formatMemoryForPrompt(
 
     for (const entry of priorityEntries) {
       sections.push(
-        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById)
+        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById, modeConfig)
       );
     }
   }
 
   groups.forEach((groupEntries, entryType) => {
-    sections.push(`\n## ${formatTypeHeading(entryType)}`);
+    sections.push(`\n## ${formatTypeHeading(entryType, modeConfig)}`);
 
     for (const entry of groupEntries) {
       sections.push(
-        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById)
+        ...formatEntryBlock(entry, visibleRelationships, entryMap, resolvedById, modeConfig)
       );
     }
   });
@@ -268,7 +224,8 @@ function formatEntryBlock(
   entry: ResolvedMemoryEntry,
   relationships: MemoryRelationship[],
   entryMap: Map<string, MemoryEntry>,
-  resolvedById: Map<string, ResolvedMemoryEntry>
+  resolvedById: Map<string, ResolvedMemoryEntry>,
+  modeConfig?: ModeConfig
 ): string[] {
   const lines: string[] = [];
   const role = entry.customFieldMap.role;
@@ -282,7 +239,7 @@ function formatEntryBlock(
     lines.push(`- Description: ${entry.description}${formatChanged(entry.changedFields.description)}`);
   }
 
-  const fieldKeys = orderFieldKeys(entry.entryType, Object.keys(entry.customFieldMap));
+  const fieldKeys = orderFieldKeys(entry.entryType, Object.keys(entry.customFieldMap), modeConfig);
   for (const key of fieldKeys) {
     const value = entry.customFieldMap[key];
     if (!value || key === "role") continue;
@@ -372,13 +329,16 @@ function compareResolvedEntries(a: ResolvedMemoryEntry, b: ResolvedMemoryEntry):
   return a.name.localeCompare(b.name);
 }
 
-function orderFieldKeys(entryType: string, keys: string[]): string[] {
-  const preferred = CORE_FIELD_ORDER[entryType as CoreEntryType] ?? [];
+function orderFieldKeys(entryType: string, keys: string[], modeConfig?: ModeConfig): string[] {
+  const preferred = modeConfig?.fieldSuggestions[entryType] ?? CORE_FIELD_ORDER[entryType as CoreEntryType] ?? [];
   const remaining = keys.filter((key) => !preferred.includes(key)).sort();
   return [...preferred.filter((key) => keys.includes(key)), ...remaining];
 }
 
-function formatTypeHeading(entryType: string): string {
+function formatTypeHeading(entryType: string, modeConfig?: ModeConfig): string {
+  if (modeConfig?.typeLabels[entryType]) {
+    return modeConfig.typeLabels[entryType];
+  }
   return CORE_TYPE_LABELS[entryType as CoreEntryType] ?? `${labelize(entryType)}s`;
 }
 
