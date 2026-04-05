@@ -4,6 +4,7 @@ import type { ModeConfig } from "./types";
 function buildNewsletterMemoryPrompt(
   content: string,
   existingEntries: { name: string; entryType: string }[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _context?: { fandom?: string }
 ): string {
   const existingNames = existingEntries.map((e) => e.name).join(", ");
