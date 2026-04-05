@@ -99,7 +99,8 @@ Longer-running operations should feel intentional and alive, not broken or empty
 ```text
 src/app/
   api/                           - server routes
-  components/codex/              - project memory UI
+  components/memory/             - project memory UI
+  lib/modes/                     - ModeConfig registry (fiction, newsletter, etc.)
   components/editor/             - manuscript + side panel UI
   lib/prompts/                   - prompt builders
   lib/supabase/                  - data access helpers
@@ -122,6 +123,7 @@ docs/                            - product, strategy, and build specs
 8. Mobile polish (safe areas, touch targets, bottom sheets)
 9. Mega-component decomposition (StoryEditor 1058→751 lines, ArtifactsTab 2646→1623 lines)
 10. Fiction flow friction fixes (streaming recovery, chapter nav guard, continuity toast, autosave feedback, craft breadcrumb)
+11. Codex → Memory rename + mode-agnostic memory engine (ModeConfig registry)
 
 ### What's next
 
@@ -132,7 +134,7 @@ docs/                            - product, strategy, and build specs
 
 ### Simplification principles
 
-- Rename internal concepts to plain language: `Codex` -> `Memory`, `Artifacts` -> `Project`, `Adapt` -> `Outputs`
+- Rename internal concepts to plain language: ~~`Codex` -> `Memory`~~ (done), `Artifacts` -> `Project`, `Adapt` -> `Outputs`
 - Default to one obvious primary action per view; secondary actions behind reveals
 - Keep advanced controls (custom types, relationship editing, context rules) behind `Advanced`
 - Use quiet metadata lines in lists instead of stacked badges

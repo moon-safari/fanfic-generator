@@ -14,7 +14,7 @@ An AI writing platform with living project memory — Sudowrite's AI quality mee
 The core product loop is:
 
 1. **Write** — draft, rewrite, expand, brainstorm with AI that knows the project
-2. **Remember** — structured project memory (Codex) for characters, facts, lore, plans
+2. **Remember** — structured project memory for characters, facts, lore, plans
 3. **Review** — continuity checks, drift detection, proposed change review
 4. **Adapt** — turn one project into summaries, recaps, teasers, beat sheets, newsletters
 5. **Publish** — export, package, distribute
@@ -27,13 +27,13 @@ The core product loop is:
 - craft tools for rewrite, expand, describe, and brainstorm
 - streaming generation for chapter creation and continuation
 
-### Codex
+### Memory
 
-- structured project memory
+- structured, mode-aware project memory (ModeConfig registry for fiction, newsletter, and future modes)
 - entry types, custom types, relationships, aliases, and progressions
 - manuscript mention tracking
 - change suggestions with accept/reject review
-- chapter-aware context console with pin/exclude controls
+- content-unit-aware context console with pin/exclude controls
 
 ### Adaptation
 
@@ -56,7 +56,7 @@ The long-term goal is a Writing OS:
 That means the platform should increasingly connect:
 
 - manuscript
-- Codex
+- Memory
 - updates
 - context
 - adaptation artifacts
@@ -75,7 +75,8 @@ That means the platform should increasingly connect:
 
 - homepage: [`src/app/page.tsx`](src/app/page.tsx)
 - editor: [`src/app/components/editor/StoryEditor.tsx`](src/app/components/editor/StoryEditor.tsx)
-- Codex UI: [`src/app/components/codex`](src/app/components/codex)
+- Memory UI: [`src/app/components/memory`](src/app/components/memory)
+- Mode configs: [`src/app/lib/modes`](src/app/lib/modes)
 - adaptation UI: [`src/app/components/editor/AdaptTab.tsx`](src/app/components/editor/AdaptTab.tsx)
 - API routes: [`src/app/api`](src/app/api)
 - migrations: [`supabase/migrations`](supabase/migrations)
@@ -83,7 +84,8 @@ That means the platform should increasingly connect:
 
 ## Recent Foundation Work
 
-- Codex schema and APIs
+- Memory schema and APIs (renamed from Codex)
+- ModeConfig registry — mode-agnostic memory engine (fiction + newsletter)
 - living change detection
 - mentions and manuscript linking
 - context console and context rules
