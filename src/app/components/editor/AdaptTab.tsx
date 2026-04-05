@@ -1068,7 +1068,7 @@ function labelContextSource(
   contextSource: ChapterAdaptationResult["contextSource"]
 ): string {
   switch (contextSource) {
-    case "codex":
+    case "memory":
       return "Using memory context";
     case "story_bible":
       return "Using plan context";

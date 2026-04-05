@@ -27,13 +27,13 @@ interface EditorToolbarProps {
   story: Story;
   currentChapterIdx: number;
   totalChapters: number;
-  showCodex: boolean;
+  showMemory: boolean;
   annotationCount?: number;
   streamingActive?: boolean;
   onBack: () => void;
   onPrevChapter: () => void;
   onNextChapter: () => void;
-  onToggleCodex: () => void;
+  onToggleMemory: () => void;
   onExport: () => void;
   onDelete: () => void;
   activeCraftTool: CraftTool | null;
@@ -56,13 +56,13 @@ export default function EditorToolbar({
   story,
   currentChapterIdx,
   totalChapters,
-  showCodex,
+  showMemory,
   annotationCount = 0,
   streamingActive = false,
   onBack,
   onPrevChapter,
   onNextChapter,
-  onToggleCodex,
+  onToggleMemory,
   onExport,
   onDelete,
   activeCraftTool,
@@ -256,9 +256,9 @@ export default function EditorToolbar({
 
         <div className="relative">
           <button
-            onClick={onToggleCodex}
+            onClick={onToggleMemory}
             className={`flex min-h-[40px] items-center gap-2 rounded-xl px-2.5 transition-colors ${
-              showCodex
+              showMemory
                 ? "bg-purple-600 text-white"
                 : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
             }`}

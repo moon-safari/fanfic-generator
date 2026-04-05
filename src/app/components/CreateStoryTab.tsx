@@ -60,12 +60,12 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
   const [newsletterTone, setNewsletterTone] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [codexDemoLoading, setCodexDemoLoading] = useState(false);
+  const [memoryDemoLoading, setMemoryDemoLoading] = useState(false);
   const [newsletterDemoLoading, setNewsletterDemoLoading] = useState(false);
   const [error, setError] = useState("");
 
   const filledCharacters = characters.filter((value) => value.trim().length >= 2);
-  const busy = loading || codexDemoLoading || newsletterDemoLoading;
+  const busy = loading || memoryDemoLoading || newsletterDemoLoading;
   const canSubmit =
     projectMode === "fiction"
       ? filledCharacters.length >= 2 && fictionTone.length >= 1 && !busy
@@ -169,12 +169,12 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
   const handleOpenShowcase = async () => {
     if (busy) return;
 
-    setCodexDemoLoading(true);
+    setMemoryDemoLoading(true);
     setError("");
 
     try {
       const data = await requestJson<{ story: Story }>(
-        "/api/demo/codex-showcase",
+        "/api/demo/memory-showcase",
         {
           method: "POST",
         }
@@ -185,10 +185,10 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to open Codex showcase"
+          : "Failed to open Memory showcase"
       );
     } finally {
-      setCodexDemoLoading(false);
+      setMemoryDemoLoading(false);
     }
   };
 
@@ -492,7 +492,7 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             disabled={busy}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {codexDemoLoading ? (
+            {memoryDemoLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Opening fiction sample...

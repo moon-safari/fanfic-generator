@@ -6,7 +6,7 @@ import type {
   BibleStyleGuideContent,
   BibleSynopsisContent,
 } from "./bible";
-import type { StoryContextSource } from "./codex";
+import type { StoryContextSource } from "./memory";
 
 export type PlanningArtifactSubtype = Extract<
   BibleSectionType,

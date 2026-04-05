@@ -3,7 +3,7 @@ import type {
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../../types/adaptation";
-import type { StoryContextSource } from "../../types/codex";
+import type { StoryContextSource } from "../../types/memory";
 
 type DbAdaptationOutputRow = {
   id: string;

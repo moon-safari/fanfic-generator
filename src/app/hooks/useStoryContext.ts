@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getErrorMessage, requestJson } from "../lib/request";
 import type {
-  CodexContextMode,
-  CodexContextRule,
+  MemoryContextMode,
+  MemoryContextRule,
   StoryContextSnapshot,
-} from "../types/codex";
+} from "../types/memory";
 
 const EMPTY_CONTEXT: StoryContextSnapshot = {
   source: "none",
@@ -44,7 +44,7 @@ export function useStoryContext(
 
       try {
         const data = await requestJson<{ context: StoryContextSnapshot }>(
-          `/api/codex/${storyId}/context?chapterNumber=${chapterNumber}`
+          `/api/memory/${storyId}/context?chapterNumber=${chapterNumber}`
         );
         setContext(data.context ?? EMPTY_CONTEXT);
         setError(null);
@@ -73,12 +73,12 @@ export function useStoryContext(
     },
     setEntryMode: async (
       entryId: string,
-      mode: CodexContextMode
-    ): Promise<CodexContextRule | null> => {
+      mode: MemoryContextMode
+    ): Promise<MemoryContextRule | null> => {
       setUpdatingEntryId(entryId);
       try {
-        const data = await requestJson<{ rule: CodexContextRule | null }>(
-          `/api/codex/${storyId}/context-rules/${entryId}`,
+        const data = await requestJson<{ rule: MemoryContextRule | null }>(
+          `/api/memory/${storyId}/context-rules/${entryId}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },

@@ -16,7 +16,7 @@ export const LANDING_PILLARS = [
   {
     title: "Remember",
     description:
-      "Keep a living Codex of characters, lore, relationships, aliases, and project truth.",
+      "Keep a living Memory of characters, lore, relationships, aliases, and project truth.",
   },
   {
     title: "Adapt",
@@ -45,7 +45,7 @@ export const LANDING_WORKFLOWS = [
   {
     title: "Draft -> Update -> Continue",
     description:
-      "Write a chapter, review Codex changes, then continue with chapter-aware story truth.",
+      "Write a chapter, review Memory changes, then continue with chapter-aware story truth.",
   },
   {
     title: "Chapter -> Recap -> Teaser",

@@ -18,7 +18,7 @@ export type CraftResult =
   | { type: "brainstorm"; ideas: BrainstormIdea[] };
 
 export type SidePanelTab =
-  | "codex"
+  | "memory"
   | "artifacts"
   | "adapt"
   | "craft"

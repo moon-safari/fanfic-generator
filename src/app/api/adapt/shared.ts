@@ -31,7 +31,7 @@ export interface AdaptationSourceData {
   };
   storyContext: {
     text: string;
-    source: "codex" | "story_bible" | "none";
+    source: "memory" | "story_bible" | "none";
   };
   planningContext: string;
   existingOutputs: ChapterAdaptationResult[];

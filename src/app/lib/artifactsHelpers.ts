@@ -137,7 +137,7 @@ export function formatArtifactListMeta(
 
 export function labelContextSource(contextSource: ProjectArtifact["contextSource"]) {
   switch (contextSource) {
-    case "codex":
+    case "memory":
       return "Using memory context";
     case "story_bible":
       return "Using plan context";

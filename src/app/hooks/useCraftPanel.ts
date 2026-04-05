@@ -23,7 +23,7 @@ interface CraftPanelState {
 
 const initialState: CraftPanelState = {
   isOpen: false,
-  activeTab: "codex",
+  activeTab: "memory",
   activeTool: null,
   selectedText: null,
   direction: "",

@@ -21,18 +21,18 @@ import type {
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../../types/adaptation";
-import type { CodexMention } from "../../types/codex";
+import type { MemoryMention } from "../../types/memory";
 import type {
-  CodexFocusRequest,
+  MemoryFocusRequest,
   ArtifactFocusRequest,
-} from "../../hooks/useCodexFocus";
+} from "../../hooks/useMemoryFocus";
 import {
   SidePanelTab,
   CraftResult,
   CraftTool,
   SidePanelWidth,
 } from "../../types/craft";
-import CodexPanel from "../codex/CodexPanel";
+import MemoryPanel from "../memory/MemoryPanel";
 import AdaptTab from "./AdaptTab";
 import ArtifactsTab from "./ArtifactsTab";
 import CraftTab from "./CraftTab";
@@ -52,7 +52,7 @@ interface SidePanelProps {
   craftDirection: string;
   currentChapter: number;
   currentChapterId?: string;
-  codexSuggestionRefreshKey?: number;
+  memorySuggestionRefreshKey?: number;
   adaptationActiveOutputType: AdaptationOutputType;
   adaptationSelectedChainId: AdaptationChainId;
   adaptationCurrentResult: ChapterAdaptationResult | null;
@@ -63,10 +63,10 @@ interface SidePanelProps {
   adaptationDeletingOutputType: AdaptationOutputType | null;
   adaptationChainLoading: boolean;
   adaptationError: string | null;
-  currentChapterMentions?: CodexMention[];
+  currentChapterMentions?: MemoryMention[];
   mentionSyncing?: boolean;
   mentionError?: string | null;
-  codexFocusRequest?: CodexFocusRequest | null;
+  memoryFocusRequest?: MemoryFocusRequest | null;
   artifactFocusRequest?: ArtifactFocusRequest | null;
   panelWidth: SidePanelWidth;
   onPanelWidthChange: (panelWidth: SidePanelWidth) => void;
@@ -103,7 +103,7 @@ const TABS: Array<{
   Icon: typeof BookOpen;
   advanced?: boolean;
 }> = [
-  { key: "codex", label: "Memory", Icon: BookOpen },
+  { key: "memory", label: "Memory", Icon: BookOpen },
   { key: "artifacts", label: "Project", Icon: ScrollText },
   { key: "adapt", label: "Outputs", Icon: ArrowRightLeft },
   { key: "craft", label: "Writing Tools", Icon: Sparkles, advanced: true },
@@ -124,7 +124,7 @@ export default function SidePanel({
   craftDirection,
   currentChapter,
   currentChapterId,
-  codexSuggestionRefreshKey = 0,
+  memorySuggestionRefreshKey = 0,
   adaptationActiveOutputType,
   adaptationSelectedChainId,
   adaptationCurrentResult,
@@ -136,7 +136,7 @@ export default function SidePanel({
   currentChapterMentions = [],
   mentionSyncing = false,
   mentionError = null,
-  codexFocusRequest = null,
+  memoryFocusRequest = null,
   artifactFocusRequest = null,
   panelWidth,
   onPanelWidthChange,
@@ -165,12 +165,12 @@ export default function SidePanel({
 }: SidePanelProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const displayedActiveTab =
-    projectMode === "newsletter" && activeTab === "codex"
+    projectMode === "newsletter" && activeTab === "memory"
       ? "artifacts"
       : activeTab;
   const allowedTabs =
     projectMode === "newsletter"
-      ? TABS.filter((tab) => tab.key !== "codex")
+      ? TABS.filter((tab) => tab.key !== "memory")
       : TABS;
   const defaultTabs = allowedTabs.filter((tab) => !tab.advanced);
   const advancedTabs = allowedTabs.filter((tab) => tab.advanced);
@@ -313,18 +313,18 @@ export default function SidePanel({
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {displayedActiveTab === "codex" && (
-          <CodexPanel
+        {displayedActiveTab === "memory" && (
+          <MemoryPanel
             storyId={storyId}
             currentChapter={currentChapter}
             currentChapterId={currentChapterId}
             panelWidth={panelWidth}
             focusMode={focusModeActive}
-            suggestionRefreshKey={codexSuggestionRefreshKey}
+            suggestionRefreshKey={memorySuggestionRefreshKey}
             currentChapterMentions={currentChapterMentions}
             mentionSyncing={mentionSyncing}
             mentionError={mentionError}
-            focusRequest={codexFocusRequest}
+            focusRequest={memoryFocusRequest}
             onGenerateMentions={onGenerateMentions}
             onDismissMentionError={onDismissMentionError}
           />

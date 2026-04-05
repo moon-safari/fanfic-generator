@@ -20,7 +20,7 @@ import { useArtifacts } from "../../hooks/useArtifacts";
 import { usePackageSelection } from "../../hooks/usePackageSelection";
 import { usePlanningDrafts } from "../../hooks/usePlanningDrafts";
 import { useReadinessReport } from "../../hooks/useReadinessReport";
-import type { ArtifactFocusRequest } from "../../hooks/useCodexFocus";
+import type { ArtifactFocusRequest } from "../../hooks/useMemoryFocus";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import {
   formatArtifactListMeta,
@@ -1056,7 +1056,7 @@ function ArtifactDetail({
           )}
           <span
             className={`rounded-full px-2.5 py-1 text-xs ${
-              artifact.contextSource === "codex"
+              artifact.contextSource === "memory"
                 ? "bg-cyan-500/15 text-cyan-200"
                 : artifact.contextSource === "story_bible"
                   ? "bg-amber-500/15 text-amber-200"

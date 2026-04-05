@@ -1,4 +1,4 @@
-import type { StoryContextSource } from "./codex";
+import type { StoryContextSource } from "./memory";
 
 export type AdaptationWorkflowStateSource =
   | "draft"

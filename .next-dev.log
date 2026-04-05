@@ -1,0 +1,27 @@
+
+> writing-os@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.5.0.2:3000
+- Environments: .env.local
+✓ Ready in 732ms
+Creating turbopack project { dir: 'C:\\Users\\Lenovo\\Desktop\\fanfic-generator', testMode: true }
+
+ POST /api/demo/newsletter-showcase 401 in 980ms (next.js: 604ms, proxy.ts: 332ms, application-code: 44ms)
+○ Compiling / ...
+ GET / 200 in 7.8s (next.js: 6.4s, proxy.ts: 475ms, application-code: 923ms)
+ POST /api/demo/newsletter-showcase 200 in 1161ms (next.js: 6ms, proxy.ts: 210ms, application-code: 945ms)
+ GET /api/annotations?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 1930ms (next.js: 1238ms, proxy.ts: 172ms, application-code: 519ms)
+ GET /api/adapt/416a8c50-3804-4053-86bb-a83365c93583/outputs?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 2.5s (next.js: 2.0s, proxy.ts: 111ms, application-code: 340ms)
+ GET /api/annotations?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 569ms (next.js: 5ms, proxy.ts: 98ms, application-code: 466ms)
+ GET /api/codex/416a8c50-3804-4053-86bb-a83365c93583/mentions?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 2.9s (next.js: 2.1s, proxy.ts: 235ms, application-code: 494ms)
+ GET /api/adapt/416a8c50-3804-4053-86bb-a83365c93583/outputs?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 428ms (next.js: 19ms, proxy.ts: 98ms, application-code: 311ms)
+ GET /api/codex/416a8c50-3804-4053-86bb-a83365c93583/mentions?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 508ms (next.js: 20ms, proxy.ts: 114ms, application-code: 375ms)
+ GET /api/artifacts/416a8c50-3804-4053-86bb-a83365c93583 200 in 1697ms (next.js: 1170ms, proxy.ts: 112ms, application-code: 416ms)
+ GET /api/newsletter/416a8c50-3804-4053-86bb-a83365c93583/preflight?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 1709ms (next.js: 1213ms, proxy.ts: 124ms, application-code: 372ms)
+ GET /api/artifacts/416a8c50-3804-4053-86bb-a83365c93583 200 in 591ms (next.js: 20ms, proxy.ts: 136ms, application-code: 435ms)
+ GET /api/newsletter/416a8c50-3804-4053-86bb-a83365c93583/preflight?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 624ms (next.js: 18ms, proxy.ts: 150ms, application-code: 456ms)
+ GET /api/newsletter/416a8c50-3804-4053-86bb-a83365c93583/preflight?chapterId=4814ff4e-c02b-47c2-b0dd-f925f3aa6bee 200 in 495ms (next.js: 8ms, proxy.ts: 97ms, application-code: 390ms)
+^CTerminate batch job (Y/N)? 

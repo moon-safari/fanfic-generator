@@ -139,7 +139,7 @@ export function useStoryStreaming({
               body: JSON.stringify({ storyId: latestStory.id }),
             }).catch(() => {});
             if (latestStory.projectMode !== "newsletter") {
-              fetch("/api/codex/generate", {
+              fetch("/api/memory/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ storyId: latestStory.id }),

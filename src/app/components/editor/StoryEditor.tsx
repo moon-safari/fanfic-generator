@@ -11,7 +11,7 @@ import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterEditor";
 import { useCraftPanel } from "../../hooks/useCraftPanel";
-import { useCodexFocus } from "../../hooks/useCodexFocus";
+import { useMemoryFocus } from "../../hooks/useMemoryFocus";
 import { useChapterAnnotations } from "../../hooks/useChapterAnnotations";
 import { useStoryStreaming } from "../../hooks/useStoryStreaming";
 import { CraftTool } from "../../types/craft";
@@ -23,14 +23,14 @@ import UndoToast from "./UndoToast";
 import AnnotationTooltip from "./AnnotationTooltip";
 import { AnnotationExtension } from "./annotationExtension";
 import {
-  CodexMentionExtension,
-  codexMentionPluginKey,
-} from "./codexMentionExtension";
+  MemoryMentionExtension,
+  memoryMentionPluginKey,
+} from "./memoryMentionExtension";
 import { StoryFormData } from "../../types/story";
 import { AdaptationOutputType } from "../../types/adaptation";
 import type { ChapterAnnotation, ChapterAnnotationAction } from "../../types/bible";
 import { useChapterAdaptation } from "../../hooks/useChapterAdaptation";
-import { useCodexMentions } from "../../hooks/useCodexMentions";
+import { useMemoryMentions } from "../../hooks/useMemoryMentions";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/core";
@@ -80,8 +80,8 @@ export default function StoryEditor({
   onStreamingComplete,
 }: StoryEditorProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [codexSuggestionRefreshKey, setCodexSuggestionRefreshKey] = useState(0);
-  const codexFocus = useCodexFocus();
+  const [memorySuggestionRefreshKey, setMemorySuggestionRefreshKey] = useState(0);
+  const memoryFocus = useMemoryFocus();
 
   // Craft tools state
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -120,7 +120,7 @@ export default function StoryEditor({
       Placeholder.configure({ placeholder: "Start writing..." }),
       CharacterCount,
       AnnotationExtension,
-      CodexMentionExtension,
+      MemoryMentionExtension,
       streamingCursorExtension,
     ],
     content: resolveChapterContent(story.chapters, initialChapterIdx),
@@ -166,7 +166,7 @@ export default function StoryEditor({
     error: mentionError,
     generateMentions,
     clearError: clearMentionError,
-  } = useCodexMentions({
+  } = useMemoryMentions({
     storyId: story.id,
     chapterId: chapter?.id,
     enabled: Boolean(chapter?.id),
@@ -194,7 +194,7 @@ export default function StoryEditor({
 
       if (storyRef.current.projectMode !== "newsletter") {
         try {
-          const suggestionResponse = await fetch("/api/codex/suggestions/generate", {
+          const suggestionResponse = await fetch("/api/memory/suggestions/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -204,7 +204,7 @@ export default function StoryEditor({
           });
 
           if (suggestionResponse.ok) {
-            setCodexSuggestionRefreshKey((prev) => prev + 1);
+            setMemorySuggestionRefreshKey((prev) => prev + 1);
           }
         } catch {
           // Change detection is helpful but non-blocking.
@@ -322,7 +322,7 @@ export default function StoryEditor({
   useEffect(() => {
     if (!editor) return;
     const { tr } = editor.state;
-    tr.setMeta(codexMentionPluginKey, {
+    tr.setMeta(memoryMentionPluginKey, {
       mentions: currentChapterMentions.map((mention) => ({
         id: mention.id,
         entryId: mention.entryId,
@@ -347,10 +347,10 @@ export default function StoryEditor({
       const target = chapterAnnotations.handleOpenPlanningTarget(annotation);
       if (target) {
         craftPanel.openTab("artifacts");
-        codexFocus.focusArtifact(target.sectionType, target.targetLabel);
+        memoryFocus.focusArtifact(target.sectionType, target.targetLabel);
       }
     },
-    [chapterAnnotations, craftPanel, codexFocus]
+    [chapterAnnotations, craftPanel, memoryFocus]
   );
 
   // Annotation action — coordinates focus target navigation
@@ -362,22 +362,22 @@ export default function StoryEditor({
       const result = await chapterAnnotations.handleApplyAction(annotation, action);
       if (result?.focusTarget) {
         craftPanel.openTab("artifacts");
-        codexFocus.focusArtifact(
+        memoryFocus.focusArtifact(
           result.focusTarget.sectionType,
           result.focusTarget.targetLabel
         );
       }
     },
-    [chapterAnnotations, craftPanel, codexFocus]
+    [chapterAnnotations, craftPanel, memoryFocus]
   );
 
   // Thin dispatcher: mention click → annotation click
   const handleEditorClick = useCallback(
     (e: React.MouseEvent) => {
-      if (codexFocus.handleMentionClick(e)) return;
+      if (memoryFocus.handleMentionClick(e)) return;
       chapterAnnotations.handleClick(e);
     },
-    [codexFocus, chapterAnnotations]
+    [memoryFocus, chapterAnnotations]
   );
 
   // Chapter switching — coordinates flush at call site via beforeSwitch callback
@@ -473,11 +473,11 @@ export default function StoryEditor({
   const wordCount = editor?.storage.characterCount?.words() ?? 0;
   const activeAnnotations = chapterAnnotations.annotations.filter((a) => !a.dismissed);
   const toolPanelTab =
-    story.projectMode === "newsletter" && craftPanel.activeTab === "codex"
+    story.projectMode === "newsletter" && craftPanel.activeTab === "memory"
       ? "artifacts"
       : craftPanel.activeTab;
   const toolPanelOpenAction = () => {
-    craftPanel.openTab(story.projectMode === "newsletter" ? "artifacts" : "codex");
+    craftPanel.openTab(story.projectMode === "newsletter" ? "artifacts" : "memory");
   };
 
   return (
@@ -501,7 +501,7 @@ export default function StoryEditor({
         story={story}
         currentChapterIdx={currentChapterIdx}
         totalChapters={story.chapters.length}
-        showCodex={craftPanel.isOpen && toolPanelTab !== "craft"}
+        showMemory={craftPanel.isOpen && toolPanelTab !== "craft"}
         annotationCount={activeAnnotations.length}
         streamingActive={storyStreaming.streaming.active}
         activeCraftTool={craftPanel.activeTool}
@@ -509,7 +509,7 @@ export default function StoryEditor({
         onBack={handleBack}
         onPrevChapter={() => handleSwitchChapter(currentChapterIdx - 1)}
         onNextChapter={() => handleSwitchChapter(currentChapterIdx + 1)}
-        onToggleCodex={() => {
+        onToggleMemory={() => {
           if (craftPanel.isOpen && toolPanelTab !== "craft") {
             craftPanel.closePanel();
           } else {
@@ -585,7 +585,7 @@ export default function StoryEditor({
           )}
         </div>
 
-        {/* Side Panel - desktop always, mobile for Codex/History only */}
+        {/* Side Panel - desktop always, mobile for Memory/History only */}
         {craftPanel.isOpen && (!isMobile || craftPanel.activeTab !== "craft") && (
         <SidePanel
           storyId={story.id}
@@ -601,7 +601,7 @@ export default function StoryEditor({
           craftDirection={craftPanel.direction}
           currentChapter={currentChapterIdx + 1}
           currentChapterId={chapter?.id}
-          codexSuggestionRefreshKey={codexSuggestionRefreshKey}
+          memorySuggestionRefreshKey={memorySuggestionRefreshKey}
           adaptationActiveOutputType={adaptation.activeOutputType}
           adaptationSelectedChainId={adaptation.selectedChainId}
           adaptationCurrentResult={adaptation.currentResult}
@@ -613,8 +613,8 @@ export default function StoryEditor({
           currentChapterMentions={currentChapterMentions}
           mentionSyncing={mentionSyncing}
           mentionError={mentionError}
-          codexFocusRequest={codexFocus.codexFocusRequest}
-          artifactFocusRequest={codexFocus.artifactFocusRequest}
+          memoryFocusRequest={memoryFocus.memoryFocusRequest}
+          artifactFocusRequest={memoryFocus.artifactFocusRequest}
           panelWidth={craftPanel.panelWidth}
           onPanelWidthChange={craftPanel.setPanelWidth}
           onTabChange={craftPanel.setTab}

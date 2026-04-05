@@ -2,9 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildNewsletterMemorySnapshot, formatNewsletterMemoryForPrompt } from "./newsletterMemory";
 import { getNewsletterModeConfig } from "./projectMode";
 import { formatBibleForPrompt } from "./prompts/bible";
-import { formatCodexForPrompt, resolveCodexEntryAtChapter } from "./prompts/codex";
-import { fetchCodexContextRules, fetchCodexData } from "./supabase/codex";
-import { fetchCodexMentions } from "./supabase/codexMentions";
+import { formatMemoryForPrompt, resolveMemoryEntryAtChapter } from "./prompts/memory";
+import { fetchMemoryContextRules, fetchMemoryData } from "./supabase/memory";
+import { fetchMemoryMentions } from "./supabase/memoryMentions";
 import type {
   BibleNotesContent,
   BibleOutlineContent,
@@ -16,16 +16,16 @@ import type {
   StoryBible,
 } from "../types/bible";
 import type {
-  CodexRelationship,
+  MemoryRelationship,
   CoreEntryType,
-  ResolvedCodexEntry,
+  ResolvedMemoryEntry,
   StoryContextEntrySummary,
   StoryContextGroup,
   StoryContextPriority,
   StoryContextReason,
   StoryContextSnapshot,
   StoryContextSource,
-} from "../types/codex";
+} from "../types/memory";
 import type { ProjectMode, StoryModeConfig } from "../types/story";
 
 const ALL_SECTION_TYPES: BibleSectionType[] = [
@@ -43,7 +43,7 @@ export interface PromptStoryContextResult {
   source: StoryContextSource;
 }
 
-interface ResolvedCodexStoryContext {
+interface ResolvedMemoryStoryContext {
   text: string;
   entryCount: number;
   includedEntryCount: number;
@@ -55,8 +55,8 @@ interface ResolvedCodexStoryContext {
   groups: StoryContextGroup[];
 }
 
-const EMPTY_ACTIVE_CODEX_CONTEXT =
-  "=== CODEX ===\nNo Codex entries are currently included in the active context.";
+const EMPTY_ACTIVE_MEMORY_CONTEXT =
+  "=== MEMORY ===\nNo Memory entries are currently included in the active context.";
 
 export async function resolvePromptStoryContext(
   supabase: SupabaseClient,
@@ -68,19 +68,19 @@ export async function resolvePromptStoryContext(
 
   if (storyMeta?.projectMode !== "newsletter") {
     try {
-      const codexContext = await resolveCodexStoryContext(
+      const memoryContext = await resolveMemoryStoryContext(
         supabase,
         storyId,
         resolvedChapterNumber
       );
-      if (codexContext) {
+      if (memoryContext) {
         return {
-          text: codexContext.text,
-          source: "codex",
+          text: memoryContext.text,
+          source: "memory",
         };
       }
     } catch (error) {
-      console.error("Failed to resolve Codex prompt context:", error);
+      console.error("Failed to resolve Memory prompt context:", error);
     }
   }
 
@@ -114,29 +114,29 @@ export async function buildStoryContextSnapshot(
 
   if (storyMeta?.projectMode !== "newsletter") {
     try {
-      const codexContext = await resolveCodexStoryContext(
+      const memoryContext = await resolveMemoryStoryContext(
         supabase,
         storyId,
         resolvedThroughChapter
       );
-      if (codexContext) {
+      if (memoryContext) {
         return {
-          source: "codex",
+          source: "memory",
           resolvedThroughChapter,
           generationChapter,
-          text: codexContext.text,
-          entryCount: codexContext.entryCount,
-          includedEntryCount: codexContext.includedEntryCount,
-          priorityEntryCount: codexContext.priorityEntryCount,
-          pinnedEntryCount: codexContext.pinnedEntryCount,
-          excludedEntryCount: codexContext.excludedEntryCount,
-          relationshipCount: codexContext.relationshipCount,
-          focusEntries: codexContext.focusEntries,
-          groups: codexContext.groups,
+          text: memoryContext.text,
+          entryCount: memoryContext.entryCount,
+          includedEntryCount: memoryContext.includedEntryCount,
+          priorityEntryCount: memoryContext.priorityEntryCount,
+          pinnedEntryCount: memoryContext.pinnedEntryCount,
+          excludedEntryCount: memoryContext.excludedEntryCount,
+          relationshipCount: memoryContext.relationshipCount,
+          focusEntries: memoryContext.focusEntries,
+          groups: memoryContext.groups,
         };
       }
     } catch (error) {
-      console.error("Failed to build Codex story context snapshot:", error);
+      console.error("Failed to build Memory story context snapshot:", error);
     }
   }
 
@@ -179,22 +179,22 @@ export async function buildStoryContextSnapshot(
   };
 }
 
-async function resolveCodexStoryContext(
+async function resolveMemoryStoryContext(
   supabase: SupabaseClient,
   storyId: string,
   chapterNumber: number
-): Promise<ResolvedCodexStoryContext | null> {
-  const codex = await fetchCodexData(supabase, storyId);
-  if (codex.entries.length === 0) {
+): Promise<ResolvedMemoryStoryContext | null> {
+  const memory = await fetchMemoryData(supabase, storyId);
+  if (memory.entries.length === 0) {
     return null;
   }
 
-  const rules = await fetchCodexContextRules(supabase, storyId);
+  const rules = await fetchMemoryContextRules(supabase, storyId);
   const contextModeByEntryId = new Map(
     rules.map((rule) => [rule.entryId, rule.mode] as const)
   );
-  const resolvedEntries = codex.entries
-    .map((entry) => resolveCodexEntryAtChapter(entry, chapterNumber))
+  const resolvedEntries = memory.entries
+    .map((entry) => resolveMemoryEntryAtChapter(entry, chapterNumber))
     .sort(compareResolvedEntries);
   const includedEntryIds = resolvedEntries
     .filter((entry) => contextModeByEntryId.get(entry.id) !== "exclude")
@@ -203,7 +203,7 @@ async function resolveCodexStoryContext(
     .filter((entry) => contextModeByEntryId.get(entry.id) === "pin")
     .map((entry) => entry.id);
   const includedEntryIdSet = new Set(includedEntryIds);
-  const includedRelationships = codex.relationships.filter(
+  const includedRelationships = memory.relationships.filter(
     (relationship) =>
       includedEntryIdSet.has(relationship.sourceEntryId)
       && includedEntryIdSet.has(relationship.targetEntryId)
@@ -240,9 +240,9 @@ async function resolveCodexStoryContext(
   return {
     text:
       includedEntryIds.length > 0
-        ? formatCodexForPrompt(
-            codex.entries,
-            codex.relationships,
+        ? formatMemoryForPrompt(
+            memory.entries,
+            memory.relationships,
             chapterNumber,
             {
               includeEntryIds: includedEntryIds,
@@ -250,12 +250,12 @@ async function resolveCodexStoryContext(
               priorityEntryIds,
             }
           )
-        : EMPTY_ACTIVE_CODEX_CONTEXT,
-    entryCount: codex.entries.length,
+        : EMPTY_ACTIVE_MEMORY_CONTEXT,
+    entryCount: memory.entries.length,
     includedEntryCount: includedEntryIds.length,
     priorityEntryCount: focusEntries.length,
     pinnedEntryCount: pinnedEntryIds.length,
-    excludedEntryCount: codex.entries.length - includedEntryIds.length,
+    excludedEntryCount: memory.entries.length - includedEntryIds.length,
     relationshipCount: includedRelationships.length,
     focusEntries,
     groups,
@@ -347,7 +347,7 @@ async function fetchStoryPromptMeta(
 }
 
 function buildContextGroups(
-  entries: ResolvedCodexEntry[],
+  entries: ResolvedMemoryEntry[],
   relationshipCounts: Map<string, number>,
   chapterNumber: number,
   contextModeByEntryId: Map<string, "pin" | "exclude">,
@@ -398,7 +398,7 @@ function buildContextGroups(
 
 function countRelationshipsByEntryId(
   entryIds: string[],
-  relationships: CodexRelationship[]
+  relationships: MemoryRelationship[]
 ): Map<string, number> {
   const counts = new Map(entryIds.map((entryId) => [entryId, 0]));
 
@@ -422,7 +422,7 @@ async function fetchCurrentChapterMentionCounts(
   chapterNumber: number
 ): Promise<Map<string, number>> {
   try {
-    const mentions = await fetchCodexMentions(supabase, storyId, {
+    const mentions = await fetchMemoryMentions(supabase, storyId, {
       chapterNumber,
     });
 
@@ -431,13 +431,13 @@ async function fetchCurrentChapterMentionCounts(
       return counts;
     }, new Map<string, number>());
   } catch (error) {
-    console.error("Failed to load Codex mentions for story context:", error);
+    console.error("Failed to load Memory mentions for story context:", error);
     return new Map<string, number>();
   }
 }
 
 function getLinkedToPinnedEntryIds(
-  relationships: CodexRelationship[],
+  relationships: MemoryRelationship[],
   pinnedEntryIds: Set<string>
 ): Set<string> {
   const linkedEntryIds = new Set<string>();
@@ -515,7 +515,7 @@ function buildContextReasons({
   if (reasons.length === 0) {
     reasons.push({
       key: "included_by_default",
-      label: "Included by default Codex truth",
+      label: "Included by default Memory truth",
     });
   }
 
@@ -544,7 +544,7 @@ function determineNextChapterPriority(
   return "supporting";
 }
 
-function compareResolvedEntries(a: ResolvedCodexEntry, b: ResolvedCodexEntry): number {
+function compareResolvedEntries(a: ResolvedMemoryEntry, b: ResolvedMemoryEntry): number {
   if (a.entryType !== b.entryType) {
     return a.entryType.localeCompare(b.entryType);
   }
