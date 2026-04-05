@@ -28,7 +28,7 @@ A cross between Sudowrite (AI prose quality) and Novelcrafter (structured projec
 
 ### 1. Project truth is sacred
 
-Codex, continuity, and chapter-aware context should beat clever but inconsistent generation.
+Memory, continuity, and chapter-aware context should beat clever but inconsistent generation.
 
 ### 2. The writer must stay in control
 
@@ -127,10 +127,30 @@ docs/                            - product, strategy, and build specs
 
 ### What's next
 
-1. Simplification reset — reduce visible surfaces, plain language, progressive disclosure
-2. Deeper planning-aware generation and continuity
-3. Mode pack expansion (screenplay, comics, game writing)
-4. Stronger adaptation chains across modes
+Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadmap.md`
+
+**Phase A: Simplification & Polish** (immediate priority)
+1. Progressive disclosure audit — default to Write → Remember → Review → Package → Export; everything else behind Advanced
+2. Microcopy & naming cleanup — finish plain-language rename (Artifacts → Project, Adapt → Outputs in code paths), thread `contentUnitLabel` to remaining ContextConsole helpers
+3. Empty states & first-run experience — meaningful empty states, guided first chapter, mode-appropriate defaults
+4. Mobile & narrow-width pass — verify 375px, touch targets, side panel overflow
+
+**Phase B: Planning-Aware Generation** (depth)
+1. Planning context in continuation — inject outline beats, arc guidance, thread notes into generation prompts
+2. Planning context in continuity review — check drift against plan, not just prior chapters
+3. Planning-to-memory bridge — auto-suggest memory updates when planned beats are written
+4. Mode-aware planning schemas — extend ModeConfig with planning unit labels and schemas
+
+**Phase C: Mode Pack Expansion** (breadth)
+1. Screenplay mode — scenes, beat sheets, act structure, formatted output
+2. Comics / graphic narrative mode — pages/panels, visual pacing, script format
+3. Game writing / narrative design mode — quests, branching, dialogue trees
+4. Non-fiction / articles / essays mode — sections, arguments, sources, bibliography
+
+**Phase D: Adaptation Studio & Publishing** (platform)
+1. Cross-mode adaptation chains — chapter → screenplay scene → comic page
+2. Export & distribution — PDF, DOCX, EPUB, Fountain, publishing pipeline
+3. Collaborative review — shared access, roles, comment workflows (future)
 
 ### Simplification principles
 

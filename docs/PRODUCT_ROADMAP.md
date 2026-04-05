@@ -37,14 +37,14 @@ Each mode defines its own knowledge schema, planning schema, output schema, revi
 
 ## Current Wedge
 
-Fiction remains the deepest mode. Newsletter is the first adjacent mode proving the engine generalizes. Both share the same infrastructure (stories table, project modes, Codex memory, adaptation outputs).
+Fiction remains the deepest mode. Newsletter is the first adjacent mode proving the engine generalizes. Both share the same infrastructure (stories table, project modes, Memory engine with ModeConfig registry, adaptation outputs).
 
 Newsletter mode is now live in an initial mode-pack form:
 
 - newsletter-specific project creation
 - issue-aware generation and continuation
 - issue-aware adaptation and artifact handling
-- shared newsletter memory and review language while Codex remains fiction-first
+- shared newsletter memory and review language (Memory is now mode-agnostic via ModeConfig registry)
 - publication profile editing for subtitle, hook style, CTA style, and recurring sections
 - saved issue-package outputs for subject lines, deck options, recurring section drafts, hook variants, CTA variants, and send-checklist review
 - issue bundle export for current newsletters using saved package assets plus the issue body
@@ -59,7 +59,7 @@ Newsletter mode is now live in an initial mode-pack form:
 
 ### 1. Project truth matters more than prompt tricks
 
-Codex, context, and continuity should become shared infrastructure across the product.
+Memory, context, and continuity should become shared infrastructure across the product.
 
 ### 1a. AI-native beats AI-decorated
 
@@ -103,47 +103,18 @@ It is part of the platform strategy.
 - server-side AI calls only
 - safe rollout patterns with backward-compatible migrations
 
-## Phase 1: Writing Studio Core
+## Phase 1: Writing Studio Core — Done
 
-### Status
+- Rich editor, craft tools, streaming generation, chapter summaries
+- Continuity checks, Memory foundation, suggestion review, context console
+- First adaptation workflows
 
-Mostly implemented.
+## Phase 2: Project Memory And Review Depth — Done
 
-### Includes
-
-- rich editor
-- craft tools
-- streaming generation
-- chapter summaries
-- continuity checks
-- Codex foundation
-- updates and suggestion review
-- context console
-- first adaptation workflows
-
-### Why it matters
-
-This phase replaces "generate and read" with a real writing environment.
-
-## Phase 2: Project Memory And Review Depth
-
-### In progress direction
-
-- stronger Codex navigation
-- mentions and manuscript linking
-- living change detection
-- accepted-update feedback loop
-- context steering
-- explainable context
-- better update review
-
-### Next depth opportunities
-
-- artifact library
-- planning and outline layer
-- continuity copilot v2
-- research ingestion
-- series/shared Codex
+- Memory navigation, mentions, manuscript linking, living change detection
+- Accepted-update feedback loop, context steering, explainable context
+- Artifact library, planning and outline layer, continuity copilot v1
+- Mode-agnostic Memory engine (ModeConfig registry)
 
 ## Phase 3: Mode Expansion
 
@@ -225,100 +196,54 @@ If a change does none of those clearly, it should not be prioritized.
 
 ## Immediate Build Order
 
-1. Landing page and positioning refresh
-2. Artifact library
-3. Newsletter / serialized creator mode
-4. Planning and outline layer
-5. Continuity Copilot v2
+Previous build order (all done):
 
-Current status:
+1. Landing page and positioning refresh — done
+2. Artifact library — done
+3. Newsletter / serialized creator mode — v1 live
+4. Planning and outline layer — live (structured outlines, arc/thread tracking)
+5. Continuity Copilot v2 — live (planning-aware, annotation metadata, one-click actions)
+6. Codex → Memory rename + mode-agnostic engine — done (ModeConfig registry, 2026-04-05)
 
-1. Landing page and positioning refresh - done
-2. Artifact library - done
-3. Newsletter / serialized creator mode - v1 live
-4. Planning and outline layer - partially live through structured outline artifacts plus arc/thread tracking
-5. Continuity Copilot v2 - started through planning-aware continuity, annotation metadata, and one-click planning actions
+### Current next steps
 
-Immediate next depth:
+See detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadmap.md`
 
-- browser-led review of the default fiction flow
-- browser-led review of the default newsletter flow
-- fix only concrete high-friction issues that show up in those flows
-- give story tools / side-panel surfaces more usable space
-- continue planning-aware generation and adaptation only where it strengthens flagship workflows
+**Phase A: Simplification & Polish** — progressive disclosure audit, microcopy cleanup, empty states, mobile pass
+**Phase B: Planning-Aware Generation** — planning in continuation/continuity, planning-to-memory bridge, mode-aware planning schemas
+**Phase C: Mode Pack Expansion** — screenplay, comics, game writing, non-fiction (in that order)
+**Phase D: Adaptation Studio & Publishing** — cross-mode chains, multi-format export, collaborative review
 
-Next mode-pack clarification:
+### Simplification progress (completed)
 
-- `newsletter-native memory/review` is product-depth work
-- `newsletter creator mode` is the broader workflow layer on top of that depth
-- after newsletter, the next serious mode-pack candidates are:
-  - screenplay
-  - comics / graphic narrative
-  - game writing / narrative design
+- Side panel defaults to core workflow tabs; lower-frequency tools behind `Advanced`
+- Default workspace language: `Memory`, `Project`, `Outputs`
+- Memory keeps type management, mention syncing, and context visibility out of default layer
+- Memory detail screens default to main fact first; mention trails and relationship/progression tools behind revealers
+- Memory fact cards keep aliases, linked facts, and change chips behind `More fact details`
+- Project keeps secondary filters behind `More filters` drawer
+- Project items lead with one primary action; copy/reopen/delete in `More actions`
+- Memory and Project lists use quiet summary lines instead of stacked badges
+- Newsletter setup tucked behind setup drawer; pre-send work stays front and center
+- Editor toolbar uses one `Writing tools` entry point
+- Standardized action vocabulary: one plain primary action per view
+- Subtler note indicators, calmer footer styling, less chrome
 
-Current newsletter depth update:
+### Newsletter depth (completed)
 
-- newsletter projects now resolve dedicated newsletter memory for prompts
-- `Artifacts` exposes a visible newsletter-memory panel
-- continuity can now flag promise drift and voice drift against synopsis/style guide
-- continuity can now flag hook drift, CTA drift, and recurring segment drift inside the same planning-aware review loop
-- newsletter creator workflow now includes a saved `Issue Package` workflow for subject lines, deck options, recurring section drafts, hook variants, CTA variants, and send-checklist review
-- `Artifacts` now supports current-issue markdown bundle export for newsletter projects
-- canonical issue-package selections now feed readiness and bundle export, turning generated options into durable issue state
-- newsletter issue readiness now also checks whether the current issue body still honors the official framing, hook, CTA, and recurring section package
-- the readiness surface is now being simplified into a clearer `pre-send check` instead of accumulating more dashboard-like subfeatures
+- Dedicated newsletter memory for prompts
+- Continuity flags promise/voice/hook/CTA/recurring-segment drift
+- Saved Issue Package workflow (subject lines, deck options, hook variants, CTA variants, send-checklist)
+- Canonical issue-package state feeds readiness and bundle export
+- Readiness checks verify issue body honors official package
+- Markdown bundle export for newsletter projects
+- Default loop: write issue → choose official package → run pre-send check → export/send
 
-Likely next newsletter move:
+### Planning depth (completed)
 
-- stop widening for a moment and simplify the newsletter flow around a small, legible loop:
-  - write issue
-  - choose official package
-  - run pre-send check
-  - export/send
-
-Likely next cross-product move:
-
-- run a simplification reset across newsletter and Codex
-- keep default workflow simple
-- move expert controls behind `Advanced`
-
-Current simplification progress:
-
-- the side panel now defaults to the core workflow tabs, with lower-frequency tools moved behind `Advanced`
-- the default workspace language is shifting toward plain English: `Memory`, `Project`, and `Outputs`
-- Codex now keeps type management, mention syncing, and context visibility out of the default layer
-- Codex type filters are now optional instead of always visible
-- Memory now leads with a compact `facts / mentions / to review` summary instead of a busier control-heavy header
-- Memory review now keeps older handled suggestions collapsed behind a simple recent-activity toggle
-- newsletter setup is now tucked behind a setup drawer so pre-send work stays front and center
-- Project now keeps secondary type/scope filters behind a `More filters` drawer instead of front-loading them
-- Memory detail screens now default to the main fact first, with mention trails and deeper relationship/progression tools behind revealers
-- Project detail screens now foreground the saved content, with metadata and lower-priority newsletter setup behind secondary toggles
-- Memory fact cards now keep aliases, linked facts, and change chips behind a secondary `More fact details` reveal instead of dumping them immediately
-- Project item screens now lead with one primary action and move copy / reopen / delete into a secondary `More actions` layer
-- Memory and Project list views now use quieter summary lines instead of stacked badge columns, so items read more like documents and facts than mini dashboards
-- Memory now uses a single quiet summary line in the header instead of a row of status chips, and saved newsletter setup now defaults to a compact summary before showing deeper context
-- the newsletter pre-send card now favors one obvious export action first, with secondary export behavior hidden until asked for
-- Outputs now favors one obvious workflow action first, with per-output workflow controls and official package management hidden behind explicit reveals
-- side-panel note counts are now plain text instead of another bright badge in the shell
-- the editor toolbar now uses one `Writing tools` entry point instead of exposing a row of craft actions all the time
-- home, create, and library are now moving toward the same rule: default to `start new` or `open saved`, keep lower-priority setup behind `More options`, and tuck sample projects behind a reveal
-- visible action language is now being standardized too: prefer one plain primary action like `Use in editor`, and avoid bouncing between internal verbs like `insert`, `re-insert`, or `prompt view`
-- the last shell cleanup is now reducing redundant signals too: subtler note indicators, calmer footer CTA styling, less duplicate metadata, and less chrome around the active side-panel view
-- onboarding and shell microcopy are now being simplified too: home, login, create, and editor confirmations should prefer plain, mode-neutral wording over internal system language
-
-AI-native newsletter conclusion:
-
-- the strongest compounding newsletter surfaces are memory, planning-aware writing, review, and readiness
-- generated package options can now become canonical issue state, which is the most important AI-native newsletter move so far
-- readiness now reasons about whether the issue still matches that canonical package
-- the next serious newsletter depth step should keep building on canonical state rather than adding more disconnected output types
-
-Current depth update:
-
-- continuation now sees planning guidance for the next unit
-- adaptation now sees planning guidance for the current unit
-- planning is starting to shape writing before drift happens, not only review it afterward
+- Continuation sees planning guidance for next unit
+- Adaptation sees planning guidance for current unit
+- Planning shapes writing before drift happens, not only reviews it afterward
 
 ## What Success Looks Like
 
