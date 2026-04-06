@@ -3,6 +3,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import {
   BookOpen,
+  Clapperboard,
   ChevronDown,
   Loader2,
   Mail,
@@ -19,6 +20,8 @@ import {
   ProjectMode,
   Rating,
   RelationshipType,
+  ScreenplayDraftingPreference,
+  ScreenplayStoryEngine,
   Story,
   StoryFormData,
 } from "../types/story";
@@ -58,6 +61,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
   const [newsletterCadence, setNewsletterCadence] =
     useState<NewsletterCadence>("weekly");
   const [newsletterTone, setNewsletterTone] = useState<string[]>([]);
+  const [screenplayTitle, setScreenplayTitle] = useState("");
+  const [screenplayTone, setScreenplayTone] = useState<string[]>([]);
+  const [screenplayDraftingPreference, setScreenplayDraftingPreference] =
+    useState<ScreenplayDraftingPreference>("script_pages");
+  const [screenplayStoryEngine, setScreenplayStoryEngine] =
+    useState<ScreenplayStoryEngine>("feature");
+  const [showScreenplayOptions, setShowScreenplayOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [memoryDemoLoading, setMemoryDemoLoading] = useState(false);
@@ -69,12 +79,16 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
   const canSubmit =
     projectMode === "fiction"
       ? filledCharacters.length >= 2 && fictionTone.length >= 1 && !busy
-      : newsletterTitle.trim().length >= 2
-        && newsletterTopic.trim().length >= 3
-        && newsletterAudience.trim().length >= 3
-        && newsletterIssueAngle.trim().length >= 8
-        && newsletterTone.length >= 1
-        && !busy;
+      : projectMode === "newsletter"
+        ? newsletterTitle.trim().length >= 2
+          && newsletterTopic.trim().length >= 3
+          && newsletterAudience.trim().length >= 3
+          && newsletterIssueAngle.trim().length >= 8
+          && newsletterTone.length >= 1
+          && !busy
+        : screenplayTitle.trim().length >= 2
+          && screenplayTone.length >= 1
+          && !busy;
 
   const handleFandomChange = useCallback((id: string) => {
     setFandom(id);
@@ -117,6 +131,39 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           setting: formData.setting,
           tone: formData.tone,
           tropes: formData.tropes,
+        });
+
+        if (!story) {
+          throw new Error("Please sign in before creating a new project.");
+        }
+
+        onStoryCreated(story, formData);
+        return;
+      }
+
+      if (projectMode === "screenplay") {
+        const formData: StoryFormData = {
+          projectMode: "screenplay",
+          title: screenplayTitle.trim(),
+          draftingPreference: screenplayDraftingPreference,
+          tone: screenplayTone,
+          storyEngine: screenplayStoryEngine,
+        };
+
+        const story = await createStoryInDB({
+          title: screenplayTitle.trim(),
+          projectMode: "screenplay",
+          modeConfig: {
+            draftingPreference: screenplayDraftingPreference,
+            formatStyle: "fountain",
+            storyEngine: screenplayStoryEngine,
+          },
+          fandom: "",
+          characters: [],
+          relationshipType: "gen",
+          rating: "teen",
+          tone: screenplayTone,
+          tropes: [],
         });
 
         if (!story) {
@@ -239,6 +286,11 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             onClick={() => setProjectMode("fiction")}
           />
           <ModeButton
+            label="Screenplay"
+            active={projectMode === "screenplay"}
+            onClick={() => setProjectMode("screenplay")}
+          />
+          <ModeButton
             label="Newsletter"
             active={projectMode === "newsletter"}
             onClick={() => setProjectMode("newsletter")}
@@ -314,6 +366,128 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
                 </div>
 
                 <TropeSelector selected={tropes} onChange={setTropes} />
+              </div>
+            )}
+          </div>
+        </>
+      ) : projectMode === "screenplay" ? (
+        <>
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-amber-500/15 p-2 text-amber-200">
+                <Clapperboard className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-300">
+                  Screenplay
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Set the title, choose a drafting style, and pick the tone for Scene 1.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Field
+            label="Screenplay title"
+            helper="This is the working title and will stay attached to the project."
+          >
+            <input
+              type="text"
+              value={screenplayTitle}
+              onChange={(event) => setScreenplayTitle(event.target.value)}
+              placeholder="Glass Hour"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none"
+            />
+          </Field>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-300">
+              Drafting preference
+            </p>
+            <p className="mb-3 text-xs leading-5 text-zinc-500">
+              Choose whether the editor should default to screenplay pages or a scene-beat draft.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  "script_pages",
+                  "beat_draft",
+                ] satisfies ScreenplayDraftingPreference[]
+              ).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setScreenplayDraftingPreference(option)}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    screenplayDraftingPreference === option
+                      ? "border-amber-500 bg-amber-500/15 text-white"
+                      : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-white"
+                  }`}
+                >
+                  {labelScreenplayDraftingPreference(option)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-300">Tone</p>
+            <p className="mb-3 text-xs leading-5 text-zinc-500">
+              Pick the energy the system should preserve across scenes.
+            </p>
+            <ToneSelector
+              label="Tone"
+              showLabel={false}
+              selected={screenplayTone}
+              onChange={setScreenplayTone}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <button
+              type="button"
+              onClick={() => setShowScreenplayOptions((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">More options</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-400">
+                  Story engine and lower-priority setup.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-zinc-400 transition-transform ${
+                  showScreenplayOptions ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showScreenplayOptions && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-medium text-zinc-300">Story engine</p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      "feature",
+                      "pilot",
+                      "short",
+                    ] satisfies ScreenplayStoryEngine[]
+                  ).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setScreenplayStoryEngine(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        screenplayStoryEngine === option
+                          ? "border-amber-500 bg-amber-500/15 text-white"
+                          : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-white"
+                      }`}
+                    >
+                      {labelScreenplayStoryEngine(option)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -467,7 +641,9 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             <Sparkles className="h-5 w-5" />
             {projectMode === "newsletter"
               ? "Start newsletter project"
-              : "Start fiction project"}
+              : projectMode === "screenplay"
+                ? "Start screenplay project"
+                : "Start fiction project"}
           </>
         )}
       </button>
@@ -584,5 +760,22 @@ function labelCadence(value: NewsletterCadence) {
       return "Monthly";
     default:
       return "Irregular";
+  }
+}
+
+function labelScreenplayDraftingPreference(
+  value: ScreenplayDraftingPreference
+) {
+  return value === "script_pages" ? "Script pages" : "Beat draft";
+}
+
+function labelScreenplayStoryEngine(value: ScreenplayStoryEngine) {
+  switch (value) {
+    case "pilot":
+      return "Pilot";
+    case "short":
+      return "Short";
+    default:
+      return "Feature";
   }
 }

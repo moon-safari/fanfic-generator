@@ -5,6 +5,7 @@ import {
   getLoadingContinueLabel,
   getProjectModeLabel,
   getProjectUnitLabel,
+  parseStoryModeConfig,
   parseScreenplayModeConfig,
 } from "./projectMode.ts";
 import { getModeConfig } from "./modes/registry.ts";
@@ -55,4 +56,19 @@ test("parseScreenplayModeConfig normalizes valid screenplay config", () => {
 test("parseScreenplayModeConfig rejects incomplete screenplay config", () => {
   assert.equal(parseScreenplayModeConfig({ draftingPreference: "script_pages" }), null);
   assert.equal(parseScreenplayModeConfig({ formatStyle: "fountain" }), null);
+});
+
+test("parseStoryModeConfig supports screenplay mode", () => {
+  assert.deepEqual(
+    parseStoryModeConfig("screenplay", {
+      draftingPreference: "beat_draft",
+      formatStyle: "fountain",
+      storyEngine: "feature",
+    }),
+    {
+      draftingPreference: "beat_draft",
+      formatStyle: "fountain",
+      storyEngine: "feature",
+    }
+  );
 });

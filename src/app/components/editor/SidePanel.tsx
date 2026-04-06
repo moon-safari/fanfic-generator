@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import type {
-  NewsletterModeConfig,
   ProjectMode,
   StoryModeConfig,
 } from "../../types/story";
@@ -84,7 +83,7 @@ interface SidePanelProps {
     outputType: AdaptationOutputType
   ) => void;
   onArtifactSummaryUpdated?: (chapterId: string, summary: string) => void;
-  onModeConfigUpdated?: (modeConfig: NewsletterModeConfig) => void;
+  onModeConfigUpdated?: (modeConfig: StoryModeConfig) => void;
   onAdaptSelectChainId: (chainId: AdaptationChainId) => void;
   onAdaptSelectOutputType: (outputType: AdaptationOutputType) => void;
   onAdaptGenerate: (outputType: AdaptationOutputType) => Promise<void>;

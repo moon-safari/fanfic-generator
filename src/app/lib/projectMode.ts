@@ -5,6 +5,7 @@ import type {
   ScreenplayModeConfig,
   ScreenplayStoryFormData,
   Story,
+  StoryModeConfig,
   StoryFormData,
 } from "../types/story";
 
@@ -116,6 +117,21 @@ export function parseScreenplayModeConfig(
         ? candidate.storyEngine
         : undefined,
   };
+}
+
+export function parseStoryModeConfig(
+  projectMode: ProjectMode,
+  input: unknown
+): StoryModeConfig | null {
+  if (projectMode === "newsletter") {
+    return parseNewsletterModeConfig(input);
+  }
+
+  if (projectMode === "screenplay") {
+    return parseScreenplayModeConfig(input);
+  }
+
+  return {};
 }
 
 export function getProjectModeLabel(mode: ProjectMode): string {

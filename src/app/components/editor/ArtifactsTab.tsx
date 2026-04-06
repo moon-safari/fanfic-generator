@@ -15,7 +15,11 @@ import {
   formatPlanningArtifactContent,
   getArtifactSubtypeLabel,
 } from "../../lib/artifacts";
-import { getNewsletterModeConfig, getProjectUnitLabel } from "../../lib/projectMode";
+import {
+  getNewsletterModeConfig,
+  getProjectUnitLabel,
+  getScreenplayModeConfig,
+} from "../../lib/projectMode";
 import { useArtifacts } from "../../hooks/useArtifacts";
 import { usePackageSelection } from "../../hooks/usePackageSelection";
 import { usePlanningDrafts } from "../../hooks/usePlanningDrafts";
@@ -58,10 +62,12 @@ import {
 import type {
   NewsletterModeConfig,
   ProjectMode,
+  ScreenplayModeConfig,
   StoryModeConfig,
 } from "../../types/story";
 import NewsletterSetupPanel from "./NewsletterSetupPanel";
 import NewsletterReadinessPanel from "./NewsletterReadinessPanel";
+import ScreenplaySetupPanel from "./ScreenplaySetupPanel";
 import NotesEditor from "../story-bible/NotesEditor";
 import OutlineEditor from "../story-bible/OutlineEditor";
 import StyleGuideEditor from "../story-bible/StyleGuideEditor";
@@ -83,7 +89,7 @@ interface ArtifactsTabProps {
     outputType: AdaptationOutputType
   ) => void;
   onSummaryUpdated?: (chapterId: string, summary: string) => void;
-  onModeConfigUpdated?: (modeConfig: NewsletterModeConfig) => void;
+  onModeConfigUpdated?: (modeConfig: StoryModeConfig) => void;
 }
 
 type ArtifactKindFilter = "all" | ProjectArtifactKind;
@@ -123,10 +129,22 @@ export default function ArtifactsTab({
     savePlanningArtifact,
     clearError,
   } = useArtifacts(storyId, projectMode);
-  const newsletterModeConfig = getNewsletterModeConfig({
-    projectMode,
-    modeConfig,
-  });
+  const newsletterModeConfig = useMemo(
+    () =>
+      getNewsletterModeConfig({
+        projectMode,
+        modeConfig,
+      }),
+    [modeConfig, projectMode]
+  );
+  const screenplayModeConfig = useMemo(
+    () =>
+      getScreenplayModeConfig({
+        projectMode,
+        modeConfig,
+      }),
+    [modeConfig, projectMode]
+  );
   const [kindFilter, setKindFilter] = useState<ArtifactKindFilter>("all");
   const [typeFilter, setTypeFilter] = useState<ArtifactTypeFilter>("all");
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
@@ -150,6 +168,13 @@ export default function ArtifactsTab({
     null
   );
   const [showNewsletterSetup, setShowNewsletterSetup] = useState(false);
+  const [screenplayConfigDraft, setScreenplayConfigDraft] =
+    useState<ScreenplayModeConfig | null>(screenplayModeConfig);
+  const [savingScreenplayConfig, setSavingScreenplayConfig] = useState(false);
+  const [screenplayConfigError, setScreenplayConfigError] = useState<string | null>(
+    null
+  );
+  const [showScreenplaySetup, setShowScreenplaySetup] = useState(false);
   const {
     readinessReport,
     readinessLoading,
@@ -172,6 +197,9 @@ export default function ArtifactsTab({
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const newsletterProfileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const screenplayConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
   const contentViewportRef = useRef<HTMLDivElement | null>(null);
@@ -344,8 +372,19 @@ export default function ArtifactsTab({
       if (newsletterProfileTimerRef.current) {
         clearTimeout(newsletterProfileTimerRef.current);
       }
+      if (screenplayConfigTimerRef.current) {
+        clearTimeout(screenplayConfigTimerRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    setNewsletterProfileDraft(newsletterModeConfig);
+  }, [newsletterModeConfig]);
+
+  useEffect(() => {
+    setScreenplayConfigDraft(screenplayModeConfig);
+  }, [screenplayModeConfig]);
 
   useEffect(() => {
     if (!focusRequest) {
@@ -413,6 +452,41 @@ export default function ArtifactsTab({
         })
         .finally(() => {
           setSavingNewsletterProfile(false);
+        });
+    }, 700);
+  };
+
+  const handleScreenplayConfigChange = (nextValue: ScreenplayModeConfig) => {
+    setScreenplayConfigDraft(nextValue);
+    setScreenplayConfigError(null);
+
+    if (screenplayConfigTimerRef.current) {
+      clearTimeout(screenplayConfigTimerRef.current);
+    }
+
+    screenplayConfigTimerRef.current = setTimeout(() => {
+      setSavingScreenplayConfig(true);
+      void requestJson<{ modeConfig: ScreenplayModeConfig }>(
+        `/api/stories/${storyId}/mode-config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modeConfig: nextValue }),
+        }
+      )
+        .then((data) => {
+          setScreenplayConfigDraft(data.modeConfig);
+          onModeConfigUpdated?.(data.modeConfig);
+        })
+        .catch((error: unknown) => {
+          setScreenplayConfigError(
+            error instanceof Error
+              ? error.message
+              : "Failed to save screenplay setup"
+          );
+        })
+        .finally(() => {
+          setSavingScreenplayConfig(false);
         });
     }, 700);
   };
@@ -710,6 +784,17 @@ export default function ArtifactsTab({
               showSetup={showNewsletterSetup}
               onToggleSetup={() => setShowNewsletterSetup((prev) => !prev)}
               onProfileChange={handleNewsletterProfileChange}
+            />
+          )}
+
+          {projectMode === "screenplay" && screenplayConfigDraft && (
+            <ScreenplaySetupPanel
+              screenplayConfigDraft={screenplayConfigDraft}
+              savingScreenplayConfig={savingScreenplayConfig}
+              screenplayConfigError={screenplayConfigError}
+              showSetup={showScreenplaySetup}
+              onToggleSetup={() => setShowScreenplaySetup((prev) => !prev)}
+              onConfigChange={handleScreenplayConfigChange}
             />
           )}
 

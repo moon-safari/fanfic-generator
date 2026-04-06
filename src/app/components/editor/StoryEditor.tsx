@@ -5,7 +5,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
-import type { NewsletterModeConfig, Story } from "../../types/story";
+import type { Story, StoryModeConfig } from "../../types/story";
 import { buildStoryExportFile } from "../../lib/storyExport";
 import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -434,12 +434,8 @@ export default function StoryEditor({
   );
 
   const handleModeConfigUpdated = useCallback(
-    (modeConfig: NewsletterModeConfig) => {
+    (modeConfig: StoryModeConfig) => {
       const latestStory = storyRef.current;
-      if (latestStory.projectMode !== "newsletter") {
-        return;
-      }
-
       onUpdate({
         ...latestStory,
         modeConfig,

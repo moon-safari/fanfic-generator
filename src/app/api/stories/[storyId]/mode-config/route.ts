@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseNewsletterModeConfig } from "../../../../lib/projectMode";
+import type { ProjectMode } from "../../../../types/story";
+import { parseStoryModeConfig } from "../../../../lib/projectMode";
 import { createServerSupabase } from "../../../../lib/supabase/server";
 
 export async function PUT(
@@ -10,14 +11,6 @@ export async function PUT(
     const { storyId } = await params;
     const body = await req.json();
     const candidate = body && typeof body === "object" ? body.modeConfig : undefined;
-    const modeConfig = parseNewsletterModeConfig(candidate);
-
-    if (!modeConfig) {
-      return NextResponse.json(
-        { error: "Invalid newsletter mode config" },
-        { status: 400 }
-      );
-    }
 
     const supabase = await createServerSupabase();
     const {
@@ -39,9 +32,21 @@ export async function PUT(
       return NextResponse.json({ error: "Story not found" }, { status: 404 });
     }
 
-    if ((story.project_mode as string | undefined) !== "newsletter") {
+    if ((story.project_mode as string | undefined) === "fiction") {
       return NextResponse.json(
-        { error: "Mode config editing is only available for newsletter projects" },
+        { error: "Mode config editing is not available for fiction projects" },
+        { status: 400 }
+      );
+    }
+
+    const modeConfig = parseStoryModeConfig(
+      (story.project_mode as ProjectMode | undefined) ?? "fiction",
+      candidate
+    );
+
+    if (!modeConfig) {
+      return NextResponse.json(
+        { error: "Invalid mode config" },
         { status: 400 }
       );
     }
