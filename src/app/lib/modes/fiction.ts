@@ -1,5 +1,6 @@
 // src/app/lib/modes/fiction.ts
-import type { ModeConfig } from "./types";
+import { buildFictionPlanningPrompt } from "./planning.ts";
+import type { ModeConfig, PlanningSchema } from "./types.ts";
 
 function buildFictionMemoryPrompt(
   content: string,
@@ -47,6 +48,32 @@ Chapter text:
 ${content}`;
 }
 
+const fictionPlanningSchema: PlanningSchema = {
+  synopsis: {
+    title: "Project Synopsis",
+    description: "The core premise and direction of the work.",
+    emptyLabel: "Add a short project synopsis...",
+  },
+  styleGuide: {
+    title: "Style Guide",
+    description: "Voice, tense, pacing, and stylistic guardrails.",
+    emptyLabel: "Define voice, tense, pacing, and stylistic rules...",
+  },
+  outline: {
+    title: "Outline",
+    description: "Chapter-by-chapter plan and status map.",
+    emptyLabel: "Add planned chapter beats...",
+    openLoopsLabel: "Open threads",
+  },
+  notes: {
+    title: "Planning Notes",
+    description: "Freeform notes, active arcs, open threads, and research.",
+    emptyLabel: "Capture notes, active arcs, and unresolved threads...",
+    arcsHeading: "Active arcs",
+    threadsHeading: "Open threads",
+  },
+};
+
 export const fictionMode: ModeConfig = {
   id: "fiction",
   label: "Fiction",
@@ -81,6 +108,9 @@ export const fictionMode: ModeConfig = {
   buildMemoryGenerationPrompt: buildFictionMemoryPrompt,
   buildSuggestionPrompt: buildFictionSuggestionPrompt,
   buildContextPreamble: (title) => `Project memory for "${title}":`,
+  planningUnitLabel: "beat",
+  planningSchema: fictionPlanningSchema,
+  buildPlanningPrompt: buildFictionPlanningPrompt,
   supportsAutoGeneration: true,
   supportsSuggestions: true,
 };

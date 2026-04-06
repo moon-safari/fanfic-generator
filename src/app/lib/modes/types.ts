@@ -1,5 +1,38 @@
 // src/app/lib/modes/types.ts
-import type { ProjectMode } from "../../types/story";
+import type {
+  BibleNotesContent,
+  BibleOutlineContent,
+} from "../../types/bible.ts";
+import type { ProjectMode } from "../../types/story.ts";
+
+export interface PlanningSectionPresentation {
+  title: string;
+  description: string;
+  emptyLabel: string;
+}
+
+export interface PlanningOutlinePresentation extends PlanningSectionPresentation {
+  openLoopsLabel: string;
+}
+
+export interface PlanningNotesPresentation extends PlanningSectionPresentation {
+  arcsHeading: string;
+  threadsHeading: string;
+}
+
+export interface PlanningSchema {
+  synopsis: PlanningSectionPresentation;
+  styleGuide: PlanningSectionPresentation;
+  outline: PlanningOutlinePresentation;
+  notes: PlanningNotesPresentation;
+}
+
+export interface ModePlanningPromptArgs {
+  outline?: BibleOutlineContent | null;
+  notes?: BibleNotesContent | null;
+  unitNumber: number;
+  projectMode: ProjectMode;
+}
 
 export interface ModeConfig {
   id: ProjectMode;
@@ -34,6 +67,9 @@ export interface ModeConfig {
   ) => string;
 
   buildContextPreamble: (storyTitle: string) => string;
+  planningUnitLabel: string;
+  planningSchema: PlanningSchema;
+  buildPlanningPrompt: (args: ModePlanningPromptArgs) => string;
 
   // Feature flags
   supportsAutoGeneration: boolean;

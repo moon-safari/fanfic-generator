@@ -1,11 +1,11 @@
-import { getProjectUnitLabel } from "./projectMode";
+import { getProjectUnitLabel } from "./projectMode.ts";
 import type {
   BibleNotesContent,
   BibleOutlineContent,
   BiblePlanningArc,
   BiblePlanningThread,
-} from "../types/bible";
-import type { ProjectMode } from "../types/story";
+} from "../types/bible.ts";
+import type { ProjectMode } from "../types/story.ts";
 
 export function normalizeNotesContent(
   content?: BibleNotesContent | null

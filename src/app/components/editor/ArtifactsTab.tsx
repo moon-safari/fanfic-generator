@@ -292,7 +292,7 @@ export default function ArtifactsTab({
       : typeFilter;
   const projectFilterSummary = [
     effectiveTypeFilter !== "all"
-      ? getArtifactSubtypeLabel(effectiveTypeFilter)
+      ? getArtifactSubtypeLabel(effectiveTypeFilter, projectMode)
       : null,
     showScopeControl && effectiveScopeFilter !== "all"
       ? formatScopeLabel(effectiveScopeFilter, currentChapter, projectMode)
@@ -573,7 +573,7 @@ export default function ArtifactsTab({
                 valueLabel={
                   effectiveTypeFilter === "all"
                     ? `All types (${scopedArtifacts.length})`
-                    : getArtifactSubtypeLabel(effectiveTypeFilter)
+                    : getArtifactSubtypeLabel(effectiveTypeFilter, projectMode)
                 }
                 options={[
                   {
@@ -582,7 +582,7 @@ export default function ArtifactsTab({
                   },
                   ...typeOptions.map((type) => ({
                     key: type,
-                    label: `${getArtifactSubtypeLabel(type)}`,
+                    label: `${getArtifactSubtypeLabel(type, projectMode)}`,
                   })),
                 ]}
                 onSelect={(value) => setTypeFilter(value as ArtifactTypeFilter)}
@@ -654,8 +654,8 @@ export default function ArtifactsTab({
               </p>
               <p className="mt-1 break-words text-xs leading-5 text-purple-100/80">
                 {focusNotice.targetLabel
-                  ? `Opened ${getArtifactSubtypeLabel(focusNotice.sectionType)} for "${focusNotice.targetLabel}".`
-                  : `Opened ${getArtifactSubtypeLabel(focusNotice.sectionType)} from a planning note.`}
+                  ? `Opened ${getArtifactSubtypeLabel(focusNotice.sectionType, projectMode)} for "${focusNotice.targetLabel}".`
+                  : `Opened ${getArtifactSubtypeLabel(focusNotice.sectionType, projectMode)} from a planning note.`}
               </p>
             </div>
             <button
@@ -874,7 +874,8 @@ function ArtifactList({
                 <p className="mt-2 text-[11px] text-zinc-400">
                   {formatArtifactListMeta(
                     artifact,
-                    unitLabelAbbreviated
+                    unitLabelAbbreviated,
+                    projectMode
                   )}
                 </p>
               </div>
@@ -1043,7 +1044,7 @@ function ArtifactDetail({
             {labelArtifactKind(artifact.kind)}
           </span>
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-            {getArtifactSubtypeLabel(artifact.subtype)}
+            {getArtifactSubtypeLabel(artifact.subtype, projectMode)}
           </span>
           {artifact.kind === "adaptation" ? (
             <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
@@ -1592,4 +1593,3 @@ function FilterChip({
     </button>
   );
 }
-

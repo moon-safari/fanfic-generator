@@ -1,5 +1,6 @@
 // src/app/lib/modes/newsletter.ts
-import type { ModeConfig } from "./types";
+import { buildNewsletterPlanningPrompt } from "./planning.ts";
+import type { ModeConfig, PlanningSchema } from "./types.ts";
 
 function buildNewsletterMemoryPrompt(
   content: string,
@@ -44,6 +45,33 @@ Issue text:
 ${content}`;
 }
 
+const newsletterPlanningSchema: PlanningSchema = {
+  synopsis: {
+    title: "Project Synopsis",
+    description: "The core promise and direction of the publication.",
+    emptyLabel: "Add a short publication synopsis...",
+  },
+  styleGuide: {
+    title: "Style Guide",
+    description: "Voice, cadence, pacing, and editorial guardrails.",
+    emptyLabel: "Define tone, cadence, pacing, and editorial rules...",
+  },
+  outline: {
+    title: "Outline",
+    description: "Issue-by-issue plan and status map.",
+    emptyLabel: "Add planned issue slots and beats...",
+    openLoopsLabel: "Carry forward",
+  },
+  notes: {
+    title: "Editorial Notes",
+    description:
+      "Audience promises, editorial throughlines, open promises, and research.",
+    emptyLabel: "Capture editorial notes, throughlines, and unresolved promises...",
+    arcsHeading: "Editorial throughlines",
+    threadsHeading: "Open promises",
+  },
+};
+
 export const newsletterMode: ModeConfig = {
   id: "newsletter",
   label: "Newsletter",
@@ -75,6 +103,9 @@ export const newsletterMode: ModeConfig = {
   buildMemoryGenerationPrompt: buildNewsletterMemoryPrompt,
   buildSuggestionPrompt: buildNewsletterSuggestionPrompt,
   buildContextPreamble: (title) => `Project memory for "${title}":`,
+  planningUnitLabel: "topic slot",
+  planningSchema: newsletterPlanningSchema,
+  buildPlanningPrompt: buildNewsletterPlanningPrompt,
   supportsAutoGeneration: false,
   supportsSuggestions: true,
 };

@@ -1,6 +1,7 @@
-import { getAdaptationPreset } from "./adaptations";
-import { hasArcContent, hasThreadContent, normalizeNotesContent } from "./planning";
-import { getProjectUnitLabel } from "./projectMode";
+import { getAdaptationPreset } from "./adaptations.ts";
+import { getModeConfig } from "./modes/registry.ts";
+import { hasArcContent, hasThreadContent, normalizeNotesContent } from "./planning.ts";
+import { getProjectUnitLabel } from "./projectMode.ts";
 import type { ChapterAdaptationResult } from "../types/adaptation";
 import type {
   BibleNotesContent,
@@ -8,52 +9,43 @@ import type {
   BibleSection,
   BibleStyleGuideContent,
   BibleSynopsisContent,
-} from "../types/bible";
+} from "../types/bible.ts";
 import type {
   AdaptationArtifact,
   PlanningArtifact,
   PlanningArtifactContent,
   PlanningArtifactSubtype,
   ProjectArtifact,
-} from "../types/artifact";
-import type { ProjectMode } from "../types/story";
+} from "../types/artifact.ts";
+import type { ProjectMode } from "../types/story.ts";
 
-function getPlanningArtifactConfig(projectMode: ProjectMode): Record<
+export function getPlanningArtifactConfig(projectMode: ProjectMode): Record<
   PlanningArtifactSubtype,
   {
     title: string;
     description: string;
     emptyLabel: string;
+    openLoopsLabel?: string;
+    arcsHeading?: string;
+    threadsHeading?: string;
   }
 > {
-  const unitLabel = getProjectUnitLabel(projectMode);
+  const { planningSchema } = getModeConfig(projectMode);
+
   return {
-    synopsis: {
-      title: "Project Synopsis",
-      description: "The core premise and direction of the work.",
-      emptyLabel: "Add a short project synopsis...",
-    },
-    style_guide: {
-      title: "Style Guide",
-      description: "Voice, tense, pacing, and stylistic guardrails.",
-      emptyLabel: "Define voice, tense, pacing, and stylistic rules...",
-    },
-    outline: {
-      title: "Outline",
-      description: `${capitalize(unitLabel)}-by-${unitLabel} plan and status map.`,
-      emptyLabel: `Add planned ${unitLabel} beats...`,
-    },
-    notes: {
-      title: "Planning Notes",
-      description: "Freeform notes, active arcs, open threads, and research.",
-      emptyLabel: "Capture notes, active arcs, and unresolved threads...",
-    },
+    synopsis: planningSchema.synopsis,
+    style_guide: planningSchema.styleGuide,
+    outline: planningSchema.outline,
+    notes: planningSchema.notes,
   };
 }
 
-export const PLANNING_ARTIFACT_TYPES = Object.keys(
-  getPlanningArtifactConfig("fiction")
-) as PlanningArtifactSubtype[];
+export const PLANNING_ARTIFACT_TYPES: PlanningArtifactSubtype[] = [
+  "synopsis",
+  "style_guide",
+  "outline",
+  "notes",
+];
 
 export function toAdaptationArtifact(
   result: ChapterAdaptationResult,
@@ -117,9 +109,12 @@ export function toPlanningArtifact(
   };
 }
 
-export function getArtifactSubtypeLabel(subtype: ProjectArtifact["subtype"]) {
+export function getArtifactSubtypeLabel(
+  subtype: ProjectArtifact["subtype"],
+  projectMode: ProjectMode = "fiction"
+) {
   if (isPlanningArtifactSubtype(subtype)) {
-    return getPlanningArtifactConfig("fiction")[subtype].title;
+    return getPlanningArtifactConfig(projectMode)[subtype].title;
   }
 
   return getAdaptationPreset(subtype).label;
@@ -156,6 +151,8 @@ export function formatPlanningArtifactContent(
   emptyLabel?: string,
   projectMode: ProjectMode = "fiction"
 ) {
+  const planningConfig = getPlanningArtifactConfig(projectMode);
+
   switch (subtype) {
     case "synopsis": {
       const value = (content as BibleSynopsisContent).text.trim();
@@ -206,7 +203,9 @@ export function formatPlanningArtifactContent(
         }
 
         if (openLoops.length > 0) {
-          sections.push(`Open threads: ${openLoops.join("; ")}`);
+          sections.push(
+            `${planningConfig.outline.openLoopsLabel ?? "Open threads"}: ${openLoops.join("; ")}`
+          );
         }
 
         return sections.join("\n");
@@ -231,7 +230,7 @@ export function formatPlanningArtifactContent(
       if (arcs.length > 0) {
         sections.push(
           [
-            "Active arcs:",
+            `${planningConfig.notes.arcsHeading ?? "Active arcs"}:`,
             ...arcs.map((arc) => {
               const details = [
                 `${arc.title.trim() || "Untitled arc"} (${capitalize(arc.status)})`,
@@ -258,7 +257,7 @@ export function formatPlanningArtifactContent(
       if (threads.length > 0) {
         sections.push(
           [
-            "Open threads:",
+            `${planningConfig.notes.threadsHeading ?? "Open threads"}:`,
             ...threads.map((thread) => {
               const details = [
                 `${thread.title.trim() || "Untitled thread"} (${capitalize(thread.status)})`,
@@ -298,7 +297,7 @@ export function formatPlanningArtifactContent(
 function isPlanningArtifactSubtype(
   subtype: ProjectArtifact["subtype"]
 ): subtype is PlanningArtifactSubtype {
-  return subtype in getPlanningArtifactConfig("fiction");
+  return PLANNING_ARTIFACT_TYPES.includes(subtype as PlanningArtifactSubtype);
 }
 
 function capitalize(value: string) {

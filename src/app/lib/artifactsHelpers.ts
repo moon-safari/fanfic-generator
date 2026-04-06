@@ -122,11 +122,12 @@ export function summarizeSelectionValue(value: string): string {
 
 export function formatArtifactListMeta(
   artifact: ProjectArtifact,
-  unitLabelAbbreviated: string
+  unitLabelAbbreviated: string,
+  projectMode: ProjectMode
 ) {
   return [
     labelArtifactKind(artifact.kind),
-    getArtifactSubtypeLabel(artifact.subtype),
+    getArtifactSubtypeLabel(artifact.subtype, projectMode),
     artifact.kind === "adaptation"
       ? `${unitLabelAbbreviated} ${artifact.chapterNumber}`
       : artifact.persisted
