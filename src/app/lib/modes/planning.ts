@@ -57,6 +57,20 @@ export function buildScreenplayPlanningPrompt(
   });
 }
 
+export function buildComicsPlanningPrompt(
+  args: ModePlanningPromptArgs
+): string {
+  return buildStructuredPlanningPrompt(args, {
+    activeHeading: "VISUAL AND STORY PRESSURE TO HONOR:",
+    dueHeadingPrefix: "REVEALS DUE BY",
+    openHeading: "OTHER OPEN PAGE-TURN OBLIGATIONS:",
+    notesHeading: "VISUAL NOTES",
+    keyRevealLabel: "Expected page-turn or reveal",
+    openLoopsLabel: (unitLabelLowercase) =>
+      `Reveals meant to stay open after this ${unitLabelLowercase}`,
+  });
+}
+
 function buildStructuredPlanningPrompt(
   { outline, notes, unitNumber, projectMode }: ModePlanningPromptArgs,
   copy: PlanningPromptCopy

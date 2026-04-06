@@ -1,11 +1,13 @@
 // src/app/lib/modes/registry.ts
 import type { ProjectMode } from "../../types/story.ts";
 import type { ModeConfig } from "./types.ts";
+import { comicsMode } from "./comics.ts";
 import { fictionMode } from "./fiction.ts";
 import { newsletterMode } from "./newsletter.ts";
 import { screenplayMode } from "./screenplay.ts";
 
 const MODE_REGISTRY: Record<ProjectMode, ModeConfig> = {
+  comics: comicsMode,
   fiction: fictionMode,
   newsletter: newsletterMode,
   screenplay: screenplayMode,

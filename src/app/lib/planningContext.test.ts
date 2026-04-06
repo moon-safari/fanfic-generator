@@ -75,3 +75,21 @@ test("newsletter mode uses newsletter-native planning phrasing", () => {
   assert.match(prompt, /EDITORIAL THROUGHLINES TO HONOR:/);
   assert.match(prompt, /OPEN PROMISES DUE BY ISSUE 4:/);
 });
+
+test("comics mode uses page-native planning phrasing", () => {
+  const mode = getModeConfig("comics");
+
+  assert.equal(mode.planningUnitLabel, "page beat");
+  assert.equal(mode.planningSchema.notes.title, "Visual Notes");
+
+  const prompt = buildPlanningPromptContext({
+    outline,
+    notes,
+    unitNumber: 4,
+    projectMode: "comics",
+  });
+
+  assert.match(prompt, /TARGET PAGE PLAN:/);
+  assert.match(prompt, /VISUAL AND STORY PRESSURE TO HONOR:/);
+  assert.match(prompt, /REVEALS DUE BY PAGE 4:/);
+});

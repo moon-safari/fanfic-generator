@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { StoryFormData } from "../../types/story";
 import { buildChapter1Prompt } from "../../lib/prompts";
 import {
+  isComicsFormData,
   isNewsletterFormData,
   isScreenplayFormData,
 } from "../../lib/projectMode";
@@ -55,6 +56,17 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required screenplay fields" },
+        { status: 400 }
+      );
+    }
+  } else if (isComicsFormData(body)) {
+    if (
+      body.title.trim().length < 2
+      || !Array.isArray(body.tone)
+      || body.tone.length < 1
+    ) {
+      return NextResponse.json(
+        { error: "Missing required comics fields" },
         { status: 400 }
       );
     }

@@ -1,4 +1,6 @@
 import type {
+  ComicsModeConfig,
+  ComicsStoryFormData,
   NewsletterModeConfig,
   NewsletterStoryFormData,
   ProjectMode,
@@ -19,6 +21,12 @@ export function isScreenplayFormData(
   value: StoryFormData
 ): value is ScreenplayStoryFormData {
   return value.projectMode === "screenplay";
+}
+
+export function isComicsFormData(
+  value: StoryFormData
+): value is ComicsStoryFormData {
+  return value.projectMode === "comics";
 }
 
 export function isNewsletterStory(story: Story): boolean {
@@ -43,6 +51,16 @@ export function getScreenplayModeConfig(
   }
 
   return parseScreenplayModeConfig(story.modeConfig);
+}
+
+export function getComicsModeConfig(
+  story: Pick<Story, "projectMode" | "modeConfig">
+): ComicsModeConfig | null {
+  if (story.projectMode !== "comics" || !story.modeConfig) {
+    return null;
+  }
+
+  return parseComicsModeConfig(story.modeConfig);
 }
 
 export function parseNewsletterModeConfig(
@@ -119,6 +137,31 @@ export function parseScreenplayModeConfig(
   };
 }
 
+export function parseComicsModeConfig(input: unknown): ComicsModeConfig | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<ComicsModeConfig>;
+  if (
+    candidate.draftingPreference !== "comic_script_pages"
+    || candidate.formatStyle !== "comic_script"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "comic_script_pages",
+    formatStyle: "comic_script",
+    seriesEngine:
+      candidate.seriesEngine === "issue"
+      || candidate.seriesEngine === "one_shot"
+      || candidate.seriesEngine === "graphic_novel"
+        ? candidate.seriesEngine
+        : undefined,
+  };
+}
+
 export function parseStoryModeConfig(
   projectMode: ProjectMode,
   input: unknown
@@ -131,6 +174,10 @@ export function parseStoryModeConfig(
     return parseScreenplayModeConfig(input);
   }
 
+  if (projectMode === "comics") {
+    return parseComicsModeConfig(input);
+  }
+
   return {};
 }
 
@@ -140,6 +187,9 @@ export function getProjectModeLabel(mode: ProjectMode): string {
   }
   if (mode === "screenplay") {
     return "Screenplay";
+  }
+  if (mode === "comics") {
+    return "Comics";
   }
   return "Fiction";
 }
@@ -153,6 +203,16 @@ export function getProjectUnitLabel(
   } = {}
 ): string {
   const { count = 1, capitalize = false, abbreviated = false } = options;
+  if (mode === "comics") {
+    const singular = abbreviated
+      ? "Pg."
+      : capitalize
+        ? "Page"
+        : "page";
+    const plural = capitalize ? "Pages" : "pages";
+    return count === 1 ? singular : plural;
+  }
+
   if (mode === "screenplay") {
     const singular = abbreviated
       ? "Sc."
@@ -195,6 +255,9 @@ export function getContinueActionLabel(mode: ProjectMode): string {
   if (mode === "screenplay") {
     return "Continue Scene";
   }
+  if (mode === "comics") {
+    return "Continue Page";
+  }
   return "Continue Story";
 }
 
@@ -204,6 +267,9 @@ export function getLoadingContinueLabel(mode: ProjectMode): string {
   }
   if (mode === "screenplay") {
     return "Writing the next scene...";
+  }
+  if (mode === "comics") {
+    return "Writing the next page...";
   }
   return "Writing the next chapter...";
 }

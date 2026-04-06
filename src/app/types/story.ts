@@ -1,6 +1,6 @@
 export type RelationshipType = "gen" | "mm" | "fm" | "ff" | "multi" | "other";
 export type Rating = "general" | "teen" | "mature" | "explicit";
-export type ProjectMode = "fiction" | "newsletter" | "screenplay";
+export type ProjectMode = "fiction" | "newsletter" | "screenplay" | "comics";
 export type NewsletterCadence =
   | "weekly"
   | "biweekly"
@@ -8,6 +8,8 @@ export type NewsletterCadence =
   | "irregular";
 export type ScreenplayDraftingPreference = "script_pages" | "beat_draft";
 export type ScreenplayStoryEngine = "feature" | "pilot" | "short";
+export type ComicsDraftingPreference = "comic_script_pages";
+export type ComicsSeriesEngine = "issue" | "one_shot" | "graphic_novel";
 
 export interface NewsletterModeConfig {
   topic: string;
@@ -26,10 +28,17 @@ export interface ScreenplayModeConfig {
   storyEngine?: ScreenplayStoryEngine;
 }
 
+export interface ComicsModeConfig {
+  draftingPreference: ComicsDraftingPreference;
+  formatStyle: "comic_script";
+  seriesEngine?: ComicsSeriesEngine;
+}
+
 export type StoryModeConfig =
   | Record<string, never>
   | NewsletterModeConfig
-  | ScreenplayModeConfig;
+  | ScreenplayModeConfig
+  | ComicsModeConfig;
 
 export interface Chapter {
   id: string;
@@ -89,10 +98,18 @@ export interface ScreenplayStoryFormData {
   storyEngine?: ScreenplayStoryEngine;
 }
 
+export interface ComicsStoryFormData {
+  projectMode: "comics";
+  title: string;
+  tone: string[];
+  seriesEngine?: ComicsSeriesEngine;
+}
+
 export type StoryFormData =
   | FictionStoryFormData
   | NewsletterStoryFormData
-  | ScreenplayStoryFormData;
+  | ScreenplayStoryFormData
+  | ComicsStoryFormData;
 
 export interface GenerateResponse {
   title: string;

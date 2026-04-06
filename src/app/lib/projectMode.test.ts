@@ -5,6 +5,7 @@ import {
   getLoadingContinueLabel,
   getProjectModeLabel,
   getProjectUnitLabel,
+  parseComicsModeConfig,
   parseStoryModeConfig,
   parseScreenplayModeConfig,
 } from "./projectMode.ts";
@@ -69,6 +70,60 @@ test("parseStoryModeConfig supports screenplay mode", () => {
       draftingPreference: "beat_draft",
       formatStyle: "fountain",
       storyEngine: "feature",
+    }
+  );
+});
+
+test("comics mode exposes page labels and comics defaults", () => {
+  const mode = getModeConfig("comics");
+
+  assert.equal(getProjectModeLabel("comics"), "Comics");
+  assert.equal(getProjectUnitLabel("comics"), "page");
+  assert.equal(getProjectUnitLabel("comics", { capitalize: true }), "Page");
+  assert.equal(getContinueActionLabel("comics"), "Continue Page");
+  assert.equal(
+    getLoadingContinueLabel("comics"),
+    "Writing the next page..."
+  );
+  assert.equal(mode.contentUnitSingular, "page");
+  assert.equal(
+    mode.planningSchema.outline.description,
+    "Page-by-page plan and status map."
+  );
+  assert.deepEqual(mode.coreTypes, [
+    "character",
+    "location",
+    "visual_motif",
+    "panel_layout",
+    "narrative_device",
+  ]);
+});
+
+test("parseComicsModeConfig normalizes valid comics config", () => {
+  const parsed = parseComicsModeConfig({
+    draftingPreference: "comic_script_pages",
+    formatStyle: "comic_script",
+    seriesEngine: "issue",
+  });
+
+  assert.deepEqual(parsed, {
+    draftingPreference: "comic_script_pages",
+    formatStyle: "comic_script",
+    seriesEngine: "issue",
+  });
+});
+
+test("parseStoryModeConfig supports comics mode", () => {
+  assert.deepEqual(
+    parseStoryModeConfig("comics", {
+      draftingPreference: "comic_script_pages",
+      formatStyle: "comic_script",
+      seriesEngine: "graphic_novel",
+    }),
+    {
+      draftingPreference: "comic_script_pages",
+      formatStyle: "comic_script",
+      seriesEngine: "graphic_novel",
     }
   );
 });
