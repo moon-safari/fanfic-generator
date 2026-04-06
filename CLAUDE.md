@@ -1,10 +1,10 @@
-# Writing OS
+﻿# Writing OS
 
 ## What this is
 
 The OS for Writing.
 
-A cross between Sudowrite (AI prose quality) and Novelcrafter (structured project memory), but built to work across every kind of writing — not just fiction.
+A cross between Sudowrite (AI prose quality) and Novelcrafter (structured project memory), but built to work across every kind of writing â€” not just fiction.
 
 ### Supported modes (current and planned)
 
@@ -18,11 +18,11 @@ A cross between Sudowrite (AI prose quality) and Novelcrafter (structured projec
 
 ### What makes this different
 
-1. **Living project memory** — not a blank prompt box. The system remembers characters, facts, lore, plans, and constraints across sessions.
-2. **AI-native workflows** — model output becomes durable project state that improves future work, not disposable text.
-3. **One project, many outputs** — the same underlying truth powers drafts, recaps, teasers, beat sheets, newsletters, and adaptations.
-4. **Mode packs, not feature sprawl** — each writing type gets its own schema, planning, and review layer built on shared infrastructure.
-5. **Writer stays in control** — inspect what the system knows, review proposed changes, decide what becomes canonical.
+1. **Living project memory** â€” not a blank prompt box. The system remembers characters, facts, lore, plans, and constraints across sessions.
+2. **AI-native workflows** â€” model output becomes durable project state that improves future work, not disposable text.
+3. **One project, many outputs** â€” the same underlying truth powers drafts, recaps, teasers, beat sheets, newsletters, and adaptations.
+4. **Mode packs, not feature sprawl** â€” each writing type gets its own schema, planning, and review layer built on shared infrastructure.
+5. **Writer stays in control** â€” inspect what the system knows, review proposed changes, decide what becomes canonical.
 
 ## Core product rules
 
@@ -121,38 +121,39 @@ docs/                            - product, strategy, and build specs
 6. Streaming generation with progressive Tiptap insertion
 7. Craft tools (brainstorm, rewrite, expand, describe) with side panel
 8. Mobile polish (safe areas, touch targets, bottom sheets)
-9. Mega-component decomposition (StoryEditor 1058→751 lines, ArtifactsTab 2646→1623 lines)
+9. Mega-component decomposition (StoryEditor 1058â†’751 lines, ArtifactsTab 2646â†’1623 lines)
 10. Fiction flow friction fixes (streaming recovery, chapter nav guard, continuity toast, autosave feedback, craft breadcrumb)
-11. Codex → Memory rename + mode-agnostic memory engine (ModeConfig registry)
+11. Codex â†’ Memory rename + mode-agnostic memory engine (ModeConfig registry)
 
 12. Phase A simplification & polish (progressive disclosure, mode-aware microcopy, empty states, 375px narrow-width pass)
+13. Screenplay mode v1 (scene-based drafting, durable screenplay preferences, screenplay-native planning/memory semantics, screenplay outputs, Fountain export for script-page projects)
 
 ### What's next
 
 Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadmap.md`
 
 **Phase A: Simplification & Polish** (completed 2026-04-06)
-1. Progressive disclosure audit — default to Write → Remember → Review → Package → Export; everything else behind Advanced
-2. Microcopy & naming cleanup — finish plain-language rename (Artifacts → Project, Adapt → Outputs in code paths), thread `contentUnitLabel` to remaining ContextConsole helpers
-3. Empty states & first-run experience — meaningful empty states, guided first chapter, mode-appropriate defaults
-4. Mobile & narrow-width pass — verify 375px, touch targets, side panel overflow
+1. Progressive disclosure audit â€” default to Write â†’ Remember â†’ Review â†’ Package â†’ Export; everything else behind Advanced
+2. Microcopy & naming cleanup â€” finish plain-language rename (Artifacts â†’ Project, Adapt â†’ Outputs in code paths), thread `contentUnitLabel` to remaining ContextConsole helpers
+3. Empty states & first-run experience â€” meaningful empty states, guided first chapter, mode-appropriate defaults
+4. Mobile & narrow-width pass â€” verify 375px, touch targets, side panel overflow
 
-**Phase B: Planning-Aware Generation** (immediate priority)
-1. Planning context in continuation — inject outline beats, arc guidance, thread notes into generation prompts
-2. Planning context in continuity review — check drift against plan, not just prior chapters
-3. Planning-to-memory bridge — auto-suggest memory updates when planned beats are written
-4. Mode-aware planning schemas — extend ModeConfig with planning unit labels and schemas
+**Phase B: Planning-Aware Generation** (completed 2026-04-06)
+1. Planning context in continuation â€” inject outline beats, arc guidance, thread notes into generation prompts
+2. Planning context in continuity review â€” check drift against plan, not just prior chapters
+3. Planning-to-memory bridge â€” auto-suggest memory updates when planned beats are written
+4. Mode-aware planning schemas â€” extend ModeConfig with planning unit labels and schemas
 
-**Phase C: Mode Pack Expansion** (breadth)
-1. Screenplay mode — scenes, beat sheets, act structure, formatted output
-2. Comics / graphic narrative mode — pages/panels, visual pacing, script format
-3. Game writing / narrative design mode — quests, branching, dialogue trees
-4. Non-fiction / articles / essays mode — sections, arguments, sources, bibliography
+**Phase C: Mode Pack Expansion** (in progress)
+1. Screenplay mode â€” scenes, beat sheets, act structure, formatted output (completed 2026-04-06)
+2. Comics / graphic narrative mode â€” pages/panels, visual pacing, script format
+3. Game writing / narrative design mode â€” quests, branching, dialogue trees
+4. Non-fiction / articles / essays mode â€” sections, arguments, sources, bibliography
 
 **Phase D: Adaptation Studio & Publishing** (platform)
-1. Cross-mode adaptation chains — chapter → screenplay scene → comic page
-2. Export & distribution — PDF, DOCX, EPUB, Fountain, publishing pipeline
-3. Collaborative review — shared access, roles, comment workflows (future)
+1. Cross-mode adaptation chains â€” chapter â†’ screenplay scene â†’ comic page
+2. Export & distribution â€” PDF, DOCX, EPUB, Fountain, publishing pipeline
+3. Collaborative review â€” shared access, roles, comment workflows (future)
 
 ### Simplification principles
 
