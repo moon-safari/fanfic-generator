@@ -61,7 +61,7 @@ export default function CustomFieldEditor({
           {fields.map((field, index) => (
             <div
               key={`${field.key}-${index}`}
-              className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2"
+              className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
             >
               <input
                 value={field.key}
@@ -78,7 +78,7 @@ export default function CustomFieldEditor({
               <button
                 type="button"
                 onClick={() => removeField(index)}
-                className="rounded-xl border border-zinc-800 px-2 text-zinc-400 transition-colors hover:border-red-500 hover:text-red-300"
+                className="min-h-[44px] w-full rounded-xl border border-zinc-800 px-3 text-zinc-400 transition-colors hover:border-red-500 hover:text-red-300 sm:min-w-[44px] sm:w-auto sm:px-2"
                 aria-label="Remove field"
               >
                 <X className="h-4 w-4" />

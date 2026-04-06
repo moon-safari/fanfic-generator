@@ -26,6 +26,7 @@ import type {
 interface SuggestionListProps {
   currentChapter: number;
   currentChapterId?: string;
+  contentUnitLabel?: string;
   suggestions: MemoryChangeSuggestion[];
   entries: MemoryEntry[];
   relationships: MemoryRelationship[];
@@ -52,6 +53,7 @@ interface ActionNotice {
 export default function SuggestionList({
   currentChapter,
   currentChapterId,
+  contentUnitLabel = "Chapter",
   suggestions,
   entries,
   relationships,
@@ -63,6 +65,7 @@ export default function SuggestionList({
   onReject,
   onOpenEntry,
 }: SuggestionListProps) {
+  const contentUnitLabelLower = contentUnitLabel.toLowerCase();
   const [bulkAction, setBulkAction] = useState<BulkActionState | null>(null);
   const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
   const [showHandledSuggestions, setShowHandledSuggestions] = useState(false);
@@ -141,7 +144,7 @@ export default function SuggestionList({
           <div>
             <h3 className="text-sm font-semibold text-white">Updates</h3>
             <p className="text-xs text-zinc-500">
-              Review suggested memory changes for Chapter {currentChapter}.
+              Review suggested memory changes for {contentUnitLabel} {currentChapter}.
             </p>
           </div>
           <button
@@ -194,8 +197,8 @@ export default function SuggestionList({
                 </h4>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
                   {currentChapterId
-                    ? "Run detection to look for new facts, links, and chapter-aware state changes."
-                    : "Change detection becomes available after the chapter is saved."}
+                    ? `Run detection to look for new facts, links, and state changes tied to this ${contentUnitLabelLower}.`
+                    : `Change detection becomes available after this ${contentUnitLabelLower} is saved.`}
                 </p>
               </div>
             ) : (
@@ -248,6 +251,7 @@ export default function SuggestionList({
                     <SuggestionCard
                       key={suggestion.id}
                       suggestion={suggestion}
+                      contentUnitLabel={contentUnitLabel}
                       entriesById={entriesById}
                       entriesByName={entriesByName}
                       relationships={relationships}
@@ -295,6 +299,7 @@ export default function SuggestionList({
                       <SuggestionCard
                         key={suggestion.id}
                         suggestion={suggestion}
+                        contentUnitLabel={contentUnitLabel}
                         entriesById={entriesById}
                         entriesByName={entriesByName}
                         relationships={relationships}
@@ -318,6 +323,7 @@ export default function SuggestionList({
 
 interface SuggestionCardProps {
   suggestion: MemoryChangeSuggestion;
+  contentUnitLabel: string;
   entriesById: Map<string, MemoryEntry>;
   entriesByName: Map<string, MemoryEntry>;
   relationships: MemoryRelationship[];
@@ -330,6 +336,7 @@ interface SuggestionCardProps {
 
 function SuggestionCard({
   suggestion,
+  contentUnitLabel,
   entriesById,
   entriesByName,
   relationships,
@@ -339,8 +346,8 @@ function SuggestionCard({
   onReject,
   onOpenEntry,
 }: SuggestionCardProps) {
-  const title = getSuggestionTitle(suggestion);
-  const summary = getSuggestionSummary(suggestion);
+  const title = getSuggestionTitle(suggestion, contentUnitLabel);
+  const summary = getSuggestionSummary(suggestion, contentUnitLabel);
   const openEntryId = getSuggestionOpenEntryId(suggestion);
 
   return (
@@ -364,7 +371,7 @@ function SuggestionCard({
           {suggestion.confidence} confidence
         </span>
         <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[11px] text-zinc-400">
-          Ch. {suggestion.chapterNumber}
+          {contentUnitLabel} {suggestion.chapterNumber}
         </span>
       </div>
 
@@ -375,6 +382,7 @@ function SuggestionCard({
 
       <SuggestionPreview
         suggestion={suggestion}
+        contentUnitLabel={contentUnitLabel}
         entriesById={entriesById}
         entriesByName={entriesByName}
         relationships={relationships}
@@ -468,6 +476,7 @@ function SuggestionCard({
 
 interface SuggestionPreviewProps {
   suggestion: MemoryChangeSuggestion;
+  contentUnitLabel: string;
   entriesById: Map<string, MemoryEntry>;
   entriesByName: Map<string, MemoryEntry>;
   relationships: MemoryRelationship[];
@@ -475,6 +484,7 @@ interface SuggestionPreviewProps {
 
 function SuggestionPreview({
   suggestion,
+  contentUnitLabel,
   entriesById,
   entriesByName,
   relationships,
@@ -508,6 +518,7 @@ function SuggestionPreview({
       return (
         <ProgressionPreview
           payload={suggestion.payload as CreateProgressionSuggestionPayload}
+          contentUnitLabel={contentUnitLabel}
           entry={entriesById.get(
             (suggestion.payload as CreateProgressionSuggestionPayload).entryId
           )}
@@ -686,9 +697,11 @@ function RelationshipPreview({
 
 function ProgressionPreview({
   payload,
+  contentUnitLabel,
   entry,
 }: {
   payload: CreateProgressionSuggestionPayload;
+  contentUnitLabel: string;
   entry?: MemoryEntry;
 }) {
   if (!entry) {
@@ -710,11 +723,11 @@ function ProgressionPreview({
     <div className="mt-3 space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <PreviewColumn
-          label={`Before Ch. ${Math.max(1, payload.chapterNumber - 1)}`}
+          label={`Before ${contentUnitLabel} ${Math.max(1, payload.chapterNumber - 1)}`}
           body={<ResolvedEntryPreview entry={before} />}
         />
         <PreviewColumn
-          label={`After Ch. ${payload.chapterNumber}`}
+          label={`After ${contentUnitLabel} ${payload.chapterNumber}`}
           body={<ResolvedEntryPreview entry={after} />}
         />
       </div>
@@ -878,7 +891,10 @@ function ChipList({
   );
 }
 
-function getSuggestionTitle(suggestion: MemoryChangeSuggestion): string {
+function getSuggestionTitle(
+  suggestion: MemoryChangeSuggestion,
+  contentUnitLabel: string
+): string {
   switch (suggestion.changeType) {
     case "create_entry": {
       const payload = suggestion.payload as CreateEntrySuggestionPayload;
@@ -894,7 +910,7 @@ function getSuggestionTitle(suggestion: MemoryChangeSuggestion): string {
     }
     case "create_progression": {
       const payload = suggestion.payload as CreateProgressionSuggestionPayload;
-      return `Update Chapter ${payload.chapterNumber} truth for ${payload.entryName}`;
+      return `Update ${contentUnitLabel} ${payload.chapterNumber} truth for ${payload.entryName}`;
     }
     case "flag_stale_entry": {
       const payload = suggestion.payload as FlagStaleEntrySuggestionPayload;
@@ -905,11 +921,19 @@ function getSuggestionTitle(suggestion: MemoryChangeSuggestion): string {
   }
 }
 
-function getSuggestionSummary(suggestion: MemoryChangeSuggestion): string {
+function getSuggestionSummary(
+  suggestion: MemoryChangeSuggestion,
+  contentUnitLabel: string
+): string {
+  const contentUnitLabelLower = contentUnitLabel.toLowerCase();
+
   switch (suggestion.changeType) {
     case "create_entry": {
       const payload = suggestion.payload as CreateEntrySuggestionPayload;
-      return payload.description || "Add a new story fact suggested from the chapter.";
+      return (
+        payload.description
+        || `Add a new fact suggested from this ${contentUnitLabelLower}.`
+      );
     }
     case "update_entry_aliases": {
       const payload = suggestion.payload as UpdateEntryAliasesSuggestionPayload;
@@ -927,7 +951,7 @@ function getSuggestionSummary(suggestion: MemoryChangeSuggestion): string {
       const payload = suggestion.payload as CreateProgressionSuggestionPayload;
       return payload.descriptionOverride?.trim()
         || payload.notes?.trim()
-        || "Apply a chapter-aware state change to this entry.";
+        || `Apply a saved state change for this entry at ${contentUnitLabelLower} ${payload.chapterNumber}.`;
     }
     case "flag_stale_entry": {
       const payload = suggestion.payload as FlagStaleEntrySuggestionPayload;

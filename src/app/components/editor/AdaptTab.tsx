@@ -128,8 +128,7 @@ export default function AdaptTab({
   const [fillingMissingChain, setFillingMissingChain] = useState(false);
   const [fillingMissingOutputType, setFillingMissingOutputType] =
     useState<AdaptationOutputType | null>(null);
-  const [showWorkflowDetails, setShowWorkflowDetails] = useState(false);
-  const [showResultActions, setShowResultActions] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [savingSummary, setSavingSummary] = useState(false);
   const [summarySaveMessage, setSummarySaveMessage] = useState<string | null>(null);
   const [summarySaveTone, setSummarySaveTone] = useState<"success" | "error">(
@@ -222,11 +221,16 @@ export default function AdaptTab({
   });
 
   useEffect(() => {
-    setShowResultActions(false);
     setShowOfficialEditor(false);
     setSummarySaveMessage(null);
     setSummarySaveTone("success");
   }, [activeOutputType, currentChapterId]);
+
+  useEffect(() => {
+    if (!showAdvanced) {
+      setShowOfficialEditor(false);
+    }
+  }, [showAdvanced]);
 
   useEffect(() => {
     if (projectMode !== "newsletter" || !currentChapterId) {
@@ -427,35 +431,10 @@ export default function AdaptTab({
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-white">Output workflow</h3>
                 <p className="mt-1 text-xs leading-5 text-zinc-500">
-                  Choose the set of outputs you want to create.
+                  Use the default path below. Open Advanced for workflow setup
+                  and lower-frequency controls.
                 </p>
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {chainPresets.map((preset) => {
-                const selected = preset.id === selectedChainId;
-
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => onSelectChainId(preset.id)}
-                    className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
-                      selected
-                        ? "border-cyan-500/50 bg-cyan-500/10 text-white"
-                        : "border-zinc-800 bg-black/20 text-zinc-300 hover:border-zinc-600 hover:text-white"
-                    }`}
-                  >
-                    <p className="text-xs font-semibold">{preset.label}</p>
-                    <p className="mt-1 text-[11px] opacity-70">
-                      {preset.outputTypes
-                        .map((outputType) => getPresetLabel(outputType))
-                        .join(" -> ")}
-                    </p>
-                  </button>
-                );
-              })}
             </div>
 
             <div className="rounded-2xl border border-zinc-900 bg-black/20 px-3 py-3">
@@ -566,22 +545,48 @@ export default function AdaptTab({
                   )}
                   <button
                     type="button"
-                    onClick={() => setShowWorkflowDetails((prev) => !prev)}
+                    onClick={() => setShowAdvanced((prev) => !prev)}
                     className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
                   >
-                    Workflow details
+                    {showAdvanced ? "Hide advanced" : "Advanced"}
                     <ChevronDown
                       className={`h-4 w-4 transition-transform ${
-                        showWorkflowDetails ? "rotate-180" : ""
+                        showAdvanced ? "rotate-180" : ""
                       }`}
                     />
                   </button>
                 </div>
               </div>
 
-              {showWorkflowDetails && (
+              {showAdvanced && (
                 <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-3 py-3">
                   <div className="flex flex-wrap gap-2">
+                    {chainPresets.map((preset) => {
+                      const selected = preset.id === selectedChainId;
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => onSelectChainId(preset.id)}
+                          className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
+                            selected
+                              ? "border-cyan-500/50 bg-cyan-500/10 text-white"
+                              : "border-zinc-800 bg-black/20 text-zinc-300 hover:border-zinc-600 hover:text-white"
+                          }`}
+                        >
+                          <p className="text-xs font-semibold">{preset.label}</p>
+                          <p className="mt-1 text-[11px] opacity-70">
+                            {preset.outputTypes
+                              .map((outputType) => getPresetLabel(outputType))
+                              .join(" -> ")}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {!selectedChainReady && nextMissingOutputType && (
                       <button
                         type="button"
@@ -801,53 +806,16 @@ export default function AdaptTab({
                         : `Save as ${unitLabel} summary`}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(currentResult.content);
-                    }}
-                    className="hidden items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white sm:inline-flex"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowResultActions((prev) => !prev)}
-                    className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
-                  >
-                    More actions
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        showResultActions ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
                 </div>
 
-                {showResultActions && (
+                {showAdvanced && (
                   <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-black/20 p-3">
-                    {canPromoteToSummary && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void handlePromoteToSummary();
-                        }}
-                        disabled={savingSummary}
-                        className="inline-flex items-center gap-1 rounded-xl border border-cyan-700 px-3 py-2 text-sm text-cyan-200 transition-colors hover:border-cyan-500 hover:text-white sm:hidden disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <FileText className="h-4 w-4" />
-                        {savingSummary
-                          ? "Saving summary..."
-                          : `Save as ${unitLabel} summary`}
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => {
                         void navigator.clipboard.writeText(currentResult.content);
                       }}
-                      className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white sm:hidden"
+                      className="inline-flex items-center gap-1 rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
                     >
                       <Copy className="h-4 w-4" />
                       Copy
@@ -880,7 +848,7 @@ export default function AdaptTab({
               </div>
             )}
 
-            {canManageCanonicalSelection && activeSelectionField && (
+            {showAdvanced && canManageCanonicalSelection && activeSelectionField && (
               <div className="mt-4 rounded-3xl border border-cyan-500/20 bg-cyan-500/5 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">

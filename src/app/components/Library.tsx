@@ -14,17 +14,32 @@ import type { Story } from "../types/story";
 interface LibraryProps {
   stories: Story[];
   onSelectStory: (story: Story) => void;
+  onCreateFirstProject?: () => void;
 }
 
-export default function Library({ stories, onSelectStory }: LibraryProps) {
+export default function Library({
+  stories,
+  onSelectStory,
+  onCreateFirstProject,
+}: LibraryProps) {
   if (stories.length === 0) {
     return (
-      <div className="py-16 text-center">
+      <div className="rounded-[28px] border border-dashed border-zinc-800 bg-zinc-950/60 px-6 py-12 text-center">
         <BookOpen className="mx-auto mb-4 h-12 w-12 text-zinc-600" />
-        <p className="text-lg text-zinc-400">No projects yet</p>
-        <p className="mt-1 text-sm text-zinc-500">
-          Start a fiction or newsletter project to open your workspace.
+        <p className="text-lg font-semibold text-zinc-100">No projects yet</p>
+        <p className="mt-2 text-sm leading-7 text-zinc-400">
+          Start a new fiction or newsletter project to open your writing
+          workspace, save memory, and build outputs from the same draft.
         </p>
+        {onCreateFirstProject && (
+          <button
+            type="button"
+            onClick={onCreateFirstProject}
+            className="mt-5 inline-flex items-center justify-center rounded-2xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500"
+          >
+            Start new project
+          </button>
+        )}
       </div>
     );
   }

@@ -125,17 +125,19 @@ docs/                            - product, strategy, and build specs
 10. Fiction flow friction fixes (streaming recovery, chapter nav guard, continuity toast, autosave feedback, craft breadcrumb)
 11. Codex → Memory rename + mode-agnostic memory engine (ModeConfig registry)
 
+12. Phase A simplification & polish (progressive disclosure, mode-aware microcopy, empty states, 375px narrow-width pass)
+
 ### What's next
 
 Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadmap.md`
 
-**Phase A: Simplification & Polish** (immediate priority)
+**Phase A: Simplification & Polish** (completed 2026-04-06)
 1. Progressive disclosure audit — default to Write → Remember → Review → Package → Export; everything else behind Advanced
 2. Microcopy & naming cleanup — finish plain-language rename (Artifacts → Project, Adapt → Outputs in code paths), thread `contentUnitLabel` to remaining ContextConsole helpers
 3. Empty states & first-run experience — meaningful empty states, guided first chapter, mode-appropriate defaults
 4. Mobile & narrow-width pass — verify 375px, touch targets, side panel overflow
 
-**Phase B: Planning-Aware Generation** (depth)
+**Phase B: Planning-Aware Generation** (immediate priority)
 1. Planning context in continuation — inject outline beats, arc guidance, thread notes into generation prompts
 2. Planning context in continuity review — check drift against plan, not just prior chapters
 3. Planning-to-memory bridge — auto-suggest memory updates when planned beats are written

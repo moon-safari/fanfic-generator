@@ -228,7 +228,8 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           Choose what you want to start
         </h2>
         <p className="mt-2 text-sm leading-6 text-zinc-400">
-          Pick fiction or newsletter. You can add more details later.
+          Pick a mode, start with the minimum setup, and open more options only
+          if you need them.
         </p>
 
         <div className="mt-4 inline-flex rounded-2xl border border-zinc-800 bg-zinc-950/80 p-1">
@@ -252,7 +253,7 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
               Fiction
             </p>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Start with the basics. Open more setup only if you need it.
+              Choose a fandom, a few characters, and a tone. Everything else can wait.
             </p>
           </div>
 
@@ -329,7 +330,7 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
                   Newsletter
                 </p>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Start with the basics. Open more setup only if you need it.
+                  Set the title, topic, audience, and issue angle. Everything else can wait.
                 </p>
               </div>
             </div>
@@ -465,8 +466,8 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           <>
             <Sparkles className="h-5 w-5" />
             {projectMode === "newsletter"
-              ? "Create newsletter project"
-              : "Create fiction project"}
+              ? "Start newsletter project"
+              : "Start fiction project"}
           </>
         )}
       </button>
@@ -479,7 +480,8 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
               Try sample projects
             </h3>
             <p className="mt-1 text-sm leading-6 text-zinc-400">
-              Open a ready-made fiction or newsletter project if you want to look around first.
+              Open a sample fiction or newsletter project if you want to look
+              around before starting from scratch.
             </p>
           </div>
         </div>

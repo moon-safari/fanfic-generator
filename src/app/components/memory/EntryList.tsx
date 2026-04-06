@@ -25,6 +25,7 @@ interface EntryListProps {
   currentChapterMentions: MemoryMention[];
   selectedEntryId: string | null;
   projectMode?: ProjectMode;
+  contentUnitLabel?: string;
   compact?: boolean;
   scrollMode?: "internal" | "natural";
   showSummaryBadges?: boolean;
@@ -39,6 +40,7 @@ export default function EntryList({
   currentChapterMentions,
   selectedEntryId,
   projectMode = "fiction",
+  contentUnitLabel = "Chapter",
   compact = false,
   scrollMode = "internal",
   showSummaryBadges = true,
@@ -46,6 +48,7 @@ export default function EntryList({
   onCreate,
 }: EntryListProps) {
   const modeConfig = getModeConfig(projectMode);
+  const contentUnitLabelLower = contentUnitLabel.toLowerCase();
   const [query, setQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
   const [activeTypeFilter, setActiveTypeFilter] = useState<string>("all");
@@ -105,7 +108,7 @@ export default function EntryList({
         {!compact && (
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-white">Story facts</h3>
+              <h3 className="text-sm font-semibold text-white">Saved facts</h3>
               <p className="text-xs text-zinc-500">
                 {entries.length} saved in memory
               </p>
@@ -126,7 +129,7 @@ export default function EntryList({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search story facts..."
+            placeholder="Search facts..."
             className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-10 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-zinc-500 focus:border-purple-500"
           />
         </label>
@@ -206,7 +209,7 @@ export default function EntryList({
               {totalMatches} visible
             </span>
             <span className="rounded-full bg-zinc-950 px-2.5 py-1">
-              {currentChapterMentions.length} mentions in Ch. {currentChapter}
+              {currentChapterMentions.length} mentions in {contentUnitLabel} {currentChapter}
             </span>
           </div>
         )}
@@ -228,7 +231,7 @@ export default function EntryList({
             <p className="mt-1 text-xs">
               {query
                 ? "Try a different search term."
-                : "Build from Chapter 1 or add the first fact manually."}
+                : `Start writing your first ${contentUnitLabelLower} and facts will appear here, or add one manually.`}
             </p>
           </div>
         ) : (
@@ -277,9 +280,11 @@ export default function EntryList({
                             : "No description yet");
                         const entryMeta = [
                           mentionCount > 0
-                            ? `${mentionCount} mention${mentionCount === 1 ? "" : "s"} this chapter`
+                            ? `${mentionCount} mention${mentionCount === 1 ? "" : "s"} this ${contentUnitLabelLower}`
                             : null,
-                          changedThisChapter ? `Updated in Ch. ${currentChapter}` : null,
+                          changedThisChapter
+                            ? `Updated in ${contentUnitLabel} ${currentChapter}`
+                            : null,
                         ]
                           .filter(Boolean)
                           .join(" | ");

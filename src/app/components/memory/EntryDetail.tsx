@@ -73,6 +73,7 @@ export default function EntryDetail({
   onUpdateProgression,
   onDeleteProgression,
 }: EntryDetailProps) {
+  const contentUnitLabelLower = contentUnitLabel.toLowerCase();
   const [showFactDetails, setShowFactDetails] = useState(false);
   const [showMentionTrail, setShowMentionTrail] = useState(false);
   const [showAdvancedSections, setShowAdvancedSections] = useState(false);
@@ -187,10 +188,10 @@ export default function EntryDetail({
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-zinc-200">
-            {currentChapterMatches.length} mentions in Ch. {currentChapter}
+            {currentChapterMatches.length} mentions in {contentUnitLabel} {currentChapter}
           </span>
           <span className="rounded-full bg-white/8 px-2.5 py-1 text-xs text-zinc-200">
-            {mentionSummary.totalMentions} across {mentionSummary.totalChapters} {contentUnitLabel.toLowerCase()}
+            {mentionSummary.totalMentions} across {mentionSummary.totalChapters} {contentUnitLabelLower}
             {mentionSummary.totalChapters === 1 ? "" : "s"}
           </span>
         </div>
@@ -258,7 +259,7 @@ export default function EntryDetail({
                     </p>
                     {resolved.changedFields[field.key] && (
                       <p className="mt-1 text-[11px] text-emerald-300">
-                        Changed in Ch. {resolved.changedFields[field.key]}
+                        Changed in {contentUnitLabel} {resolved.changedFields[field.key]}
                       </p>
                     )}
                   </div>
@@ -273,7 +274,7 @@ export default function EntryDetail({
                     key={`${item.field}-${item.chapterNumber}`}
                     className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-300"
                   >
-                    {labelize(item.field)} updated in Ch. {item.chapterNumber}
+                    {labelize(item.field)} updated in {contentUnitLabel} {item.chapterNumber}
                   </span>
                 ))}
               </div>
@@ -289,7 +290,7 @@ export default function EntryDetail({
           <div>
             <h4 className="text-sm font-semibold text-white">Mentions</h4>
             <p className="text-xs text-zinc-500">
-              Where this fact shows up in the manuscript.
+              Where this fact shows up in the current draft.
             </p>
           </div>
           <button
@@ -308,13 +309,13 @@ export default function EntryDetail({
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-            {currentChapterMatches.length} in this {contentUnitLabel.toLowerCase()}
+            {currentChapterMatches.length} in this {contentUnitLabelLower}
           </span>
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
             {mentionSummary.totalMentions} total mentions
           </span>
           <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
-            {mentionSummary.totalChapters} {contentUnitLabel.toLowerCase()}
+            {mentionSummary.totalChapters} {contentUnitLabelLower}
             {mentionSummary.totalChapters === 1 ? "" : "s"}
           </span>
         </div>
@@ -341,7 +342,7 @@ export default function EntryDetail({
                 {currentChapterMatches.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                      This {contentUnitLabel.toLowerCase()}
+                      This {contentUnitLabelLower}
                     </p>
                     {currentChapterMatches.map((mention) => (
                       <div
@@ -376,7 +377,7 @@ export default function EntryDetail({
                           key={chapterNumber}
                           className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300"
                         >
-                          Ch. {chapterNumber} x{count}
+                          {contentUnitLabel} {chapterNumber} x{count}
                         </span>
                       ))}
                     </div>

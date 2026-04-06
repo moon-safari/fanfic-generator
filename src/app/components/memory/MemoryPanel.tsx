@@ -95,7 +95,11 @@ export default function MemoryPanel({
   onDismissMentionError,
 }: MemoryPanelProps) {
   const modeConfig = getModeConfig(projectMode);
-  const contentUnitLabel = modeConfig.contentUnitSingular.charAt(0).toUpperCase() + modeConfig.contentUnitSingular.slice(1);
+  const contentUnitLabel =
+    modeConfig.contentUnitSingular.charAt(0).toUpperCase()
+    + modeConfig.contentUnitSingular.slice(1);
+  const contentUnitLabelLower = modeConfig.contentUnitSingular;
+  const supportsAutoGeneration = modeConfig.supportsAutoGeneration;
   const {
     entries,
     relationships,
@@ -160,7 +164,7 @@ export default function MemoryPanel({
   const chapterMentionCount = currentChapterMentions.length;
   const memorySummary = [
     `${entries.length} facts`,
-    `${chapterMentionCount} mentions in Ch. ${currentChapter}`,
+    `${chapterMentionCount} mentions in ${contentUnitLabel} ${currentChapter}`,
     reviewCount > 0 ? `${reviewCount} to review` : null,
   ]
     .filter(Boolean)
@@ -265,7 +269,7 @@ export default function MemoryPanel({
             {focusMode ? (
               <>
                 <p className="text-sm font-semibold text-white">
-                  Chapter {currentChapter}
+                  {contentUnitLabel} {currentChapter}
                 </p>
                 <p className="mt-1 truncate text-xs text-zinc-500">
                   {memorySummary}
@@ -278,7 +282,7 @@ export default function MemoryPanel({
                   <h2 className="text-sm font-semibold text-white">Memory</h2>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Facts for Chapter {currentChapter}
+                  Facts for {contentUnitLabel} {currentChapter}
                 </p>
               </>
             )}
@@ -560,6 +564,7 @@ export default function MemoryPanel({
         <SuggestionList
           currentChapter={currentChapter}
           currentChapterId={currentChapterId}
+          contentUnitLabel={contentUnitLabel}
           suggestions={suggestions}
           entries={entries}
           relationships={relationships}
@@ -573,7 +578,7 @@ export default function MemoryPanel({
             const acceptedSuggestion = await acceptSuggestion(suggestionId);
             await fetchMemory();
             setContextRefreshKey((prev) => prev + 1);
-            setContextNotice(buildContextNotice(acceptedSuggestion));
+            setContextNotice(buildContextNotice(acceptedSuggestion, contentUnitLabel));
             return acceptedSuggestion;
           }}
           onReject={async (suggestionId) => {
@@ -612,23 +617,26 @@ export default function MemoryPanel({
           <div className="max-w-sm rounded-[28px] border border-zinc-800 bg-zinc-950/80 p-6">
             <Sparkles className="mx-auto h-8 w-8 text-purple-300" />
             <h3 className="mt-4 text-lg font-semibold text-white">
-              Build this story&apos;s memory
+              Start building memory
             </h3>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Build a first pass from Chapter 1, or add the first fact by hand.
+              Start writing your first {contentUnitLabelLower} and facts will
+              appear here, or add one manually.
             </p>
             <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void generateFromChapter1();
-                }}
-                disabled={generating}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
-                {generating ? "Building..." : "Build from Chapter 1"}
-              </button>
+              {supportsAutoGeneration && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void generateFromChapter1();
+                  }}
+                  disabled={generating}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
+                  {generating ? "Building..." : `Build from ${contentUnitLabel} 1`}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setCreatingEntry(true)}
@@ -660,7 +668,7 @@ export default function MemoryPanel({
                   <div>
                     <h3 className="text-sm font-semibold text-white">New fact</h3>
                     <p className="text-xs text-zinc-500">
-                      Add a new story fact to project memory.
+                      Add a new project fact to memory.
                     </p>
                   </div>
                 </div>
@@ -699,7 +707,7 @@ export default function MemoryPanel({
                     <h3 className="truncate text-sm font-semibold text-white">
                       {effectiveSelectedEntry.name}
                     </h3>
-                    <p className="text-xs text-zinc-500">Saved story fact</p>
+                    <p className="text-xs text-zinc-500">Saved fact</p>
                   </div>
                 </div>
 
@@ -766,6 +774,7 @@ export default function MemoryPanel({
                   currentChapter={currentChapter}
                   currentChapterMentions={currentChapterMentions}
                   projectMode={projectMode}
+                  contentUnitLabel={contentUnitLabel}
                   selectedEntryId={effectiveSelectedEntry?.id ?? null}
                   compact
                   scrollMode="natural"
@@ -794,6 +803,8 @@ export default function MemoryPanel({
                 customTypes={customTypes}
                 currentChapter={currentChapter}
                 currentChapterMentions={currentChapterMentions}
+                projectMode={projectMode}
+                contentUnitLabel={contentUnitLabel}
                 selectedEntryId={effectiveSelectedEntry?.id ?? null}
                 compact
                 showSummaryBadges={false}
@@ -817,7 +828,7 @@ export default function MemoryPanel({
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-white">New fact</h3>
                     <p className="text-xs text-zinc-500">
-                      Add a new story fact to project memory.
+                      Add a new project fact to memory.
                     </p>
                   </div>
                   <EntryForm
@@ -908,7 +919,10 @@ export default function MemoryPanel({
   );
 }
 
-function buildContextNotice(suggestion: MemoryChangeSuggestion): ContextNotice {
+function buildContextNotice(
+  suggestion: MemoryChangeSuggestion,
+  contentUnitLabel: string
+): ContextNotice {
   switch (suggestion.changeType) {
     case "create_entry": {
       const payload = suggestion.payload as CreateEntrySuggestionPayload;
@@ -935,7 +949,7 @@ function buildContextNotice(suggestion: MemoryChangeSuggestion): ContextNotice {
       const payload = suggestion.payload as CreateProgressionSuggestionPayload;
       return {
         tone: "success",
-        message: `Saved to memory. Future writing now uses the updated Chapter ${payload.chapterNumber} truth for ${payload.entryName}.`,
+        message: `Saved to memory. Future writing now uses the updated ${contentUnitLabel} ${payload.chapterNumber} truth for ${payload.entryName}.`,
       };
     }
     case "flag_stale_entry": {

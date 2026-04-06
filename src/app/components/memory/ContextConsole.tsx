@@ -57,6 +57,8 @@ export default function ContextConsole({
     () => context.groups.reduce((sum, group) => sum + group.count, 0),
     [context.groups]
   );
+  const contentUnitLabelTitle =
+    contentUnitLabel.charAt(0).toUpperCase() + contentUnitLabel.slice(1);
 
   const handleSetEntryMode = async (
     entryId: string,
@@ -141,11 +143,11 @@ export default function ContextConsole({
             <StatPill label="Source" value={formatSourceLabel(context.source)} />
             <StatPill
               label="Resolved"
-              value={`Ch. ${context.resolvedThroughChapter}`}
+              value={`${contentUnitLabelTitle} ${context.resolvedThroughChapter}`}
             />
             <StatPill
               label={`Next ${contentUnitLabel}`}
-              value={`Ch. ${context.generationChapter}`}
+              value={`${contentUnitLabelTitle} ${context.generationChapter}`}
             />
             <StatPill label="Included" value={String(context.includedEntryCount)} />
           </div>
@@ -183,8 +185,8 @@ export default function ContextConsole({
 
           {context.source === "none" && (
             <div className="mt-4 rounded-2xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">
-              No story context is available yet. Generate {contentUnitLabel} 1 or build the
-              Memory first.
+              No project context available yet. Write your first {contentUnitLabel} to
+              see what the system knows.
             </div>
           )}
         </section>
@@ -272,7 +274,7 @@ export default function ContextConsole({
                     <h4 className="text-sm font-semibold text-white">{group.label}</h4>
                     <p className="text-xs text-zinc-500">
                       {group.count} entr{group.count === 1 ? "y" : "ies"} resolved
-                      for this chapter
+                      for this {contentUnitLabel}
                     </p>
                   </div>
                   <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300">
@@ -323,7 +325,10 @@ export default function ContextConsole({
                               {formatContextModeLabel(entry.contextMode)}
                             </span>
                             <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-300">
-                              {formatPriorityLabel(entry.nextChapterPriority)}
+                              {formatPriorityLabel(
+                                entry.nextChapterPriority,
+                                contentUnitLabel
+                              )}
                             </span>
                             {entry.changedThisChapter && (
                               <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
@@ -370,7 +375,8 @@ export default function ContextConsole({
                         <p className="mt-3 text-xs text-zinc-500">
                           {describeNextChapterBehavior(
                             entry.contextMode,
-                            entry.nextChapterPriority
+                            entry.nextChapterPriority,
+                            contentUnitLabel
                           )}
                         </p>
 
@@ -554,10 +560,13 @@ function getContextTone(mode: MemoryContextMode) {
   }
 }
 
-function formatPriorityLabel(priority: "priority" | "supporting" | "excluded") {
+function formatPriorityLabel(
+  priority: "priority" | "supporting" | "excluded",
+  contentUnitLabel: string
+) {
   switch (priority) {
     case "priority":
-      return "Next-chapter focus";
+      return `Next-${contentUnitLabel} focus`;
     case "excluded":
       return "Not injected";
     default:
@@ -584,18 +593,19 @@ function getReasonTone(reasonKey: StoryContextReasonKey) {
 
 function describeNextChapterBehavior(
   contextMode: MemoryContextMode,
-  priority: "priority" | "supporting" | "excluded"
+  priority: "priority" | "supporting" | "excluded",
+  contentUnitLabel: string
 ) {
   if (contextMode === "exclude") {
     return "Excluded entries stay in the Memory but are omitted from the active prompt context.";
   }
 
   if (contextMode === "pin") {
-    return "Pinned entries are surfaced first in the next chapter prompt.";
+    return `Pinned entries are surfaced first in the next ${contentUnitLabel} prompt.`;
   }
 
   if (priority === "priority") {
-    return "This entry will be surfaced early in the next chapter prompt because it changed recently, was mentioned, or is tied to a pinned entry.";
+    return `This entry will be surfaced early in the next ${contentUnitLabel} prompt because it changed recently, was mentioned, or is tied to a pinned entry.`;
   }
 
   return "This entry remains available as supporting context after the higher-priority story truth.";

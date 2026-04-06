@@ -410,11 +410,11 @@ function WorkspaceSection({
               Workspace
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-white">
-              {signedIn ? "Jump back into your work" : "Start new or continue a saved project"}
+              {signedIn ? "Start new or reopen a project" : "Start new or continue a saved project"}
             </h3>
             <p className="mt-2 text-sm leading-7 text-zinc-400">
               {signedIn
-                ? "Start something new or reopen a saved project without digging through the rest of the page."
+                ? "Keep the next step simple: start something new, or reopen a saved project without digging through the rest of the page."
                 : "Keep the default choice simple: start something new, or open a project that already exists."}
             </p>
           </div>
@@ -457,10 +457,14 @@ function WorkspaceSection({
               <CreateStoryTab onStoryCreated={onStoryCreated} />
             ) : loadingStories ? (
               <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 px-6 py-12 text-center">
-                <p className="text-sm text-zinc-400">Loading saved projects...</p>
+                <p className="text-sm text-zinc-400">Loading your saved projects...</p>
               </div>
             ) : (
-              <Library stories={stories} onSelectStory={onSelectStory} />
+              <Library
+                stories={stories}
+                onSelectStory={onSelectStory}
+                onCreateFirstProject={() => onSetView("create")}
+              />
             )
           ) : (
             <div className="grid gap-6 rounded-[32px] border border-zinc-800 bg-zinc-950/70 p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
