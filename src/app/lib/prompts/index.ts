@@ -1,12 +1,21 @@
-import {
+import type {
+  FictionStoryFormData,
   NewsletterStoryFormData,
   Rating,
   RelationshipType,
   Story,
   StoryFormData,
-} from "../../types/story";
-import { getFandomContext } from "../fandoms";
-import { getNewsletterModeConfig, isNewsletterFormData } from "../projectMode";
+} from "../../types/story.ts";
+import { getFandomContext } from "../fandoms/index.ts";
+import {
+  getNewsletterModeConfig,
+  isNewsletterFormData,
+  isScreenplayFormData,
+} from "../projectMode.ts";
+import {
+  buildScreenplayContinuationPrompt,
+  buildScreenplayScene1Prompt,
+} from "./screenplay.ts";
 
 function getRatingInstructions(rating: Rating): string {
   switch (rating) {
@@ -40,7 +49,7 @@ function getRelationshipInstructions(type: RelationshipType, characters: string[
   }
 }
 
-function buildFictionChapter1Prompt(form: Exclude<StoryFormData, NewsletterStoryFormData>): string {
+function buildFictionChapter1Prompt(form: FictionStoryFormData): string {
   const fandomCtx = getFandomContext(form.fandom);
   const fandomName = form.customFandom || form.fandom || "Original";
   const toneStr = form.tone.join(" + ");
@@ -123,6 +132,10 @@ export function buildChapter1Prompt(form: StoryFormData): string {
     return buildNewsletterIssue1Prompt(form);
   }
 
+  if (isScreenplayFormData(form)) {
+    return buildScreenplayScene1Prompt(form);
+  }
+
   return buildFictionChapter1Prompt(form);
 }
 
@@ -134,6 +147,15 @@ export function buildContinuationPrompt(
 ): string {
   if (story.projectMode === "newsletter") {
     return buildNewsletterContinuationPrompt(
+      story,
+      chapterNum,
+      storyContext,
+      planningContext
+    );
+  }
+
+  if (story.projectMode === "screenplay") {
+    return buildScreenplayContinuationPrompt(
       story,
       chapterNum,
       storyContext,

@@ -1,4 +1,4 @@
-import {
+import type {
   StoryBible,
   BibleCharactersContent,
   BibleWorldContent,
@@ -7,9 +7,13 @@ import {
   BibleStyleGuideContent,
   BibleOutlineContent,
   BibleNotesContent,
-} from "../../types/bible";
-import { hasArcContent, hasThreadContent, normalizeNotesContent } from "../planning";
-import type { ProjectMode, StoryModeConfig } from "../../types/story";
+} from "../../types/bible.ts";
+import {
+  hasArcContent,
+  hasThreadContent,
+  normalizeNotesContent,
+} from "../planning.ts";
+import type { ProjectMode, StoryModeConfig } from "../../types/story.ts";
 
 export function buildBibleGenerationPrompt(
   chapter1: string,
@@ -20,6 +24,85 @@ export function buildBibleGenerationPrompt(
     modeConfig?: StoryModeConfig;
   }
 ): string {
+  if (options.projectMode === "screenplay") {
+    const modeConfig = options.modeConfig;
+    const draftingPreference =
+      modeConfig && "draftingPreference" in modeConfig
+        ? modeConfig.draftingPreference
+        : "script_pages";
+    const storyEngine =
+      modeConfig && "storyEngine" in modeConfig ? modeConfig.storyEngine : "";
+
+    return `You are a screenplay story-memory analyst. Extract reusable project truth and scene-by-scene planning from the opening scene of a serialized screenplay.
+
+SCREENPLAY CONTEXT:
+- Title: ${options.storyTitle}
+- Drafting preference: ${draftingPreference}
+${storyEngine ? `- Story engine: ${storyEngine}` : ""}
+
+Return ONLY a valid JSON object with exactly this structure — no explanations, no markdown fences:
+
+{
+  "characters": {
+    "characters": [
+      {
+        "name": "Character, group, prop, or recurring on-screen entity",
+        "role": "protagonist|antagonist|supporting|minor",
+        "personality": "Key dramatic traits or on-screen pressure",
+        "appearance": "Only include visually meaningful details",
+        "voice": "How they speak or carry scene energy",
+        "relationships": [
+          { "character": "Other entity name", "type": "Relationship type" }
+        ]
+      }
+    ]
+  },
+  "world": {
+    "setting": "Primary dramatic context or production world",
+    "rules": ["Constraints that shape how scenes play"],
+    "locations": ["Recurring or important locations introduced"],
+    "era": "Time period or timeline context if implied",
+    "customs": "Relevant institutional, family, or social norms"
+  },
+  "synopsis": {
+    "text": "2-3 sentence synopsis of the screenplay premise and what Scene 1 establishes"
+  },
+  "genre": {
+    "primary": "Primary screenplay genre",
+    "secondary": ["Secondary genre or tonal lane"],
+    "warnings": ["Content warning if relevant"]
+  },
+  "style_guide": {
+    "pov": "Narrative camera stance if inferable",
+    "tense": "Present tense unless clearly otherwise",
+    "proseStyle": "How action lines and scene description behave",
+    "dialogueStyle": "How dialogue lands or what it avoids",
+    "pacing": "How quickly the scene moves"
+  },
+  "outline": {
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Scene 1",
+        "summary": "What the opening scene does",
+        "intent": "What dramatic job the scene is doing",
+        "keyReveal": "The scene's main turn or reveal",
+        "openLoops": ["What must carry forward into later scenes"],
+        "status": "written"
+      }
+    ]
+  },
+  "notes": {
+    "text": "Act pressure, motifs, and setup-payoff obligations to preserve",
+    "arcs": [],
+    "threads": []
+  }
+}
+
+OPENING SCENE TEXT:
+${chapter1}`;
+  }
+
   if (options.projectMode === "newsletter") {
     const modeConfig = options.modeConfig;
     const topic =

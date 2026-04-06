@@ -1,4 +1,4 @@
-import { FandomConfig } from "../../types/fandom";
+import type { FandomConfig } from "../../types/fandom.ts";
 
 export const WEB_OTHER_FANDOMS: FandomConfig[] = [
   {

@@ -1,15 +1,15 @@
-import { FandomConfig, FandomCategory } from "../../types/fandom";
-import { BOOK_FANDOMS } from "./books";
-import { FILM_TV_FANDOMS } from "./films-tv";
-import { ANIME_FANDOMS } from "./anime";
-import { GAME_FANDOMS } from "./games";
-import { CARTOON_FANDOMS } from "./cartoons";
-import { WEB_OTHER_FANDOMS } from "./web-other";
-import { KPOP_FANDOMS } from "./kpop";
-import { ASIAN_MEDIA_FANDOMS } from "./asian-media";
+import type { FandomConfig, FandomCategory } from "../../types/fandom.ts";
+import { BOOK_FANDOMS } from "./books.ts";
+import { FILM_TV_FANDOMS } from "./films-tv.ts";
+import { ANIME_FANDOMS } from "./anime.ts";
+import { GAME_FANDOMS } from "./games.ts";
+import { CARTOON_FANDOMS } from "./cartoons.ts";
+import { WEB_OTHER_FANDOMS } from "./web-other.ts";
+import { KPOP_FANDOMS } from "./kpop.ts";
+import { ASIAN_MEDIA_FANDOMS } from "./asian-media.ts";
 
-export { TROPE_CATEGORIES, ALL_TROPES } from "./tropes";
-export { TONES } from "./tones";
+export { TROPE_CATEGORIES, ALL_TROPES } from "./tropes.ts";
+export { TONES } from "./tones.ts";
 
 
 const ALL_FANDOMS: FandomConfig[] = [

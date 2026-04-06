@@ -1,4 +1,4 @@
-import { TropeCategory } from "../../types/fandom";
+import type { TropeCategory } from "../../types/fandom.ts";
 
 export const TROPE_CATEGORIES: TropeCategory[] = [
   {

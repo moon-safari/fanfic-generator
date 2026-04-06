@@ -89,6 +89,8 @@ export function useStoryStreaming({
           let errorMsg =
             storyRef.current.projectMode === "newsletter"
               ? "Failed to generate the first issue"
+              : storyRef.current.projectMode === "screenplay"
+                ? "Failed to generate the first scene"
               : "Failed to generate story";
           try {
             const data = await res.json();
@@ -212,6 +214,8 @@ export function useStoryStreaming({
         let errorMsg =
           story.projectMode === "newsletter"
             ? "Failed to continue the issue sequence"
+            : story.projectMode === "screenplay"
+              ? "Failed to continue the screenplay"
             : "Failed to continue story";
         try {
           const data = await res.json();

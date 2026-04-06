@@ -1,4 +1,4 @@
-import { ToneOption } from "../../types/fandom";
+import type { ToneOption } from "../../types/fandom.ts";
 
 export const TONES: ToneOption[] = [
   { id: "fluff", label: "Fluff", subtitle: "Light, sweet, feel-good" },

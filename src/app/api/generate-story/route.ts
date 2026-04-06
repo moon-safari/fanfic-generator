@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { StoryFormData } from "../../types/story";
+import type { StoryFormData } from "../../types/story";
 import { buildChapter1Prompt } from "../../lib/prompts";
-import { isNewsletterFormData } from "../../lib/projectMode";
+import {
+  isNewsletterFormData,
+  isScreenplayFormData,
+} from "../../lib/projectMode";
 import { createServerSupabase } from "../../lib/supabase/server";
 import { sseEvent } from "../../lib/stream";
 
@@ -39,6 +42,19 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required newsletter fields" },
+        { status: 400 }
+      );
+    }
+  } else if (isScreenplayFormData(body)) {
+    if (
+      body.title.trim().length < 2
+      || !Array.isArray(body.tone)
+      || body.tone.length < 1
+      || (body.draftingPreference !== "script_pages"
+        && body.draftingPreference !== "beat_draft")
+    ) {
+      return NextResponse.json(
+        { error: "Missing required screenplay fields" },
         { status: 400 }
       );
     }
