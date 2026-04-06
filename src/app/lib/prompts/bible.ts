@@ -155,6 +155,34 @@ OPENING QUEST TEXT:
 ${chapter1}`;
   }
 
+  if (options.projectMode === "non_fiction") {
+    const modeConfig = options.modeConfig;
+    const draftingPreference =
+      modeConfig && "draftingPreference" in modeConfig
+        ? modeConfig.draftingPreference
+        : "hybrid_section_draft";
+    const pieceEngine =
+      modeConfig && "pieceEngine" in modeConfig ? modeConfig.pieceEngine : "";
+
+    return `You are a non-fiction project-memory analyst. Extract reusable project truth and section-by-section argument planning from the opening section draft.
+
+NON-FICTION CONTEXT:
+- Title: ${options.storyTitle}
+- Drafting preference: ${draftingPreference}
+${pieceEngine ? `- Piece engine: ${pieceEngine}` : ""}
+
+Return ONLY a valid JSON object with these top-level keys: characters, world, synopsis, genre, style_guide, outline, notes.
+
+Use this guidance while filling the existing story-bible structure:
+- Treat the source text as Section 1, not a chapter, scene, page, or quest.
+- Make the outline section-by-section and keep the unit language section-native.
+- Keep notes source-aware by preserving proof gaps, counterpoints, and follow-up evidence needs.
+- Extract recurring people, institutions, topics, and cited reference pressure only from what the section actually establishes.
+
+OPENING SECTION TEXT:
+${chapter1}`;
+  }
+
   if (options.projectMode === "newsletter") {
     const modeConfig = options.modeConfig;
     const topic =

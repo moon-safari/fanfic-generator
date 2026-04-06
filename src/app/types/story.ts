@@ -151,7 +151,8 @@ export type StoryFormData =
   | NewsletterStoryFormData
   | ScreenplayStoryFormData
   | ComicsStoryFormData
-  | GameWritingStoryFormData;
+  | GameWritingStoryFormData
+  | NonFictionStoryFormData;
 
 export interface GenerateResponse {
   title: string;

@@ -1,6 +1,7 @@
 import type {
   FictionStoryFormData,
   NewsletterStoryFormData,
+  NonFictionStoryFormData,
   Rating,
   RelationshipType,
   Story,
@@ -12,6 +13,7 @@ import {
   isComicsFormData,
   isGameWritingFormData,
   isNewsletterFormData,
+  isNonFictionFormData,
   isScreenplayFormData,
 } from "../projectMode.ts";
 import {
@@ -22,6 +24,10 @@ import {
   buildGameWritingContinuationPrompt,
   buildGameWritingQuest1Prompt,
 } from "./gameWriting.ts";
+import {
+  buildNonFictionContinuationPrompt,
+  buildNonFictionSection1Prompt,
+} from "./nonFiction.ts";
 import {
   buildScreenplayContinuationPrompt,
   buildScreenplayScene1Prompt,
@@ -137,6 +143,10 @@ Title: ${form.title}
 [Issue 1 text — no separate issue header, just the newsletter text]`;
 }
 
+function buildNonFictionIssue1Prompt(form: NonFictionStoryFormData): string {
+  return buildNonFictionSection1Prompt(form);
+}
+
 export function buildChapter1Prompt(form: StoryFormData): string {
   if (isNewsletterFormData(form)) {
     return buildNewsletterIssue1Prompt(form);
@@ -152,6 +162,10 @@ export function buildChapter1Prompt(form: StoryFormData): string {
 
   if (isGameWritingFormData(form)) {
     return buildGameWritingQuest1Prompt(form);
+  }
+
+  if (isNonFictionFormData(form)) {
+    return buildNonFictionIssue1Prompt(form);
   }
 
   return buildFictionChapter1Prompt(form);
@@ -192,6 +206,15 @@ export function buildContinuationPrompt(
 
   if (story.projectMode === "game_writing") {
     return buildGameWritingContinuationPrompt(
+      story,
+      chapterNum,
+      storyContext,
+      planningContext
+    );
+  }
+
+  if (story.projectMode === "non_fiction") {
+    return buildNonFictionContinuationPrompt(
       story,
       chapterNum,
       storyContext,

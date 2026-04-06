@@ -6,6 +6,7 @@ import {
   isComicsFormData,
   isGameWritingFormData,
   isNewsletterFormData,
+  isNonFictionFormData,
   isScreenplayFormData,
 } from "../../lib/projectMode";
 import { createServerSupabase } from "../../lib/supabase/server";
@@ -79,6 +80,17 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required game-writing fields" },
+        { status: 400 }
+      );
+    }
+  } else if (isNonFictionFormData(body)) {
+    if (
+      body.title.trim().length < 2
+      || !Array.isArray(body.tone)
+      || body.tone.length < 1
+    ) {
+      return NextResponse.json(
+        { error: "Missing required non-fiction fields" },
         { status: 400 }
       );
     }

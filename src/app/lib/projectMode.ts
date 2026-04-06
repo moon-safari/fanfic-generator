@@ -4,6 +4,7 @@ import type {
   GameWritingModeConfig,
   GameWritingStoryFormData,
   NonFictionModeConfig,
+  NonFictionStoryFormData,
   NewsletterModeConfig,
   NewsletterStoryFormData,
   ProjectMode,
@@ -36,6 +37,12 @@ export function isGameWritingFormData(
   value: StoryFormData
 ): value is GameWritingStoryFormData {
   return value.projectMode === "game_writing";
+}
+
+export function isNonFictionFormData(
+  value: StoryFormData
+): value is NonFictionStoryFormData {
+  return value.projectMode === "non_fiction";
 }
 
 export function isNewsletterStory(story: Story): boolean {
