@@ -6,6 +6,7 @@ import {
   getProjectModeLabel,
   getProjectUnitLabel,
   parseComicsModeConfig,
+  parseGameWritingModeConfig,
   parseStoryModeConfig,
   parseScreenplayModeConfig,
 } from "./projectMode.ts";
@@ -124,6 +125,65 @@ test("parseStoryModeConfig supports comics mode", () => {
       draftingPreference: "comic_script_pages",
       formatStyle: "comic_script",
       seriesEngine: "graphic_novel",
+    }
+  );
+});
+
+test("game writing mode exposes quest labels and systems-aware defaults", () => {
+  const mode = getModeConfig("game_writing");
+
+  assert.equal(getProjectModeLabel("game_writing"), "Game Writing");
+  assert.equal(getProjectUnitLabel("game_writing"), "quest");
+  assert.equal(
+    getProjectUnitLabel("game_writing", { capitalize: true }),
+    "Quest"
+  );
+  assert.equal(getContinueActionLabel("game_writing"), "Continue Quest");
+  assert.equal(
+    getLoadingContinueLabel("game_writing"),
+    "Writing the next quest..."
+  );
+  assert.equal(mode.contentUnitSingular, "quest");
+  assert.equal(
+    mode.planningSchema.outline.description,
+    "Quest-by-quest plan and status map."
+  );
+  assert.deepEqual(mode.coreTypes, [
+    "character",
+    "location",
+    "quest",
+    "item",
+    "faction",
+    "lore",
+    "dialogue_branch",
+  ]);
+});
+
+test("parseGameWritingModeConfig normalizes valid game-writing config", () => {
+  const parsed = parseGameWritingModeConfig({
+    draftingPreference: "hybrid_quest_brief",
+    formatStyle: "quest_brief",
+    questEngine: "questline",
+  });
+
+  assert.deepEqual(parsed, {
+    draftingPreference: "hybrid_quest_brief",
+    formatStyle: "quest_brief",
+    questEngine: "questline",
+  });
+});
+
+test("parseStoryModeConfig supports game writing mode", () => {
+  assert.deepEqual(
+    parseStoryModeConfig("game_writing", {
+      draftingPreference: "hybrid_quest_brief",
+      formatStyle: "quest_brief",
+      questEngine: "main_quest",
+    }),
+    {
+      draftingPreference: "hybrid_quest_brief",
+      formatStyle: "quest_brief",
+      questEngine: "main_quest",
     }
   );
 });

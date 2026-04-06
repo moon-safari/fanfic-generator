@@ -1,6 +1,11 @@
 export type RelationshipType = "gen" | "mm" | "fm" | "ff" | "multi" | "other";
 export type Rating = "general" | "teen" | "mature" | "explicit";
-export type ProjectMode = "fiction" | "newsletter" | "screenplay" | "comics";
+export type ProjectMode =
+  | "fiction"
+  | "newsletter"
+  | "screenplay"
+  | "comics"
+  | "game_writing";
 export type NewsletterCadence =
   | "weekly"
   | "biweekly"
@@ -10,6 +15,11 @@ export type ScreenplayDraftingPreference = "script_pages" | "beat_draft";
 export type ScreenplayStoryEngine = "feature" | "pilot" | "short";
 export type ComicsDraftingPreference = "comic_script_pages";
 export type ComicsSeriesEngine = "issue" | "one_shot" | "graphic_novel";
+export type GameWritingDraftingPreference = "hybrid_quest_brief";
+export type GameWritingQuestEngine =
+  | "main_quest"
+  | "side_quest"
+  | "questline";
 
 export interface NewsletterModeConfig {
   topic: string;
@@ -34,11 +44,18 @@ export interface ComicsModeConfig {
   seriesEngine?: ComicsSeriesEngine;
 }
 
+export interface GameWritingModeConfig {
+  draftingPreference: GameWritingDraftingPreference;
+  formatStyle: "quest_brief";
+  questEngine?: GameWritingQuestEngine;
+}
+
 export type StoryModeConfig =
   | Record<string, never>
   | NewsletterModeConfig
   | ScreenplayModeConfig
-  | ComicsModeConfig;
+  | ComicsModeConfig
+  | GameWritingModeConfig;
 
 export interface Chapter {
   id: string;
@@ -105,11 +122,19 @@ export interface ComicsStoryFormData {
   seriesEngine?: ComicsSeriesEngine;
 }
 
+export interface GameWritingStoryFormData {
+  projectMode: "game_writing";
+  title: string;
+  tone: string[];
+  questEngine?: GameWritingQuestEngine;
+}
+
 export type StoryFormData =
   | FictionStoryFormData
   | NewsletterStoryFormData
   | ScreenplayStoryFormData
-  | ComicsStoryFormData;
+  | ComicsStoryFormData
+  | GameWritingStoryFormData;
 
 export interface GenerateResponse {
   title: string;

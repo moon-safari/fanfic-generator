@@ -4,6 +4,7 @@ import type { StoryFormData } from "../../types/story";
 import { buildChapter1Prompt } from "../../lib/prompts";
 import {
   isComicsFormData,
+  isGameWritingFormData,
   isNewsletterFormData,
   isScreenplayFormData,
 } from "../../lib/projectMode";
@@ -67,6 +68,17 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required comics fields" },
+        { status: 400 }
+      );
+    }
+  } else if (isGameWritingFormData(body)) {
+    if (
+      body.title.trim().length < 2
+      || !Array.isArray(body.tone)
+      || body.tone.length < 1
+    ) {
+      return NextResponse.json(
+        { error: "Missing required game-writing fields" },
         { status: 400 }
       );
     }

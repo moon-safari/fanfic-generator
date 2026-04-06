@@ -93,3 +93,21 @@ test("comics mode uses page-native planning phrasing", () => {
   assert.match(prompt, /VISUAL AND STORY PRESSURE TO HONOR:/);
   assert.match(prompt, /REVEALS DUE BY PAGE 4:/);
 });
+
+test("game writing mode uses quest-native planning phrasing", () => {
+  const mode = getModeConfig("game_writing");
+
+  assert.equal(mode.planningUnitLabel, "quest beat");
+  assert.equal(mode.planningSchema.notes.title, "Design Notes");
+
+  const prompt = buildPlanningPromptContext({
+    outline,
+    notes,
+    unitNumber: 4,
+    projectMode: "game_writing",
+  });
+
+  assert.match(prompt, /TARGET QUEST PLAN:/);
+  assert.match(prompt, /QUEST PRESSURE TO HONOR:/);
+  assert.match(prompt, /OUTCOMES DUE BY QUEST 4:/);
+});

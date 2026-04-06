@@ -10,6 +10,7 @@ import { getFandomContext } from "../fandoms/index.ts";
 import {
   getNewsletterModeConfig,
   isComicsFormData,
+  isGameWritingFormData,
   isNewsletterFormData,
   isScreenplayFormData,
 } from "../projectMode.ts";
@@ -132,6 +133,31 @@ Title: ${form.title}
 [Issue 1 text — no separate issue header, just the newsletter text]`;
 }
 
+function buildGameWritingQuest1Prompt(form: {
+  title: string;
+  tone: string[];
+  questEngine?: string;
+}): string {
+  const toneStr = form.tone.join(" + ");
+
+  return `You are a narrative designer writing the opening quest for a game-writing project.
+
+TITLE: ${form.title}
+TONE: ${toneStr}
+${form.questEngine ? `QUEST ENGINE: ${form.questEngine}` : ""}
+
+Write Quest 1 as a hybrid quest brief.
+- Include a quest premise and player objective.
+- Structure the quest around key stages.
+- Include embedded dialogue choices with intended outcomes.
+- Describe blockers, rewards, and follow-up hooks in prose.
+
+OUTPUT FORMAT (follow exactly):
+Title: ${form.title}
+
+[Quest 1 text only]`;
+}
+
 export function buildChapter1Prompt(form: StoryFormData): string {
   if (isNewsletterFormData(form)) {
     return buildNewsletterIssue1Prompt(form);
@@ -143,6 +169,10 @@ export function buildChapter1Prompt(form: StoryFormData): string {
 
   if (isComicsFormData(form)) {
     return buildComicsPage1Prompt(form);
+  }
+
+  if (isGameWritingFormData(form)) {
+    return buildGameWritingQuest1Prompt(form);
   }
 
   return buildFictionChapter1Prompt(form);

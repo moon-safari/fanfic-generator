@@ -71,6 +71,20 @@ export function buildComicsPlanningPrompt(
   });
 }
 
+export function buildGameWritingPlanningPrompt(
+  args: ModePlanningPromptArgs
+): string {
+  return buildStructuredPlanningPrompt(args, {
+    activeHeading: "QUEST PRESSURE TO HONOR:",
+    dueHeadingPrefix: "OUTCOMES DUE BY",
+    openHeading: "OTHER OPEN QUEST DEPENDENCIES:",
+    notesHeading: "DESIGN NOTES",
+    keyRevealLabel: "Expected branch turn or consequence",
+    openLoopsLabel: (unitLabelLowercase) =>
+      `Consequences meant to stay open after this ${unitLabelLowercase}`,
+  });
+}
+
 function buildStructuredPlanningPrompt(
   { outline, notes, unitNumber, projectMode }: ModePlanningPromptArgs,
   copy: PlanningPromptCopy

@@ -1,6 +1,8 @@
 import type {
   ComicsModeConfig,
   ComicsStoryFormData,
+  GameWritingModeConfig,
+  GameWritingStoryFormData,
   NewsletterModeConfig,
   NewsletterStoryFormData,
   ProjectMode,
@@ -27,6 +29,12 @@ export function isComicsFormData(
   value: StoryFormData
 ): value is ComicsStoryFormData {
   return value.projectMode === "comics";
+}
+
+export function isGameWritingFormData(
+  value: StoryFormData
+): value is GameWritingStoryFormData {
+  return value.projectMode === "game_writing";
 }
 
 export function isNewsletterStory(story: Story): boolean {
@@ -61,6 +69,16 @@ export function getComicsModeConfig(
   }
 
   return parseComicsModeConfig(story.modeConfig);
+}
+
+export function getGameWritingModeConfig(
+  story: Pick<Story, "projectMode" | "modeConfig">
+): GameWritingModeConfig | null {
+  if (story.projectMode !== "game_writing" || !story.modeConfig) {
+    return null;
+  }
+
+  return parseGameWritingModeConfig(story.modeConfig);
 }
 
 export function parseNewsletterModeConfig(
@@ -162,6 +180,33 @@ export function parseComicsModeConfig(input: unknown): ComicsModeConfig | null {
   };
 }
 
+export function parseGameWritingModeConfig(
+  input: unknown
+): GameWritingModeConfig | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<GameWritingModeConfig>;
+  if (
+    candidate.draftingPreference !== "hybrid_quest_brief"
+    || candidate.formatStyle !== "quest_brief"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "hybrid_quest_brief",
+    formatStyle: "quest_brief",
+    questEngine:
+      candidate.questEngine === "main_quest"
+      || candidate.questEngine === "side_quest"
+      || candidate.questEngine === "questline"
+        ? candidate.questEngine
+        : undefined,
+  };
+}
+
 export function parseStoryModeConfig(
   projectMode: ProjectMode,
   input: unknown
@@ -178,6 +223,10 @@ export function parseStoryModeConfig(
     return parseComicsModeConfig(input);
   }
 
+  if (projectMode === "game_writing") {
+    return parseGameWritingModeConfig(input);
+  }
+
   return {};
 }
 
@@ -191,6 +240,9 @@ export function getProjectModeLabel(mode: ProjectMode): string {
   if (mode === "comics") {
     return "Comics";
   }
+  if (mode === "game_writing") {
+    return "Game Writing";
+  }
   return "Fiction";
 }
 
@@ -203,6 +255,16 @@ export function getProjectUnitLabel(
   } = {}
 ): string {
   const { count = 1, capitalize = false, abbreviated = false } = options;
+  if (mode === "game_writing") {
+    const singular = abbreviated
+      ? "Q."
+      : capitalize
+        ? "Quest"
+        : "quest";
+    const plural = capitalize ? "Quests" : "quests";
+    return count === 1 ? singular : plural;
+  }
+
   if (mode === "comics") {
     const singular = abbreviated
       ? "Pg."
@@ -258,6 +320,9 @@ export function getContinueActionLabel(mode: ProjectMode): string {
   if (mode === "comics") {
     return "Continue Page";
   }
+  if (mode === "game_writing") {
+    return "Continue Quest";
+  }
   return "Continue Story";
 }
 
@@ -270,6 +335,9 @@ export function getLoadingContinueLabel(mode: ProjectMode): string {
   }
   if (mode === "comics") {
     return "Writing the next page...";
+  }
+  if (mode === "game_writing") {
+    return "Writing the next quest...";
   }
   return "Writing the next chapter...";
 }
