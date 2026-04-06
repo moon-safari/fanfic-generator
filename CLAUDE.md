@@ -127,6 +127,7 @@ docs/                            - product, strategy, and build specs
 
 12. Phase A simplification & polish (progressive disclosure, mode-aware microcopy, empty states, 375px narrow-width pass)
 13. Screenplay mode v1 (scene-based drafting, durable screenplay preferences, screenplay-native planning/memory semantics, screenplay outputs, Fountain export for script-page projects)
+14. Comics mode v1 (page-based comic scripting, comics-native planning/memory semantics, comic beat-sheet output, structured text export)
 
 ### What's next
 
@@ -146,7 +147,7 @@ Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadm
 
 **Phase C: Mode Pack Expansion** (in progress)
 1. Screenplay mode â€” scenes, beat sheets, act structure, formatted output (completed 2026-04-06)
-2. Comics / graphic narrative mode â€” pages/panels, visual pacing, script format
+2. Comics / graphic narrative mode â€” pages/panels, visual pacing, script format (completed 2026-04-06)
 3. Game writing / narrative design mode â€” quests, branching, dialogue trees
 4. Non-fiction / articles / essays mode â€” sections, arguments, sources, bibliography
 
