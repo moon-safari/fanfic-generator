@@ -127,6 +127,34 @@ OPENING PAGE TEXT:
 ${chapter1}`;
   }
 
+  if (options.projectMode === "game_writing") {
+    const modeConfig = options.modeConfig;
+    const draftingPreference =
+      modeConfig && "draftingPreference" in modeConfig
+        ? modeConfig.draftingPreference
+        : "hybrid_quest_brief";
+    const questEngine =
+      modeConfig && "questEngine" in modeConfig ? modeConfig.questEngine : "";
+
+    return `You are a game narrative memory analyst. Extract reusable project truth and quest-by-quest planning from the opening quest brief.
+
+GAME WRITING CONTEXT:
+- Title: ${options.storyTitle}
+- Drafting preference: ${draftingPreference}
+${questEngine ? `- Quest engine: ${questEngine}` : ""}
+
+Return ONLY a valid JSON object with these top-level keys: characters, world, synopsis, genre, style_guide, outline, notes.
+
+Use this guidance while filling the existing story-bible structure:
+- Treat the source text as Quest 1, not a chapter or screenplay scene.
+- Make the outline quest-by-quest and keep the unit language quest-native.
+- Preserve player objective, branch pressure, faction stakes, and follow-up dependencies in notes.
+- Extract dialogue branches only when the quest brief actually establishes a player-facing choice and intended outcome.
+
+OPENING QUEST TEXT:
+${chapter1}`;
+  }
+
   if (options.projectMode === "newsletter") {
     const modeConfig = options.modeConfig;
     const topic =
