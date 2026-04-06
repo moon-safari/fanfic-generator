@@ -17,6 +17,7 @@ import {
 } from "../../lib/artifacts";
 import {
   getComicsModeConfig,
+  getGameWritingModeConfig,
   getNewsletterModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -62,12 +63,14 @@ import {
 } from "../../types/newsletter";
 import type {
   ComicsModeConfig,
+  GameWritingModeConfig,
   NewsletterModeConfig,
   ProjectMode,
   ScreenplayModeConfig,
   StoryModeConfig,
 } from "../../types/story";
 import ComicsSetupPanel from "./ComicsSetupPanel";
+import GameWritingSetupPanel from "./GameWritingSetupPanel";
 import NewsletterSetupPanel from "./NewsletterSetupPanel";
 import NewsletterReadinessPanel from "./NewsletterReadinessPanel";
 import ScreenplaySetupPanel from "./ScreenplaySetupPanel";
@@ -148,6 +151,14 @@ export default function ArtifactsTab({
       }),
     [modeConfig, projectMode]
   );
+  const gameWritingModeConfig = useMemo(
+    () =>
+      getGameWritingModeConfig({
+        projectMode,
+        modeConfig,
+      }),
+    [modeConfig, projectMode]
+  );
   const screenplayModeConfig = useMemo(
     () =>
       getScreenplayModeConfig({
@@ -184,6 +195,13 @@ export default function ArtifactsTab({
   const [savingComicsConfig, setSavingComicsConfig] = useState(false);
   const [comicsConfigError, setComicsConfigError] = useState<string | null>(null);
   const [showComicsSetup, setShowComicsSetup] = useState(false);
+  const [gameWritingConfigDraft, setGameWritingConfigDraft] =
+    useState<GameWritingModeConfig | null>(gameWritingModeConfig);
+  const [savingGameWritingConfig, setSavingGameWritingConfig] = useState(false);
+  const [gameWritingConfigError, setGameWritingConfigError] = useState<string | null>(
+    null
+  );
+  const [showGameWritingSetup, setShowGameWritingSetup] = useState(false);
   const [screenplayConfigDraft, setScreenplayConfigDraft] =
     useState<ScreenplayModeConfig | null>(screenplayModeConfig);
   const [savingScreenplayConfig, setSavingScreenplayConfig] = useState(false);
@@ -216,6 +234,9 @@ export default function ArtifactsTab({
     null
   );
   const comicsConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gameWritingConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const screenplayConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -392,6 +413,9 @@ export default function ArtifactsTab({
       if (comicsConfigTimerRef.current) {
         clearTimeout(comicsConfigTimerRef.current);
       }
+      if (gameWritingConfigTimerRef.current) {
+        clearTimeout(gameWritingConfigTimerRef.current);
+      }
       if (screenplayConfigTimerRef.current) {
         clearTimeout(screenplayConfigTimerRef.current);
       }
@@ -405,6 +429,10 @@ export default function ArtifactsTab({
   useEffect(() => {
     setComicsConfigDraft(comicsModeConfig);
   }, [comicsModeConfig]);
+
+  useEffect(() => {
+    setGameWritingConfigDraft(gameWritingModeConfig);
+  }, [gameWritingModeConfig]);
 
   useEffect(() => {
     setScreenplayConfigDraft(screenplayModeConfig);
@@ -544,6 +572,39 @@ export default function ArtifactsTab({
         })
         .finally(() => {
           setSavingComicsConfig(false);
+        });
+    }, 700);
+  };
+
+  const handleGameWritingConfigChange = (nextValue: GameWritingModeConfig) => {
+    setGameWritingConfigDraft(nextValue);
+    setGameWritingConfigError(null);
+
+    if (gameWritingConfigTimerRef.current) {
+      clearTimeout(gameWritingConfigTimerRef.current);
+    }
+
+    gameWritingConfigTimerRef.current = setTimeout(() => {
+      setSavingGameWritingConfig(true);
+      void requestJson<{ modeConfig: GameWritingModeConfig }>(
+        `/api/stories/${storyId}/mode-config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modeConfig: nextValue }),
+        }
+      )
+        .then((data) => {
+          setGameWritingConfigDraft(data.modeConfig);
+          onModeConfigUpdated?.(data.modeConfig);
+        })
+        .catch((error: unknown) => {
+          setGameWritingConfigError(
+            getErrorMessage(error, "Failed to save game-writing setup")
+          );
+        })
+        .finally(() => {
+          setSavingGameWritingConfig(false);
         });
     }, 700);
   };
@@ -863,6 +924,17 @@ export default function ArtifactsTab({
               showSetup={showComicsSetup}
               onToggleSetup={() => setShowComicsSetup((prev) => !prev)}
               onConfigChange={handleComicsConfigChange}
+            />
+          )}
+
+          {projectMode === "game_writing" && gameWritingConfigDraft && (
+            <GameWritingSetupPanel
+              gameWritingConfigDraft={gameWritingConfigDraft}
+              savingGameWritingConfig={savingGameWritingConfig}
+              gameWritingConfigError={gameWritingConfigError}
+              showSetup={showGameWritingSetup}
+              onToggleSetup={() => setShowGameWritingSetup((prev) => !prev)}
+              onConfigChange={handleGameWritingConfigChange}
             />
           )}
 

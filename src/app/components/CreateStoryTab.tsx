@@ -5,6 +5,7 @@ import {
   BookOpen,
   Clapperboard,
   ChevronDown,
+  Gamepad2,
   Loader2,
   Mail,
   PanelsTopLeft,
@@ -18,6 +19,7 @@ import ToneSelector from "./ToneSelector";
 import TropeSelector from "./TropeSelector";
 import {
   ComicsSeriesEngine,
+  GameWritingQuestEngine,
   NewsletterCadence,
   ProjectMode,
   Rating,
@@ -32,6 +34,11 @@ import {
   DEFAULT_COMICS_MODE_CONFIG,
   labelComicsSeriesEngine,
 } from "../lib/comicsModeConfig";
+import {
+  DEFAULT_GAME_WRITING_MODE_CONFIG,
+  GAME_WRITING_QUEST_ENGINES,
+  labelGameWritingQuestEngine,
+} from "../lib/gameWritingModeConfig";
 import { getFandomById } from "../lib/fandoms";
 import { NEWSLETTER_VOICE_OPTIONS } from "../lib/newsletter";
 import { requestJson } from "../lib/request";
@@ -82,6 +89,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
       DEFAULT_COMICS_MODE_CONFIG.seriesEngine ?? "issue"
     );
   const [showComicsOptions, setShowComicsOptions] = useState(false);
+  const [gameWritingTitle, setGameWritingTitle] = useState("");
+  const [gameWritingTone, setGameWritingTone] = useState<string[]>([]);
+  const [gameWritingQuestEngine, setGameWritingQuestEngine] =
+    useState<GameWritingQuestEngine>(
+      DEFAULT_GAME_WRITING_MODE_CONFIG.questEngine ?? "main_quest"
+    );
+  const [showGameWritingOptions, setShowGameWritingOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [memoryDemoLoading, setMemoryDemoLoading] = useState(false);
@@ -104,8 +118,12 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           ? screenplayTitle.trim().length >= 2
             && screenplayTone.length >= 1
             && !busy
-          : comicsTitle.trim().length >= 2
+        : projectMode === "comics"
+          ? comicsTitle.trim().length >= 2
             && comicsTone.length >= 1
+            && !busy
+          : gameWritingTitle.trim().length >= 2
+            && gameWritingTone.length >= 1
             && !busy;
 
   const handleFandomChange = useCallback((id: string) => {
@@ -212,6 +230,37 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           relationshipType: "gen",
           rating: "teen",
           tone: comicsTone,
+          tropes: [],
+        });
+
+        if (!story) {
+          throw new Error("Please sign in before creating a new project.");
+        }
+
+        onStoryCreated(story, formData);
+        return;
+      }
+
+      if (projectMode === "game_writing") {
+        const formData: StoryFormData = {
+          projectMode: "game_writing",
+          title: gameWritingTitle.trim(),
+          tone: gameWritingTone,
+          questEngine: gameWritingQuestEngine,
+        };
+
+        const story = await createStoryInDB({
+          title: gameWritingTitle.trim(),
+          projectMode: "game_writing",
+          modeConfig: {
+            ...DEFAULT_GAME_WRITING_MODE_CONFIG,
+            questEngine: gameWritingQuestEngine,
+          },
+          fandom: "",
+          characters: [],
+          relationshipType: "gen",
+          rating: "teen",
+          tone: gameWritingTone,
           tropes: [],
         });
 
@@ -343,6 +392,11 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             label="Comics"
             active={projectMode === "comics"}
             onClick={() => setProjectMode("comics")}
+          />
+          <ModeButton
+            label="Game Writing"
+            active={projectMode === "game_writing"}
+            onClick={() => setProjectMode("game_writing")}
           />
           <ModeButton
             label="Newsletter"
@@ -639,6 +693,99 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             )}
           </div>
         </>
+      ) : projectMode === "game_writing" ? (
+        <>
+          <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-sky-500/15 p-2 text-sky-200">
+                <Gamepad2 className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+                  Game Writing
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Start with a title, tone, and quest scope so future quests know
+                  how hard to push consequence and follow-up pressure.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Field
+            label="Project title"
+            helper="This is the working title and will stay attached to the game-writing project."
+          >
+            <input
+              type="text"
+              value={gameWritingTitle}
+              onChange={(event) => setGameWritingTitle(event.target.value)}
+              placeholder="Ashes of Red Hollow"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-sky-500 focus:outline-none"
+            />
+          </Field>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-300">Tone</p>
+            <p className="mb-3 text-xs leading-5 text-zinc-500">
+              Pick the narrative energy the system should preserve across quests.
+            </p>
+            <ToneSelector
+              label="Tone"
+              showLabel={false}
+              selected={gameWritingTone}
+              onChange={setGameWritingTone}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <button
+              type="button"
+              onClick={() => setShowGameWritingOptions((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">More options</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-400">
+                  Quest scope and future consequence defaults.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-zinc-400 transition-transform ${
+                  showGameWritingOptions ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showGameWritingOptions && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-medium text-zinc-300">
+                  Quest engine
+                </p>
+                <p className="mb-3 text-xs leading-5 text-zinc-500">
+                  This shapes scope, consequence pressure, and payoff horizon for
+                  future quests.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {GAME_WRITING_QUEST_ENGINES.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setGameWritingQuestEngine(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        gameWritingQuestEngine === option
+                          ? "border-sky-500 bg-sky-500/15 text-white"
+                          : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-white"
+                      }`}
+                    >
+                      {labelGameWritingQuestEngine(option)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       ) : (
         <>
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
@@ -792,7 +939,9 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
                 ? "Start screenplay project"
                 : projectMode === "comics"
                   ? "Start comics project"
-                : "Start fiction project"}
+                : projectMode === "game_writing"
+                  ? "Start game writing project"
+                  : "Start fiction project"}
           </>
         )}
       </button>
