@@ -14,7 +14,13 @@ import {
 } from "lucide-react";
 import { Story, ContinueResponse } from "../types/story";
 import { addChapterToDB } from "../lib/supabase/stories";
-import { exportStoryToText } from "../lib/storage";
+import { buildStoryExportFile } from "../lib/storyExport";
+import {
+  formatProjectProgressLabel,
+  getContinueActionLabel,
+  getLoadingContinueLabel,
+  getProjectUnitLabel,
+} from "../lib/projectMode";
 
 interface StoryViewerProps {
   story: Story;
@@ -39,6 +45,9 @@ export default function StoryViewer({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isLatestChapter = currentChapter === story.chapters.length - 1;
+  const unitLabelPlural = getProjectUnitLabel(story.projectMode, {
+    count: story.chapters.length,
+  });
 
   const handleContinue = async () => {
     setLoading(true);
@@ -84,12 +93,12 @@ export default function StoryViewer({
   };
 
   const handleExport = () => {
-    const text = exportStoryToText(story);
-    const blob = new Blob([text], { type: "text/plain" });
+    const exportFile = buildStoryExportFile(story);
+    const blob = new Blob([exportFile.content], { type: exportFile.mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${story.title.replace(/[^a-zA-Z0-9]/g, "_")}.txt`;
+    a.download = exportFile.filename;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -147,7 +156,7 @@ export default function StoryViewer({
             </div>
           )}
           <p className="text-sm text-zinc-500">
-            {story.chapters.length} chapter{story.chapters.length !== 1 ? "s" : ""} · {story.wordCount.toLocaleString()} words
+            {story.chapters.length} {unitLabelPlural} · {story.wordCount.toLocaleString()} words
           </p>
         </div>
 
@@ -155,7 +164,7 @@ export default function StoryViewer({
           <button
             onClick={handleExport}
             className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-            title="Export to .txt"
+            title="Download export"
           >
             <Download className="w-5 h-5" />
           </button>
@@ -200,7 +209,11 @@ export default function StoryViewer({
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span className="text-sm text-zinc-400">
-          Chapter {currentChapter + 1} of {story.chapters.length}
+          {formatProjectProgressLabel(
+            story.projectMode,
+            currentChapter + 1,
+            story.chapters.length
+          )}
         </span>
         <button
           onClick={() =>
@@ -245,10 +258,10 @@ export default function StoryViewer({
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Writing the next chapter...
+                {getLoadingContinueLabel(story.projectMode)}
               </>
             ) : (
-              "Continue Story →"
+              `${getContinueActionLabel(story.projectMode)} ->`
             )}
           </button>
         </>

@@ -6,7 +6,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import type { NewsletterModeConfig, Story } from "../../types/story";
-import { exportStoryToText } from "../../lib/storage";
+import { buildStoryExportFile } from "../../lib/storyExport";
 import { useAutosave } from "./useAutosave";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useChapterEditor, resolveChapterContent } from "../../hooks/useChapterEditor";
@@ -190,7 +190,12 @@ export default function StoryEditor({
     chapterId: chapter?.id,
     enabled: Boolean(chapter?.id),
   });
-  const adaptation = useChapterAdaptation(story.id, story.projectMode, chapter?.id);
+  const adaptation = useChapterAdaptation(
+    story.id,
+    story.projectMode,
+    story.modeConfig,
+    chapter?.id
+  );
   const chapterAnnotations = useChapterAnnotations({
     chapterId: chapter?.id,
     editor: editor ?? null,
@@ -475,12 +480,12 @@ export default function StoryEditor({
   );
 
   const handleExport = () => {
-    const text = exportStoryToText(story);
-    const blob = new Blob([text], { type: "text/plain" });
+    const exportFile = buildStoryExportFile(story);
+    const blob = new Blob([exportFile.content], { type: exportFile.mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${story.title.replace(/[^a-zA-Z0-9]/g, "_")}.txt`;
+    a.download = exportFile.filename;
     a.click();
     URL.revokeObjectURL(url);
   };

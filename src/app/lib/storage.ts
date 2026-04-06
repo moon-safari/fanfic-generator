@@ -1,15 +1,8 @@
 import { Story, Chapter } from "../types/story";
-import {
-  formatNewsletterCadence,
-  getProjectModeLabel,
-  getProjectUnitLabel,
-  isNewsletterStory,
-} from "./projectMode";
+import { buildPlainTextStoryExport } from "./storyExport";
 
 const PRIMARY_STORAGE_KEY = "writing-projects";
 const LEGACY_STORAGE_KEY = "fanfic-stories";
-const EXPORT_DIVIDER = "-".repeat(40);
-
 // Migrate old story shape to new shape, handling legacy chapters: string[]
 function migrateStory(raw: Record<string, unknown>): Story {
   let chapters: Chapter[];
@@ -87,44 +80,5 @@ export function deleteStory(id: string): void {
 }
 
 export function exportStoryToText(story: Story): string {
-  const lines = [`${story.title}\n`];
-  lines.push(`Mode: ${getProjectModeLabel(story.projectMode)}`);
-
-  if (isNewsletterStory(story)) {
-    const modeConfig = story.modeConfig;
-    if (modeConfig && "topic" in modeConfig) {
-      lines.push(`Topic: ${modeConfig.topic}`);
-      lines.push(`Audience: ${modeConfig.audience}`);
-      lines.push(`Cadence: ${formatNewsletterCadence(modeConfig.cadence)}`);
-      lines.push(`Current angle: ${modeConfig.issueAngle}`);
-      if (modeConfig.subtitle) lines.push(`Subtitle: ${modeConfig.subtitle}`);
-      if (modeConfig.hookApproach) lines.push(`Hook approach: ${modeConfig.hookApproach}`);
-      if (modeConfig.ctaStyle) lines.push(`CTA style: ${modeConfig.ctaStyle}`);
-      if (modeConfig.recurringSections?.length) {
-        lines.push(`Recurring sections: ${modeConfig.recurringSections.join(", ")}`);
-      }
-    }
-    if (story.tone.length) {
-      lines.push(`Voice: ${story.tone.join(", ")}`);
-    }
-  } else {
-    if (story.fandom) lines.push(`Fandom: ${story.customFandom || story.fandom}`);
-    lines.push(`Characters: ${story.characters.join(", ")}`);
-    lines.push(`Relationship: ${story.relationshipType.toUpperCase()}`);
-    lines.push(`Rating: ${story.rating.charAt(0).toUpperCase() + story.rating.slice(1)}`);
-    if (story.setting) lines.push(`Setting: ${story.setting}`);
-    lines.push(`Tone: ${story.tone.join(", ")}`);
-    if (story.tropes.length) lines.push(`Tropes: ${story.tropes.join(", ")}`);
-  }
-  lines.push(`\n${EXPORT_DIVIDER}\n`);
-
-  story.chapters.forEach((chapter, index) => {
-    lines.push(
-      `${getProjectUnitLabel(story.projectMode, { capitalize: true })} ${index + 1}\n`
-    );
-    lines.push(chapter.content);
-    lines.push(`\n${EXPORT_DIVIDER}\n`);
-  });
-
-  return lines.join("\n");
+  return buildPlainTextStoryExport(story);
 }

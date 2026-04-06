@@ -2,8 +2,9 @@ import type {
   AdaptationChainId,
   AdaptationOutputType,
   AdaptationWorkflowStateSource,
-} from "../types/adaptation";
-import type { ProjectMode } from "../types/story";
+} from "../types/adaptation.ts";
+import type { ProjectMode, StoryModeConfig } from "../types/story.ts";
+import { getScreenplayModeConfig } from "./projectMode.ts";
 
 export interface AdaptationPreset {
   type: AdaptationOutputType;
@@ -35,7 +36,15 @@ export const ADAPTATION_PRESETS: AdaptationPreset[] = [
     description: "Translate the source draft into visual scene beats for adaptation.",
     stateSources: ["draft", "memory", "plans", "saved_outputs"],
     supportingOutputTypes: ["short_summary"],
-    supportedModes: ["fiction"],
+    supportedModes: ["screenplay"],
+  },
+  {
+    type: "screenplay_scene_pages",
+    label: "Screenplay Scene Pages",
+    description: "Convert the source material into Fountain-compatible screenplay scene pages.",
+    stateSources: ["draft", "memory", "plans", "saved_outputs"],
+    supportingOutputTypes: ["short_summary", "screenplay_beat_sheet"],
+    supportedModes: ["screenplay"],
   },
   {
     type: "public_teaser",
@@ -180,12 +189,18 @@ export function isAdaptationOutputType(
 }
 
 export function getAdaptationPresetsForMode(
-  projectMode: ProjectMode
+  projectMode: ProjectMode,
+  modeConfig?: StoryModeConfig
 ): AdaptationPreset[] {
   const filtered = ADAPTATION_PRESETS.filter(
     (preset) =>
       !preset.supportedModes || preset.supportedModes.includes(projectMode)
   );
+
+  const screenplayConfig =
+    projectMode === "screenplay"
+      ? getScreenplayModeConfig({ projectMode, modeConfig })
+      : null;
 
   const preferredOrder: AdaptationOutputType[] =
     projectMode === "newsletter"
@@ -200,6 +215,22 @@ export function getAdaptationPresetsForMode(
           "public_teaser",
           "short_summary",
         ]
+      : projectMode === "screenplay"
+        ? screenplayConfig?.draftingPreference === "beat_draft"
+          ? [
+              "screenplay_scene_pages",
+              "screenplay_beat_sheet",
+              "short_summary",
+              "public_teaser",
+              "newsletter_recap",
+            ]
+          : [
+              "screenplay_beat_sheet",
+              "screenplay_scene_pages",
+              "short_summary",
+              "public_teaser",
+              "newsletter_recap",
+            ]
       : [
           "short_summary",
           "newsletter_recap",
@@ -360,11 +391,11 @@ export function isAdaptationChainIdEnabled(
 }
 
 export function getDefaultAdaptationOutputType(
-  projectMode: ProjectMode
+  projectMode: ProjectMode,
+  modeConfig?: StoryModeConfig
 ): AdaptationOutputType {
-  return projectMode === "newsletter"
-    ? "issue_subject_line"
-    : "short_summary";
+  return getAdaptationPresetsForMode(projectMode, modeConfig)[0]?.type
+    ?? "short_summary";
 }
 
 export function getDefaultAdaptationChainId(

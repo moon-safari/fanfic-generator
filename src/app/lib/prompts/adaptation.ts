@@ -6,7 +6,11 @@ import type {
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../../types/adaptation";
-import { getNewsletterModeConfig, getProjectUnitLabel } from "../projectMode";
+import {
+  getNewsletterModeConfig,
+  getProjectUnitLabel,
+  getScreenplayModeConfig,
+} from "../projectMode";
 import type { NewsletterIssuePackageSelectionValues } from "../../types/newsletter";
 import type { ProjectMode, StoryModeConfig } from "../../types/story";
 
@@ -284,6 +288,8 @@ export function getAdaptationMaxTokens(
       return 800;
     case "screenplay_beat_sheet":
       return 1000;
+    case "screenplay_scene_pages":
+      return 1200;
     default:
       return 800;
   }
@@ -308,6 +314,12 @@ function buildFormatInstructions(outputType: AdaptationOutputType): string {
 - Each beat should be one or two sentences focused on visual action and dramatic movement.
 - Use screenplay-friendly cues and scene logic, but stay in beat-sheet form rather than full script pages.
 - Preserve the source unit's emotional turns and sequence of revelations.`;
+    case "screenplay_scene_pages":
+      return `FORMAT INSTRUCTIONS:
+- Write Fountain-compatible screenplay scene pages.
+- Use scene headings where needed and keep action visual and concise.
+- Render dialogue in screenplay form, not prose paragraphs.
+- Preserve the source unit's dramatic turns, reveals, and continuity obligations.`;
     case "public_teaser":
       return `FORMAT INSTRUCTIONS:
 - Write 2 short teaser paragraphs for public-facing promotion.
@@ -420,11 +432,17 @@ function buildProjectContextBlock({
     projectMode,
     modeConfig,
   });
+  const screenplayConfig = getScreenplayModeConfig({
+    projectMode,
+    modeConfig,
+  });
 
   return [
     `${projectMode === "newsletter" ? "SERIES" : "STORY"}: ${storyTitle}`,
     projectMode === "newsletter"
       ? `MODE: Newsletter`
+      : projectMode === "screenplay"
+        ? "MODE: Screenplay"
       : `FANDOM: ${customFandom?.trim() || fandom || "Original work"}`,
     newsletterConfig?.topic ? `TOPIC: ${newsletterConfig.topic}` : "",
     newsletterConfig?.audience ? `AUDIENCE: ${newsletterConfig.audience}` : "",
@@ -435,6 +453,12 @@ function buildProjectContextBlock({
     newsletterConfig?.ctaStyle ? `CTA STYLE: ${newsletterConfig.ctaStyle}` : "",
     newsletterConfig?.recurringSections?.length
       ? `RECURRING SECTIONS: ${newsletterConfig.recurringSections.join(", ")}`
+      : "",
+    screenplayConfig?.draftingPreference
+      ? `DRAFTING PREFERENCE: ${screenplayConfig.draftingPreference}`
+      : "",
+    screenplayConfig?.storyEngine
+      ? `STORY ENGINE: ${screenplayConfig.storyEngine}`
       : "",
     characters.length > 0 ? `CORE CHARACTERS: ${characters.join(", ")}` : "",
     tone.length > 0 ? `TONE: ${tone.join(", ")}` : "",

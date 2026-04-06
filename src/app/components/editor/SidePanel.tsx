@@ -365,6 +365,7 @@ export default function SidePanel({
           <AdaptTab
             storyId={storyId}
             projectMode={projectMode}
+            modeConfig={modeConfig}
             currentChapter={currentChapter}
             currentChapterId={currentChapterId}
             focusMode={focusModeActive}

@@ -14,6 +14,7 @@ import {
   Megaphone,
   Newspaper,
   RefreshCw,
+  ScrollText,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -37,11 +38,12 @@ import {
   type NewsletterIssuePackageSelectionField,
   type NewsletterIssuePackageSelectionValues,
 } from "../../types/newsletter";
-import type { ProjectMode } from "../../types/story";
+import type { ProjectMode, StoryModeConfig } from "../../types/story";
 
 interface AdaptTabProps {
   storyId: string;
   projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
   currentChapter: number;
   currentChapterId?: string;
   focusMode?: boolean;
@@ -67,6 +69,7 @@ const ADAPTATION_ICONS = {
   short_summary: FileText,
   newsletter_recap: Newspaper,
   screenplay_beat_sheet: Clapperboard,
+  screenplay_scene_pages: ScrollText,
   public_teaser: Megaphone,
   issue_subject_line: Mail,
   issue_deck: FileText,
@@ -89,6 +92,7 @@ const NEWSLETTER_OUTPUT_TO_SELECTION_FIELD: Partial<
 export default function AdaptTab({
   storyId,
   projectMode,
+  modeConfig,
   currentChapter,
   currentChapterId,
   focusMode = false,
@@ -113,7 +117,7 @@ export default function AdaptTab({
   const unitLabelCapitalized = getProjectUnitLabel(projectMode, {
     capitalize: true,
   });
-  const adaptationPresets = getAdaptationPresetsForMode(projectMode);
+  const adaptationPresets = getAdaptationPresetsForMode(projectMode, modeConfig);
   const chainPresets = getAdaptationChainPresetsForMode(projectMode);
   const activePreset =
     adaptationPresets.find((preset) => preset.type === activeOutputType)

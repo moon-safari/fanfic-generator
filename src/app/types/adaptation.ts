@@ -11,6 +11,7 @@ export type AdaptationOutputType =
   | "short_summary"
   | "newsletter_recap"
   | "screenplay_beat_sheet"
+  | "screenplay_scene_pages"
   | "public_teaser"
   | "issue_subject_line"
   | "issue_deck"

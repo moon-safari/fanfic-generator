@@ -19,7 +19,7 @@ import type {
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../types/adaptation";
-import type { ProjectMode } from "../types/story";
+import type { ProjectMode, StoryModeConfig } from "../types/story";
 
 type AdaptationResultMap = Partial<
   Record<AdaptationOutputType, ChapterAdaptationResult>
@@ -28,11 +28,14 @@ type AdaptationResultMap = Partial<
 export function useChapterAdaptation(
   storyId: string,
   projectMode: ProjectMode,
+  modeConfig?: StoryModeConfig,
   chapterId?: string
 ) {
   const unitLabel = getProjectUnitLabel(projectMode);
   const [activeOutputType, setActiveOutputType] =
-    useState<AdaptationOutputType>(() => getDefaultOutputType(projectMode));
+    useState<AdaptationOutputType>(() =>
+      getDefaultOutputType(projectMode, modeConfig)
+    );
   const [selectedChainId, setSelectedChainId] =
     useState<AdaptationChainId>(() => getDefaultChainId(projectMode));
   const [resultsByType, setResultsByType] = useState<AdaptationResultMap>({});
@@ -45,13 +48,13 @@ export function useChapterAdaptation(
 
   useEffect(() => {
     if (!isOutputTypeEnabled(activeOutputType, projectMode)) {
-      setActiveOutputType(getDefaultOutputType(projectMode));
+      setActiveOutputType(getDefaultOutputType(projectMode, modeConfig));
     }
 
     if (!isChainIdEnabled(selectedChainId, projectMode)) {
       setSelectedChainId(getDefaultChainId(projectMode));
     }
-  }, [activeOutputType, projectMode, selectedChainId]);
+  }, [activeOutputType, modeConfig, projectMode, selectedChainId]);
 
   useEffect(() => {
     setResultsByType({});

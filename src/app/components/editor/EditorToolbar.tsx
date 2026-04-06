@@ -300,7 +300,7 @@ export default function EditorToolbar({
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
               >
                 <Download className="h-4 w-4" />
-                Download .txt
+                Download export
               </button>
               <button
                 onClick={() => {
