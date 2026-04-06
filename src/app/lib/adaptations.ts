@@ -56,6 +56,15 @@ export const ADAPTATION_PRESETS: AdaptationPreset[] = [
     supportedModes: ["comics"],
   },
   {
+    type: "quest_handoff_sheet",
+    label: "Quest Handoff Sheet",
+    description:
+      "Turn the source quest brief into a structured production-facing handoff for narrative and quest collaborators.",
+    stateSources: ["draft", "memory", "plans", "saved_outputs"],
+    supportingOutputTypes: ["short_summary"],
+    supportedModes: ["game_writing"],
+  },
+  {
     type: "public_teaser",
     label: "Public Teaser",
     description: "Create a spoiler-aware teaser that preserves intrigue and tone.",
@@ -243,6 +252,13 @@ export function getAdaptationPresetsForMode(
       : projectMode === "comics"
         ? [
             "comic_page_beat_sheet",
+            "short_summary",
+            "public_teaser",
+            "newsletter_recap",
+          ]
+      : projectMode === "game_writing"
+        ? [
+            "quest_handoff_sheet",
             "short_summary",
             "public_teaser",
             "newsletter_recap",

@@ -8,6 +8,7 @@ import type {
 } from "../../types/adaptation";
 import {
   getComicsModeConfig,
+  getGameWritingModeConfig,
   getNewsletterModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -291,6 +292,8 @@ export function getAdaptationMaxTokens(
       return 1000;
     case "screenplay_scene_pages":
       return 1200;
+    case "quest_handoff_sheet":
+      return 1100;
     case "comic_page_beat_sheet":
       return 1000;
     default:
@@ -323,6 +326,19 @@ function buildFormatInstructions(outputType: AdaptationOutputType): string {
 - Use scene headings where needed and keep action visual and concise.
 - Render dialogue in screenplay form, not prose paragraphs.
 - Preserve the source unit's dramatic turns, reveals, and continuity obligations.`;
+    case "quest_handoff_sheet":
+      return `FORMAT INSTRUCTIONS:
+- Write a structured quest handoff with these headings:
+  Premise
+  Player Objective
+  Core Stages
+  Branch Highlights
+  Key NPCs / Factions / Items
+  Rewards / Consequences
+  Open Implementation Notes
+- Keep each section concise and production-facing.
+- Preserve quest pressure, branch intent, and unresolved follow-up hooks.
+- Do not turn this into pseudo-code or a full dialogue script.`;
     case "comic_page_beat_sheet":
       return `FORMAT INSTRUCTIONS:
 - Write 4 to 8 numbered page beats.
@@ -437,6 +453,10 @@ function buildProjectContextBlock({
   tone: string[];
   tropes: string[];
 }): string {
+  const gameWritingConfig = getGameWritingModeConfig({
+    projectMode,
+    modeConfig,
+  });
   const newsletterConfig = getNewsletterModeConfig({
     projectMode,
     modeConfig,
@@ -458,7 +478,15 @@ function buildProjectContextBlock({
         ? "MODE: Screenplay"
       : projectMode === "comics"
         ? "MODE: Comics"
+      : projectMode === "game_writing"
+        ? "MODE: Game Writing"
       : `FANDOM: ${customFandom?.trim() || fandom || "Original work"}`,
+    gameWritingConfig?.draftingPreference
+      ? `DRAFTING PREFERENCE: ${gameWritingConfig.draftingPreference}`
+      : "",
+    gameWritingConfig?.questEngine
+      ? `QUEST ENGINE: ${gameWritingConfig.questEngine}`
+      : "",
     newsletterConfig?.topic ? `TOPIC: ${newsletterConfig.topic}` : "",
     newsletterConfig?.audience ? `AUDIENCE: ${newsletterConfig.audience}` : "",
     newsletterConfig?.cadence ? `CADENCE: ${newsletterConfig.cadence}` : "",

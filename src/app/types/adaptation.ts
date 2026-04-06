@@ -13,6 +13,7 @@ export type AdaptationOutputType =
   | "screenplay_beat_sheet"
   | "screenplay_scene_pages"
   | "comic_page_beat_sheet"
+  | "quest_handoff_sheet"
   | "public_teaser"
   | "issue_subject_line"
   | "issue_deck"

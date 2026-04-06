@@ -2,6 +2,7 @@ import type { Story } from "../types/story.ts";
 import {
   formatNewsletterCadence,
   getComicsModeConfig,
+  getGameWritingModeConfig,
   getProjectModeLabel,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -57,6 +58,18 @@ export function buildPlainTextStoryExport(story: Story): string {
       lines.push(`Format: ${modeConfig.formatStyle}`);
       if (modeConfig.seriesEngine) {
         lines.push(`Series engine: ${modeConfig.seriesEngine}`);
+      }
+    }
+    if (story.tone.length) {
+      lines.push(`Tone: ${story.tone.join(", ")}`);
+    }
+  } else if (story.projectMode === "game_writing") {
+    const modeConfig = getGameWritingModeConfig(story);
+    if (modeConfig) {
+      lines.push(`Drafting preference: ${modeConfig.draftingPreference}`);
+      lines.push(`Format: ${modeConfig.formatStyle}`);
+      if (modeConfig.questEngine) {
+        lines.push(`Quest engine: ${modeConfig.questEngine}`);
       }
     }
     if (story.tone.length) {

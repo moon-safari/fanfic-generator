@@ -80,3 +80,26 @@ test("comics mode defaults to the beat-sheet output", () => {
     "comic_page_beat_sheet"
   );
 });
+
+test("game writing mode exposes quest handoff output", () => {
+  const presets = getAdaptationPresetsForMode("game_writing");
+
+  assert.deepEqual(
+    presets.map((preset) => preset.type),
+    [
+      "quest_handoff_sheet",
+      "short_summary",
+      "public_teaser",
+      "newsletter_recap",
+    ]
+  );
+});
+
+test("fiction mode does not expose quest-only outputs", () => {
+  const presets = getAdaptationPresetsForMode("fiction");
+
+  assert.equal(
+    presets.some((preset) => preset.type === "quest_handoff_sheet"),
+    false
+  );
+});

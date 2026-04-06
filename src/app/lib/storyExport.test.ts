@@ -110,3 +110,41 @@ test("comics projects export as structured plain text", () => {
   assert.match(file.content, /Mode: Comics/);
   assert.match(file.content, /PAGE 1/);
 });
+
+test("game writing projects export as structured plain text", () => {
+  const story = {
+    id: "story-1",
+    title: "Ashes of Red Hollow",
+    projectMode: "game_writing",
+    modeConfig: {
+      draftingPreference: "hybrid_quest_brief",
+      formatStyle: "quest_brief",
+      questEngine: "main_quest",
+    },
+    chapters: [
+      {
+        id: "quest-1",
+        chapterNumber: 1,
+        content: "QUEST 1\nPremise: The magistrate offers the player a bargain.",
+        wordCount: 10,
+      },
+    ],
+    fandom: "",
+    characters: [],
+    relationshipType: "gen",
+    rating: "teen",
+    tone: ["tense", "political"],
+    tropes: [],
+    createdAt: "",
+    updatedAt: "",
+    wordCount: 10,
+  } satisfies Story;
+
+  const exportFile = buildStoryExportFile(story);
+
+  assert.equal(exportFile.extension, "txt");
+  assert.match(exportFile.content, /Mode: Game Writing/);
+  assert.match(exportFile.content, /Drafting preference: hybrid_quest_brief/);
+  assert.match(exportFile.content, /Quest engine: main_quest/);
+  assert.match(exportFile.content, /Quest 1/);
+});
