@@ -43,6 +43,20 @@ export function buildNewsletterPlanningPrompt(
   });
 }
 
+export function buildScreenplayPlanningPrompt(
+  args: ModePlanningPromptArgs
+): string {
+  return buildStructuredPlanningPrompt(args, {
+    activeHeading: "CHARACTER AND ACT PRESSURE TO HONOR:",
+    dueHeadingPrefix: "SETUP-PAYOFF THREADS DUE BY",
+    openHeading: "OTHER OPEN SETUP-PAYOFF THREADS:",
+    notesHeading: "STORY NOTES",
+    keyRevealLabel: "Expected turn or reveal",
+    openLoopsLabel: (unitLabelLowercase) =>
+      `Threads meant to stay open after this ${unitLabelLowercase}`,
+  });
+}
+
 function buildStructuredPlanningPrompt(
   { outline, notes, unitNumber, projectMode }: ModePlanningPromptArgs,
   copy: PlanningPromptCopy

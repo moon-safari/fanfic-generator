@@ -2,6 +2,8 @@ import type {
   NewsletterModeConfig,
   NewsletterStoryFormData,
   ProjectMode,
+  ScreenplayModeConfig,
+  ScreenplayStoryFormData,
   Story,
   StoryFormData,
 } from "../types/story";
@@ -10,6 +12,12 @@ export function isNewsletterFormData(
   value: StoryFormData
 ): value is NewsletterStoryFormData {
   return value.projectMode === "newsletter";
+}
+
+export function isScreenplayFormData(
+  value: StoryFormData
+): value is ScreenplayStoryFormData {
+  return value.projectMode === "screenplay";
 }
 
 export function isNewsletterStory(story: Story): boolean {
@@ -24,6 +32,16 @@ export function getNewsletterModeConfig(
   }
 
   return parseNewsletterModeConfig(story.modeConfig);
+}
+
+export function getScreenplayModeConfig(
+  story: Pick<Story, "projectMode" | "modeConfig">
+): ScreenplayModeConfig | null {
+  if (story.projectMode !== "screenplay" || !story.modeConfig) {
+    return null;
+  }
+
+  return parseScreenplayModeConfig(story.modeConfig);
 }
 
 export function parseNewsletterModeConfig(
@@ -72,8 +90,42 @@ export function parseNewsletterModeConfig(
   };
 }
 
+export function parseScreenplayModeConfig(
+  input: unknown
+): ScreenplayModeConfig | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<ScreenplayModeConfig>;
+  if (
+    (candidate.draftingPreference !== "script_pages"
+      && candidate.draftingPreference !== "beat_draft")
+    || candidate.formatStyle !== "fountain"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: candidate.draftingPreference,
+    formatStyle: "fountain",
+    storyEngine:
+      candidate.storyEngine === "feature"
+      || candidate.storyEngine === "pilot"
+      || candidate.storyEngine === "short"
+        ? candidate.storyEngine
+        : undefined,
+  };
+}
+
 export function getProjectModeLabel(mode: ProjectMode): string {
-  return mode === "newsletter" ? "Newsletter" : "Fiction";
+  if (mode === "newsletter") {
+    return "Newsletter";
+  }
+  if (mode === "screenplay") {
+    return "Screenplay";
+  }
+  return "Fiction";
 }
 
 export function getProjectUnitLabel(
@@ -85,6 +137,16 @@ export function getProjectUnitLabel(
   } = {}
 ): string {
   const { count = 1, capitalize = false, abbreviated = false } = options;
+  if (mode === "screenplay") {
+    const singular = abbreviated
+      ? "Sc."
+      : capitalize
+        ? "Scene"
+        : "scene";
+    const plural = capitalize ? "Scenes" : "scenes";
+    return count === 1 ? singular : plural;
+  }
+
   const singular =
     mode === "newsletter"
       ? abbreviated
@@ -111,13 +173,23 @@ export function getProjectUnitLabel(
 }
 
 export function getContinueActionLabel(mode: ProjectMode): string {
-  return mode === "newsletter" ? "Continue Issue" : "Continue Story";
+  if (mode === "newsletter") {
+    return "Continue Issue";
+  }
+  if (mode === "screenplay") {
+    return "Continue Scene";
+  }
+  return "Continue Story";
 }
 
 export function getLoadingContinueLabel(mode: ProjectMode): string {
-  return mode === "newsletter"
-    ? "Writing the next issue..."
-    : "Writing the next chapter...";
+  if (mode === "newsletter") {
+    return "Writing the next issue...";
+  }
+  if (mode === "screenplay") {
+    return "Writing the next scene...";
+  }
+  return "Writing the next chapter...";
 }
 
 export function formatProjectProgressLabel(

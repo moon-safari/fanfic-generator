@@ -1,11 +1,13 @@
 export type RelationshipType = "gen" | "mm" | "fm" | "ff" | "multi" | "other";
 export type Rating = "general" | "teen" | "mature" | "explicit";
-export type ProjectMode = "fiction" | "newsletter";
+export type ProjectMode = "fiction" | "newsletter" | "screenplay";
 export type NewsletterCadence =
   | "weekly"
   | "biweekly"
   | "monthly"
   | "irregular";
+export type ScreenplayDraftingPreference = "script_pages" | "beat_draft";
+export type ScreenplayStoryEngine = "feature" | "pilot" | "short";
 
 export interface NewsletterModeConfig {
   topic: string;
@@ -18,7 +20,16 @@ export interface NewsletterModeConfig {
   recurringSections?: string[];
 }
 
-export type StoryModeConfig = Record<string, never> | NewsletterModeConfig;
+export interface ScreenplayModeConfig {
+  draftingPreference: ScreenplayDraftingPreference;
+  formatStyle: "fountain";
+  storyEngine?: ScreenplayStoryEngine;
+}
+
+export type StoryModeConfig =
+  | Record<string, never>
+  | NewsletterModeConfig
+  | ScreenplayModeConfig;
 
 export interface Chapter {
   id: string;
@@ -70,7 +81,18 @@ export interface NewsletterStoryFormData {
   tone: string[];
 }
 
-export type StoryFormData = FictionStoryFormData | NewsletterStoryFormData;
+export interface ScreenplayStoryFormData {
+  projectMode: "screenplay";
+  title: string;
+  draftingPreference: ScreenplayDraftingPreference;
+  tone: string[];
+  storyEngine?: ScreenplayStoryEngine;
+}
+
+export type StoryFormData =
+  | FictionStoryFormData
+  | NewsletterStoryFormData
+  | ScreenplayStoryFormData;
 
 export interface GenerateResponse {
   title: string;
