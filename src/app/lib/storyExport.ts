@@ -1,6 +1,7 @@
 import type { Story } from "../types/story.ts";
 import {
   formatNewsletterCadence,
+  getComicsModeConfig,
   getProjectModeLabel,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -44,6 +45,18 @@ export function buildPlainTextStoryExport(story: Story): string {
       lines.push(`Format: ${modeConfig.formatStyle}`);
       if (modeConfig.storyEngine) {
         lines.push(`Story engine: ${modeConfig.storyEngine}`);
+      }
+    }
+    if (story.tone.length) {
+      lines.push(`Tone: ${story.tone.join(", ")}`);
+    }
+  } else if (story.projectMode === "comics") {
+    const modeConfig = getComicsModeConfig(story);
+    if (modeConfig) {
+      lines.push(`Drafting preference: ${modeConfig.draftingPreference}`);
+      lines.push(`Format: ${modeConfig.formatStyle}`);
+      if (modeConfig.seriesEngine) {
+        lines.push(`Series engine: ${modeConfig.seriesEngine}`);
       }
     }
     if (story.tone.length) {

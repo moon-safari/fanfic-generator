@@ -47,6 +47,15 @@ export const ADAPTATION_PRESETS: AdaptationPreset[] = [
     supportedModes: ["screenplay"],
   },
   {
+    type: "comic_page_beat_sheet",
+    label: "Comic Page Beat Sheet",
+    description:
+      "Condense the current comic page into visual pacing beats and page-turn pressure.",
+    stateSources: ["draft", "memory", "plans", "saved_outputs"],
+    supportingOutputTypes: ["short_summary"],
+    supportedModes: ["comics"],
+  },
+  {
     type: "public_teaser",
     label: "Public Teaser",
     description: "Create a spoiler-aware teaser that preserves intrigue and tone.",
@@ -231,11 +240,19 @@ export function getAdaptationPresetsForMode(
               "public_teaser",
               "newsletter_recap",
             ]
+      : projectMode === "comics"
+        ? [
+            "comic_page_beat_sheet",
+            "short_summary",
+            "public_teaser",
+            "newsletter_recap",
+          ]
       : [
           "short_summary",
           "newsletter_recap",
           "public_teaser",
           "screenplay_beat_sheet",
+          "comic_page_beat_sheet",
         ];
 
   return filtered.sort(

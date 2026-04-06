@@ -7,6 +7,7 @@ import type {
   ChapterAdaptationResult,
 } from "../../types/adaptation";
 import {
+  getComicsModeConfig,
   getNewsletterModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -290,6 +291,8 @@ export function getAdaptationMaxTokens(
       return 1000;
     case "screenplay_scene_pages":
       return 1200;
+    case "comic_page_beat_sheet":
+      return 1000;
     default:
       return 800;
   }
@@ -320,6 +323,12 @@ function buildFormatInstructions(outputType: AdaptationOutputType): string {
 - Use scene headings where needed and keep action visual and concise.
 - Render dialogue in screenplay form, not prose paragraphs.
 - Preserve the source unit's dramatic turns, reveals, and continuity obligations.`;
+    case "comic_page_beat_sheet":
+      return `FORMAT INSTRUCTIONS:
+- Write 4 to 8 numbered page beats.
+- Focus on visual action, reveal placement, density shifts, and end-of-page pressure.
+- Keep each beat to one or two sentences.
+- Preserve the source page's continuity, not just its premise.`;
     case "public_teaser":
       return `FORMAT INSTRUCTIONS:
 - Write 2 short teaser paragraphs for public-facing promotion.
@@ -432,6 +441,10 @@ function buildProjectContextBlock({
     projectMode,
     modeConfig,
   });
+  const comicsConfig = getComicsModeConfig({
+    projectMode,
+    modeConfig,
+  });
   const screenplayConfig = getScreenplayModeConfig({
     projectMode,
     modeConfig,
@@ -443,6 +456,8 @@ function buildProjectContextBlock({
       ? `MODE: Newsletter`
       : projectMode === "screenplay"
         ? "MODE: Screenplay"
+      : projectMode === "comics"
+        ? "MODE: Comics"
       : `FANDOM: ${customFandom?.trim() || fandom || "Original work"}`,
     newsletterConfig?.topic ? `TOPIC: ${newsletterConfig.topic}` : "",
     newsletterConfig?.audience ? `AUDIENCE: ${newsletterConfig.audience}` : "",
@@ -453,6 +468,12 @@ function buildProjectContextBlock({
     newsletterConfig?.ctaStyle ? `CTA STYLE: ${newsletterConfig.ctaStyle}` : "",
     newsletterConfig?.recurringSections?.length
       ? `RECURRING SECTIONS: ${newsletterConfig.recurringSections.join(", ")}`
+      : "",
+    comicsConfig?.draftingPreference
+      ? `DRAFTING PREFERENCE: ${comicsConfig.draftingPreference}`
+      : "",
+    comicsConfig?.seriesEngine
+      ? `SERIES ENGINE: ${comicsConfig.seriesEngine}`
       : "",
     screenplayConfig?.draftingPreference
       ? `DRAFTING PREFERENCE: ${screenplayConfig.draftingPreference}`

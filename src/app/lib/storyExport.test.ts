@@ -73,3 +73,40 @@ test("screenplay beat drafts export as plain text", () => {
   assert.equal(file.extension, "txt");
   assert.match(file.filename, /^Glass_Hour\.txt$/);
 });
+
+test("comics projects export as structured plain text", () => {
+  const story: Story = {
+    id: "comics-1",
+    title: "Ash Canary",
+    projectMode: "comics",
+    modeConfig: {
+      draftingPreference: "comic_script_pages",
+      formatStyle: "comic_script",
+      seriesEngine: "issue",
+    },
+    chapters: [
+      {
+        id: "page-1",
+        chapterNumber: 1,
+        content: "PAGE 1\nPanel 1: The city hangs under a storm halo.",
+        wordCount: 13,
+      },
+    ],
+    fandom: "",
+    characters: [],
+    relationshipType: "gen",
+    rating: "teen",
+    tone: ["tense"],
+    tropes: [],
+    createdAt: "",
+    updatedAt: "",
+    wordCount: 13,
+  };
+
+  const file = buildStoryExportFile(story);
+
+  assert.equal(file.extension, "txt");
+  assert.match(file.filename, /^Ash_Canary\.txt$/);
+  assert.match(file.content, /Mode: Comics/);
+  assert.match(file.content, /PAGE 1/);
+});

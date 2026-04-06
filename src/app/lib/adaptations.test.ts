@@ -47,3 +47,36 @@ test("screenplay preference changes the default output emphasis", () => {
     "screenplay_scene_pages"
   );
 });
+
+test("comics mode exposes comic page beat sheet output", () => {
+  const presets = getAdaptationPresetsForMode("comics", {
+    draftingPreference: "comic_script_pages",
+    formatStyle: "comic_script",
+    seriesEngine: "issue",
+  });
+
+  assert.equal(
+    presets.some((preset) => preset.type === "comic_page_beat_sheet"),
+    true
+  );
+});
+
+test("fiction mode does not expose comics-only outputs", () => {
+  const presets = getAdaptationPresetsForMode("fiction");
+
+  assert.equal(
+    presets.some((preset) => preset.type === "comic_page_beat_sheet"),
+    false
+  );
+});
+
+test("comics mode defaults to the beat-sheet output", () => {
+  assert.equal(
+    getDefaultAdaptationOutputType("comics", {
+      draftingPreference: "comic_script_pages",
+      formatStyle: "comic_script",
+      seriesEngine: "issue",
+    }),
+    "comic_page_beat_sheet"
+  );
+});
