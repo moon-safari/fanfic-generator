@@ -103,6 +103,30 @@ OPENING SCENE TEXT:
 ${chapter1}`;
   }
 
+  if (options.projectMode === "comics") {
+    const modeConfig = options.modeConfig;
+    const seriesEngine =
+      modeConfig && "seriesEngine" in modeConfig ? modeConfig.seriesEngine : "";
+
+    return `You are a comic story-memory analyst. Extract reusable project truth and page-by-page planning from the opening page of a paged comic.
+
+COMICS CONTEXT:
+- Title: ${options.storyTitle}
+- Drafting preference: comic_script_pages
+${seriesEngine ? `- Series engine: ${seriesEngine}` : ""}
+
+Return ONLY a valid JSON object with these top-level keys: characters, world, synopsis, genre, style_guide, outline, notes.
+
+Use this guidance while filling the existing story-bible structure:
+- Treat the source text as Page 1, not a chapter or screenplay scene.
+- Make the outline page-by-page rather than chapter-by-chapter.
+- Preserve visual motifs, panel density pressure, reveal logic, and page-turn obligations in notes.
+- Extract characters, locations, and recurring visual devices only from what is actually established on the page.
+
+OPENING PAGE TEXT:
+${chapter1}`;
+  }
+
   if (options.projectMode === "newsletter") {
     const modeConfig = options.modeConfig;
     const topic =

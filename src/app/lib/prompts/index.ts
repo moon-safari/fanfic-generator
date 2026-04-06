@@ -1,5 +1,4 @@
 import type {
-  ComicsStoryFormData,
   FictionStoryFormData,
   NewsletterStoryFormData,
   Rating,
@@ -14,6 +13,10 @@ import {
   isNewsletterFormData,
   isScreenplayFormData,
 } from "../projectMode.ts";
+import {
+  buildComicsContinuationPrompt,
+  buildComicsPage1Prompt,
+} from "./comics.ts";
 import {
   buildScreenplayContinuationPrompt,
   buildScreenplayScene1Prompt,
@@ -129,29 +132,6 @@ Title: ${form.title}
 [Issue 1 text — no separate issue header, just the newsletter text]`;
 }
 
-function buildComicsPage1Prompt(form: ComicsStoryFormData): string {
-  const toneStr = form.tone.join(" + ");
-
-  return `You are a sharp comics writer building the opening page of a standard paged comic.
-
-TITLE: ${form.title}
-TONE: ${toneStr}
-${form.seriesEngine ? `SERIES ENGINE: ${form.seriesEngine}` : ""}
-DEFAULT DRAFTING PREFERENCE: comic_script_pages
-
-Write Page 1 as a comic script page.
-- Use a PAGE heading.
-- Use numbered panels.
-- Keep panel descriptions visual, concise, and drawable.
-- Separate dialogue, captions, SFX, and lettering notes clearly when needed.
-- End the page with momentum or a page-turn hook.
-
-OUTPUT FORMAT (follow exactly):
-Title: ${form.title}
-
-[Page 1 text only]`;
-}
-
 export function buildChapter1Prompt(form: StoryFormData): string {
   if (isNewsletterFormData(form)) {
     return buildNewsletterIssue1Prompt(form);
@@ -185,6 +165,15 @@ export function buildContinuationPrompt(
 
   if (story.projectMode === "screenplay") {
     return buildScreenplayContinuationPrompt(
+      story,
+      chapterNum,
+      storyContext,
+      planningContext
+    );
+  }
+
+  if (story.projectMode === "comics") {
+    return buildComicsContinuationPrompt(
       story,
       chapterNum,
       storyContext,
