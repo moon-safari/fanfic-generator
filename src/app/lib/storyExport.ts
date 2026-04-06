@@ -3,6 +3,7 @@ import {
   formatNewsletterCadence,
   getComicsModeConfig,
   getGameWritingModeConfig,
+  getNonFictionModeConfig,
   getProjectModeLabel,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -70,6 +71,18 @@ export function buildPlainTextStoryExport(story: Story): string {
       lines.push(`Format: ${modeConfig.formatStyle}`);
       if (modeConfig.questEngine) {
         lines.push(`Quest engine: ${modeConfig.questEngine}`);
+      }
+    }
+    if (story.tone.length) {
+      lines.push(`Tone: ${story.tone.join(", ")}`);
+    }
+  } else if (story.projectMode === "non_fiction") {
+    const modeConfig = getNonFictionModeConfig(story);
+    if (modeConfig) {
+      lines.push(`Drafting preference: ${modeConfig.draftingPreference}`);
+      lines.push(`Format: ${modeConfig.formatStyle}`);
+      if (modeConfig.pieceEngine) {
+        lines.push(`Piece engine: ${modeConfig.pieceEngine}`);
       }
     }
     if (story.tone.length) {

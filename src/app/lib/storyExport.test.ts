@@ -148,3 +148,42 @@ test("game writing projects export as structured plain text", () => {
   assert.match(exportFile.content, /Quest engine: main_quest/);
   assert.match(exportFile.content, /Quest 1/);
 });
+
+test("non-fiction projects export as structured plain text", () => {
+  const story = {
+    id: "non-fiction-1",
+    title: "The Cost of Pretending Everything Scales",
+    projectMode: "non_fiction",
+    modeConfig: {
+      draftingPreference: "hybrid_section_draft",
+      formatStyle: "article_draft",
+      pieceEngine: "article",
+    },
+    chapters: [
+      {
+        id: "section-1",
+        chapterNumber: 1,
+        content:
+          "SECTION 1\nPurpose: Establish the system problem.\nClaim cue: The market rewards false certainty.",
+        wordCount: 14,
+      },
+    ],
+    fandom: "",
+    characters: [],
+    relationshipType: "gen",
+    rating: "teen",
+    tone: ["sharp", "analytical"],
+    tropes: [],
+    createdAt: "",
+    updatedAt: "",
+    wordCount: 14,
+  } satisfies Story;
+
+  const exportFile = buildStoryExportFile(story);
+
+  assert.equal(exportFile.extension, "txt");
+  assert.match(exportFile.content, /Mode: Non-Fiction/);
+  assert.match(exportFile.content, /Drafting preference: hybrid_section_draft/);
+  assert.match(exportFile.content, /Piece engine: article/);
+  assert.match(exportFile.content, /Section 1/);
+});

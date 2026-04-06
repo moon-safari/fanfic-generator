@@ -103,3 +103,41 @@ test("fiction mode does not expose quest-only outputs", () => {
     false
   );
 });
+
+test("non-fiction mode exposes argument evidence brief first", () => {
+  const presets = getAdaptationPresetsForMode("non_fiction", {
+    draftingPreference: "hybrid_section_draft",
+    formatStyle: "article_draft",
+    pieceEngine: "article",
+  });
+
+  assert.deepEqual(
+    presets.map((preset) => preset.type),
+    [
+      "argument_evidence_brief",
+      "short_summary",
+      "public_teaser",
+      "newsletter_recap",
+    ]
+  );
+});
+
+test("non-fiction mode defaults to the evidence brief output", () => {
+  assert.equal(
+    getDefaultAdaptationOutputType("non_fiction", {
+      draftingPreference: "hybrid_section_draft",
+      formatStyle: "article_draft",
+      pieceEngine: "essay",
+    }),
+    "argument_evidence_brief"
+  );
+});
+
+test("fiction mode does not expose non-fiction-only outputs", () => {
+  const presets = getAdaptationPresetsForMode("fiction");
+
+  assert.equal(
+    presets.some((preset) => preset.type === "argument_evidence_brief"),
+    false
+  );
+});

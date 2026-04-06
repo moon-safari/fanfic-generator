@@ -14,6 +14,7 @@ export type AdaptationOutputType =
   | "screenplay_scene_pages"
   | "comic_page_beat_sheet"
   | "quest_handoff_sheet"
+  | "argument_evidence_brief"
   | "public_teaser"
   | "issue_subject_line"
   | "issue_deck"

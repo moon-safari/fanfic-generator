@@ -10,6 +10,7 @@ import {
   getComicsModeConfig,
   getGameWritingModeConfig,
   getNewsletterModeConfig,
+  getNonFictionModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
 } from "../projectMode";
@@ -296,6 +297,8 @@ export function getAdaptationMaxTokens(
       return 1100;
     case "comic_page_beat_sheet":
       return 1000;
+    case "argument_evidence_brief":
+      return 1100;
     default:
       return 800;
   }
@@ -339,6 +342,18 @@ function buildFormatInstructions(outputType: AdaptationOutputType): string {
 - Keep each section concise and production-facing.
 - Preserve quest pressure, branch intent, and unresolved follow-up hooks.
 - Do not turn this into pseudo-code or a full dialogue script.`;
+    case "argument_evidence_brief":
+      return `FORMAT INSTRUCTIONS:
+- Write a structured non-fiction brief with these headings:
+  Main argument
+  Section claims
+  Evidence used
+  Cited sources
+  Counterpoints / caveats
+  Proof gaps / follow-up needs
+- Keep each section concise and production-facing.
+- Preserve the written section's actual support level instead of upgrading tentative claims into certainties.
+- Use the planning layer as context for intent, but ground the brief in what the section really establishes.`;
     case "comic_page_beat_sheet":
       return `FORMAT INSTRUCTIONS:
 - Write 4 to 8 numbered page beats.
@@ -461,6 +476,10 @@ function buildProjectContextBlock({
     projectMode,
     modeConfig,
   });
+  const nonFictionConfig = getNonFictionModeConfig({
+    projectMode,
+    modeConfig,
+  });
   const comicsConfig = getComicsModeConfig({
     projectMode,
     modeConfig,
@@ -480,7 +499,15 @@ function buildProjectContextBlock({
         ? "MODE: Comics"
       : projectMode === "game_writing"
         ? "MODE: Game Writing"
+      : projectMode === "non_fiction"
+        ? "MODE: Non-Fiction"
       : `FANDOM: ${customFandom?.trim() || fandom || "Original work"}`,
+    nonFictionConfig?.draftingPreference
+      ? `DRAFTING PREFERENCE: ${nonFictionConfig.draftingPreference}`
+      : "",
+    nonFictionConfig?.pieceEngine
+      ? `PIECE ENGINE: ${nonFictionConfig.pieceEngine}`
+      : "",
     gameWritingConfig?.draftingPreference
       ? `DRAFTING PREFERENCE: ${gameWritingConfig.draftingPreference}`
       : "",

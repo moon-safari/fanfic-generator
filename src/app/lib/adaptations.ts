@@ -18,6 +18,15 @@ export interface AdaptationPreset {
 
 export const ADAPTATION_PRESETS: AdaptationPreset[] = [
   {
+    type: "argument_evidence_brief",
+    label: "Argument & Evidence Brief",
+    description:
+      "Turn the source section into a production-facing breakdown of argument moves, evidence, cited support, and proof gaps.",
+    stateSources: ["draft", "memory", "plans", "saved_outputs"],
+    supportingOutputTypes: ["short_summary"],
+    supportedModes: ["non_fiction"],
+  },
+  {
     type: "short_summary",
     label: "Short Summary",
     description: "Condense the source draft into a compact, continuity-safe synopsis.",
@@ -259,6 +268,13 @@ export function getAdaptationPresetsForMode(
       : projectMode === "game_writing"
         ? [
             "quest_handoff_sheet",
+            "short_summary",
+            "public_teaser",
+            "newsletter_recap",
+          ]
+      : projectMode === "non_fiction"
+        ? [
+            "argument_evidence_brief",
             "short_summary",
             "public_teaser",
             "newsletter_recap",

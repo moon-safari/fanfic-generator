@@ -73,6 +73,7 @@ const ADAPTATION_ICONS = {
   screenplay_scene_pages: FileText,
   comic_page_beat_sheet: PanelsTopLeft,
   quest_handoff_sheet: ScrollText,
+  argument_evidence_brief: FileText,
   public_teaser: Megaphone,
   issue_subject_line: Mail,
   issue_deck: FileText,
