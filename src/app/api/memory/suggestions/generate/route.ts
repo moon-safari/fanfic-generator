@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getModeConfig } from "../../../../lib/modes/registry";
+import { resolvePlanningPromptContext } from "../../../../lib/planningContext";
 import { fetchMemoryData } from "../../../../lib/supabase/memory";
 import {
   clearPendingMemorySuggestionsForChapter,
@@ -74,6 +75,12 @@ export async function POST(req: NextRequest) {
     }
 
     const memory = await fetchMemoryData(auth.supabase, storyId);
+    const planningContext = await resolvePlanningPromptContext(
+      auth.supabase,
+      storyId,
+      chapter.chapter_number as number,
+      projectMode
+    );
     const prompt = config.buildSuggestionPrompt(
       chapter.content as string,
       memory.entries.map((e) => ({
@@ -81,7 +88,8 @@ export async function POST(req: NextRequest) {
         entryType: e.entryType,
         description: e.description,
       })),
-      chapter.chapter_number as number
+      chapter.chapter_number as number,
+      planningContext
     );
 
     const message = await anthropic.messages.create({

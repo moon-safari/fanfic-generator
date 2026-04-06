@@ -29,7 +29,8 @@ export interface ModeConfig {
   buildSuggestionPrompt: (
     content: string,
     existingEntries: { name: string; entryType: string; description?: string }[],
-    contentUnitNumber: number
+    contentUnitNumber: number,
+    planningContext?: string
   ) => string;
 
   buildContextPreamble: (storyTitle: string) => string;

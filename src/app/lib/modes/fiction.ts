@@ -22,10 +22,11 @@ Chapter text:
 ${content}`;
 }
 
-function buildFictionSuggestionPrompt(
+export function buildFictionSuggestionPrompt(
   content: string,
   existingEntries: { name: string; entryType: string; description?: string }[],
-  contentUnitNumber: number
+  contentUnitNumber: number,
+  planningContext = ""
 ): string {
   const entrySummary = existingEntries
     .map((e) => `- ${e.name} (${e.entryType})${e.description ? ": " + e.description.slice(0, 100) : ""}`)
@@ -35,6 +36,10 @@ function buildFictionSuggestionPrompt(
 
 Current memory entries:
 ${entrySummary || "(none)"}
+
+${planningContext ? `${planningContext}\n\n` : ""}Use the planning guidance as context for what this chapter was trying to establish or advance.
+Only suggest memory updates for facts, relationships, aliases, or state changes that are actually established in the chapter text.
+Do not suggest a memory change solely because it was planned, implied by the outline, or still due but absent from the draft.
 
 Suggest: new entries to create, alias updates, new relationships, progressions (how entries change at this chapter), and stale entries to flag.
 

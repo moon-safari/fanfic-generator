@@ -19,10 +19,11 @@ Issue text:
 ${content}`;
 }
 
-function buildNewsletterSuggestionPrompt(
+export function buildNewsletterSuggestionPrompt(
   content: string,
   existingEntries: { name: string; entryType: string; description?: string }[],
-  contentUnitNumber: number
+  contentUnitNumber: number,
+  planningContext = ""
 ): string {
   const entrySummary = existingEntries
     .map((e) => `- ${e.name} (${e.entryType})${e.description ? ": " + e.description.slice(0, 100) : ""}`)
@@ -32,6 +33,10 @@ function buildNewsletterSuggestionPrompt(
 
 Current memory entries:
 ${entrySummary || "(none)"}
+
+${planningContext ? `${planningContext}\n\n` : ""}Use the planning guidance as context for what this issue was trying to establish or advance.
+Only suggest memory updates for topics, sources, relationships, aliases, or state changes that are actually established in the issue text.
+Do not suggest a memory change solely because it was planned, implied by the issue outline, or still due but absent from the draft.
 
 Suggest: new entries to create (topics, sources, audience segments), alias updates, new relationships between entries, and stale entries to flag.
 
