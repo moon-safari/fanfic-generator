@@ -85,6 +85,20 @@ export function buildGameWritingPlanningPrompt(
   });
 }
 
+export function buildNonFictionPlanningPrompt(
+  args: ModePlanningPromptArgs
+): string {
+  return buildStructuredPlanningPrompt(args, {
+    activeHeading: "ARGUMENT PRESSURE TO HONOR:",
+    dueHeadingPrefix: "EVIDENCE DUE BY",
+    openHeading: "OTHER OPEN PROOF GAPS:",
+    notesHeading: "EDITORIAL NOTES",
+    keyRevealLabel: "Expected claim, turn, or section move",
+    openLoopsLabel: (unitLabelLowercase) =>
+      `Claims or proof questions meant to stay open after this ${unitLabelLowercase}`,
+  });
+}
+
 function buildStructuredPlanningPrompt(
   { outline, notes, unitNumber, projectMode }: ModePlanningPromptArgs,
   copy: PlanningPromptCopy

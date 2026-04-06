@@ -7,6 +7,7 @@ import {
   getProjectUnitLabel,
   parseComicsModeConfig,
   parseGameWritingModeConfig,
+  parseNonFictionModeConfig,
   parseStoryModeConfig,
   parseScreenplayModeConfig,
 } from "./projectMode.ts";
@@ -184,6 +185,65 @@ test("parseStoryModeConfig supports game writing mode", () => {
       draftingPreference: "hybrid_quest_brief",
       formatStyle: "quest_brief",
       questEngine: "main_quest",
+    }
+  );
+});
+
+test("non-fiction mode exposes section labels and evidence-aware defaults", () => {
+  const mode = getModeConfig("non_fiction");
+
+  assert.equal(getProjectModeLabel("non_fiction"), "Non-Fiction");
+  assert.equal(getProjectUnitLabel("non_fiction"), "section");
+  assert.equal(
+    getProjectUnitLabel("non_fiction", { capitalize: true }),
+    "Section"
+  );
+  assert.equal(getContinueActionLabel("non_fiction"), "Continue Section");
+  assert.equal(
+    getLoadingContinueLabel("non_fiction"),
+    "Writing the next section..."
+  );
+  assert.equal(mode.contentUnitSingular, "section");
+  assert.equal(
+    mode.planningSchema.outline.description,
+    "Section-by-section argument structure and status map."
+  );
+  assert.deepEqual(mode.coreTypes, [
+    "source",
+    "claim",
+    "topic",
+    "argument",
+    "evidence",
+    "counterpoint",
+    "quote",
+  ]);
+});
+
+test("parseNonFictionModeConfig normalizes valid non-fiction config", () => {
+  const parsed = parseNonFictionModeConfig({
+    draftingPreference: "hybrid_section_draft",
+    formatStyle: "article_draft",
+    pieceEngine: "essay",
+  });
+
+  assert.deepEqual(parsed, {
+    draftingPreference: "hybrid_section_draft",
+    formatStyle: "article_draft",
+    pieceEngine: "essay",
+  });
+});
+
+test("parseStoryModeConfig supports non-fiction mode", () => {
+  assert.deepEqual(
+    parseStoryModeConfig("non_fiction", {
+      draftingPreference: "hybrid_section_draft",
+      formatStyle: "article_draft",
+      pieceEngine: "article",
+    }),
+    {
+      draftingPreference: "hybrid_section_draft",
+      formatStyle: "article_draft",
+      pieceEngine: "article",
     }
   );
 });

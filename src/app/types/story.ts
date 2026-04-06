@@ -5,7 +5,8 @@ export type ProjectMode =
   | "newsletter"
   | "screenplay"
   | "comics"
-  | "game_writing";
+  | "game_writing"
+  | "non_fiction";
 export type NewsletterCadence =
   | "weekly"
   | "biweekly"
@@ -20,6 +21,8 @@ export type GameWritingQuestEngine =
   | "main_quest"
   | "side_quest"
   | "questline";
+export type NonFictionDraftingPreference = "hybrid_section_draft";
+export type NonFictionPieceEngine = "article" | "essay";
 
 export interface NewsletterModeConfig {
   topic: string;
@@ -50,12 +53,19 @@ export interface GameWritingModeConfig {
   questEngine?: GameWritingQuestEngine;
 }
 
+export interface NonFictionModeConfig {
+  draftingPreference: NonFictionDraftingPreference;
+  formatStyle: "article_draft";
+  pieceEngine?: NonFictionPieceEngine;
+}
+
 export type StoryModeConfig =
   | Record<string, never>
   | NewsletterModeConfig
   | ScreenplayModeConfig
   | ComicsModeConfig
-  | GameWritingModeConfig;
+  | GameWritingModeConfig
+  | NonFictionModeConfig;
 
 export interface Chapter {
   id: string;
@@ -127,6 +137,13 @@ export interface GameWritingStoryFormData {
   title: string;
   tone: string[];
   questEngine?: GameWritingQuestEngine;
+}
+
+export interface NonFictionStoryFormData {
+  projectMode: "non_fiction";
+  title: string;
+  tone: string[];
+  pieceEngine?: NonFictionPieceEngine;
 }
 
 export type StoryFormData =

@@ -3,6 +3,7 @@ import type {
   ComicsStoryFormData,
   GameWritingModeConfig,
   GameWritingStoryFormData,
+  NonFictionModeConfig,
   NewsletterModeConfig,
   NewsletterStoryFormData,
   ProjectMode,
@@ -79,6 +80,16 @@ export function getGameWritingModeConfig(
   }
 
   return parseGameWritingModeConfig(story.modeConfig);
+}
+
+export function getNonFictionModeConfig(
+  story: Pick<Story, "projectMode" | "modeConfig">
+): NonFictionModeConfig | null {
+  if (story.projectMode !== "non_fiction" || !story.modeConfig) {
+    return null;
+  }
+
+  return parseNonFictionModeConfig(story.modeConfig);
 }
 
 export function parseNewsletterModeConfig(
@@ -207,6 +218,31 @@ export function parseGameWritingModeConfig(
   };
 }
 
+export function parseNonFictionModeConfig(
+  input: unknown
+): NonFictionModeConfig | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<NonFictionModeConfig>;
+  if (
+    candidate.draftingPreference !== "hybrid_section_draft"
+    || candidate.formatStyle !== "article_draft"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "hybrid_section_draft",
+    formatStyle: "article_draft",
+    pieceEngine:
+      candidate.pieceEngine === "article" || candidate.pieceEngine === "essay"
+        ? candidate.pieceEngine
+        : undefined,
+  };
+}
+
 export function parseStoryModeConfig(
   projectMode: ProjectMode,
   input: unknown
@@ -227,6 +263,10 @@ export function parseStoryModeConfig(
     return parseGameWritingModeConfig(input);
   }
 
+  if (projectMode === "non_fiction") {
+    return parseNonFictionModeConfig(input);
+  }
+
   return {};
 }
 
@@ -243,6 +283,9 @@ export function getProjectModeLabel(mode: ProjectMode): string {
   if (mode === "game_writing") {
     return "Game Writing";
   }
+  if (mode === "non_fiction") {
+    return "Non-Fiction";
+  }
   return "Fiction";
 }
 
@@ -255,6 +298,16 @@ export function getProjectUnitLabel(
   } = {}
 ): string {
   const { count = 1, capitalize = false, abbreviated = false } = options;
+  if (mode === "non_fiction") {
+    const singular = abbreviated
+      ? "Sec."
+      : capitalize
+        ? "Section"
+        : "section";
+    const plural = capitalize ? "Sections" : "sections";
+    return count === 1 ? singular : plural;
+  }
+
   if (mode === "game_writing") {
     const singular = abbreviated
       ? "Q."
@@ -323,6 +376,9 @@ export function getContinueActionLabel(mode: ProjectMode): string {
   if (mode === "game_writing") {
     return "Continue Quest";
   }
+  if (mode === "non_fiction") {
+    return "Continue Section";
+  }
   return "Continue Story";
 }
 
@@ -338,6 +394,9 @@ export function getLoadingContinueLabel(mode: ProjectMode): string {
   }
   if (mode === "game_writing") {
     return "Writing the next quest...";
+  }
+  if (mode === "non_fiction") {
+    return "Writing the next section...";
   }
   return "Writing the next chapter...";
 }

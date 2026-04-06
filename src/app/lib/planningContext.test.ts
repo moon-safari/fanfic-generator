@@ -111,3 +111,65 @@ test("game writing mode uses quest-native planning phrasing", () => {
   assert.match(prompt, /QUEST PRESSURE TO HONOR:/);
   assert.match(prompt, /OUTCOMES DUE BY QUEST 4:/);
 });
+
+test("non-fiction mode uses section-native planning phrasing", () => {
+  const mode = getModeConfig("non_fiction");
+  const nonFictionOutline = {
+    chapters: [
+      {
+        number: 3,
+        title: "Why the current system overstates certainty",
+        summary: "Move from setup into the core argument about overclaiming.",
+        intent: "Land the central claim and connect it to the strongest evidence.",
+        keyReveal: "The framing problem is structural, not accidental.",
+        openLoops: ["Hold the policy counterpoint for Section 4"],
+        status: "planned" as const,
+      },
+    ],
+  };
+  const nonFictionNotes = {
+    text: "Do not overclaim beyond the labor-stat source.",
+    arcs: [
+      {
+        id: "core-argument",
+        title: "Structural argument",
+        intent: "Show that the trend is durable, not anecdotal.",
+        status: "active" as const,
+        horizon: "Sections 3-4",
+      },
+    ],
+    threads: [
+      {
+        id: "proof-gap",
+        title: "Labor-stat support",
+        owner: "primary evidence",
+        targetUnit: 3,
+        status: "open" as const,
+        notes: "Name the report before escalating the claim.",
+      },
+      {
+        id: "policy-counterpoint",
+        title: "Policy counterpoint",
+        owner: "editorial framing",
+        targetUnit: 4,
+        status: "open" as const,
+        notes: "Keep this live for the next section.",
+      },
+    ],
+  };
+
+  assert.equal(mode.planningUnitLabel, "section beat");
+  assert.equal(mode.planningSchema.notes.title, "Editorial Notes");
+
+  const prompt = buildPlanningPromptContext({
+    outline: nonFictionOutline,
+    notes: nonFictionNotes,
+    unitNumber: 3,
+    projectMode: "non_fiction",
+  });
+
+  assert.match(prompt, /TARGET SECTION PLAN:/);
+  assert.match(prompt, /ARGUMENT PRESSURE TO HONOR:/);
+  assert.match(prompt, /EVIDENCE DUE BY SECTION 3:/);
+  assert.match(prompt, /OTHER OPEN PROOF GAPS:/);
+});
