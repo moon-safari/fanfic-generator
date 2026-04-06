@@ -62,7 +62,7 @@ export async function PUT(
 
     if (updateError) {
       return NextResponse.json(
-        { error: "Failed to update newsletter profile" },
+        { error: "Failed to update mode config" },
         { status: 500 }
       );
     }

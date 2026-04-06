@@ -16,6 +16,7 @@ import {
   getArtifactSubtypeLabel,
 } from "../../lib/artifacts";
 import {
+  getComicsModeConfig,
   getNewsletterModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -60,11 +61,13 @@ import {
   NEWSLETTER_ISSUE_PACKAGE_SELECTION_FIELD_LABELS,
 } from "../../types/newsletter";
 import type {
+  ComicsModeConfig,
   NewsletterModeConfig,
   ProjectMode,
   ScreenplayModeConfig,
   StoryModeConfig,
 } from "../../types/story";
+import ComicsSetupPanel from "./ComicsSetupPanel";
 import NewsletterSetupPanel from "./NewsletterSetupPanel";
 import NewsletterReadinessPanel from "./NewsletterReadinessPanel";
 import ScreenplaySetupPanel from "./ScreenplaySetupPanel";
@@ -137,6 +140,14 @@ export default function ArtifactsTab({
       }),
     [modeConfig, projectMode]
   );
+  const comicsModeConfig = useMemo(
+    () =>
+      getComicsModeConfig({
+        projectMode,
+        modeConfig,
+      }),
+    [modeConfig, projectMode]
+  );
   const screenplayModeConfig = useMemo(
     () =>
       getScreenplayModeConfig({
@@ -168,6 +179,11 @@ export default function ArtifactsTab({
     null
   );
   const [showNewsletterSetup, setShowNewsletterSetup] = useState(false);
+  const [comicsConfigDraft, setComicsConfigDraft] =
+    useState<ComicsModeConfig | null>(comicsModeConfig);
+  const [savingComicsConfig, setSavingComicsConfig] = useState(false);
+  const [comicsConfigError, setComicsConfigError] = useState<string | null>(null);
+  const [showComicsSetup, setShowComicsSetup] = useState(false);
   const [screenplayConfigDraft, setScreenplayConfigDraft] =
     useState<ScreenplayModeConfig | null>(screenplayModeConfig);
   const [savingScreenplayConfig, setSavingScreenplayConfig] = useState(false);
@@ -199,6 +215,7 @@ export default function ArtifactsTab({
   const newsletterProfileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const comicsConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const screenplayConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -372,6 +389,9 @@ export default function ArtifactsTab({
       if (newsletterProfileTimerRef.current) {
         clearTimeout(newsletterProfileTimerRef.current);
       }
+      if (comicsConfigTimerRef.current) {
+        clearTimeout(comicsConfigTimerRef.current);
+      }
       if (screenplayConfigTimerRef.current) {
         clearTimeout(screenplayConfigTimerRef.current);
       }
@@ -381,6 +401,10 @@ export default function ArtifactsTab({
   useEffect(() => {
     setNewsletterProfileDraft(newsletterModeConfig);
   }, [newsletterModeConfig]);
+
+  useEffect(() => {
+    setComicsConfigDraft(comicsModeConfig);
+  }, [comicsModeConfig]);
 
   useEffect(() => {
     setScreenplayConfigDraft(screenplayModeConfig);
@@ -487,6 +511,39 @@ export default function ArtifactsTab({
         })
         .finally(() => {
           setSavingScreenplayConfig(false);
+        });
+    }, 700);
+  };
+
+  const handleComicsConfigChange = (nextValue: ComicsModeConfig) => {
+    setComicsConfigDraft(nextValue);
+    setComicsConfigError(null);
+
+    if (comicsConfigTimerRef.current) {
+      clearTimeout(comicsConfigTimerRef.current);
+    }
+
+    comicsConfigTimerRef.current = setTimeout(() => {
+      setSavingComicsConfig(true);
+      void requestJson<{ modeConfig: ComicsModeConfig }>(
+        `/api/stories/${storyId}/mode-config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modeConfig: nextValue }),
+        }
+      )
+        .then((data) => {
+          setComicsConfigDraft(data.modeConfig);
+          onModeConfigUpdated?.(data.modeConfig);
+        })
+        .catch((error: unknown) => {
+          setComicsConfigError(
+            getErrorMessage(error, "Failed to save comics setup")
+          );
+        })
+        .finally(() => {
+          setSavingComicsConfig(false);
         });
     }, 700);
   };
@@ -795,6 +852,17 @@ export default function ArtifactsTab({
               showSetup={showScreenplaySetup}
               onToggleSetup={() => setShowScreenplaySetup((prev) => !prev)}
               onConfigChange={handleScreenplayConfigChange}
+            />
+          )}
+
+          {projectMode === "comics" && comicsConfigDraft && (
+            <ComicsSetupPanel
+              comicsConfigDraft={comicsConfigDraft}
+              savingComicsConfig={savingComicsConfig}
+              comicsConfigError={comicsConfigError}
+              showSetup={showComicsSetup}
+              onToggleSetup={() => setShowComicsSetup((prev) => !prev)}
+              onConfigChange={handleComicsConfigChange}
             />
           )}
 

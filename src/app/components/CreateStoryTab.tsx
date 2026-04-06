@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Loader2,
   Mail,
+  PanelsTopLeft,
   Sparkles,
 } from "lucide-react";
 import FandomSelector from "./FandomSelector";
@@ -16,6 +17,7 @@ import RatingSelector from "./RatingSelector";
 import ToneSelector from "./ToneSelector";
 import TropeSelector from "./TropeSelector";
 import {
+  ComicsSeriesEngine,
   NewsletterCadence,
   ProjectMode,
   Rating,
@@ -25,6 +27,11 @@ import {
   Story,
   StoryFormData,
 } from "../types/story";
+import {
+  COMICS_SERIES_ENGINES,
+  DEFAULT_COMICS_MODE_CONFIG,
+  labelComicsSeriesEngine,
+} from "../lib/comicsModeConfig";
 import { getFandomById } from "../lib/fandoms";
 import { NEWSLETTER_VOICE_OPTIONS } from "../lib/newsletter";
 import { requestJson } from "../lib/request";
@@ -68,6 +75,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
   const [screenplayStoryEngine, setScreenplayStoryEngine] =
     useState<ScreenplayStoryEngine>("feature");
   const [showScreenplayOptions, setShowScreenplayOptions] = useState(false);
+  const [comicsTitle, setComicsTitle] = useState("");
+  const [comicsTone, setComicsTone] = useState<string[]>([]);
+  const [comicsSeriesEngine, setComicsSeriesEngine] =
+    useState<ComicsSeriesEngine>(
+      DEFAULT_COMICS_MODE_CONFIG.seriesEngine ?? "issue"
+    );
+  const [showComicsOptions, setShowComicsOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [memoryDemoLoading, setMemoryDemoLoading] = useState(false);
@@ -86,9 +100,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           && newsletterIssueAngle.trim().length >= 8
           && newsletterTone.length >= 1
           && !busy
-        : screenplayTitle.trim().length >= 2
-          && screenplayTone.length >= 1
-          && !busy;
+        : projectMode === "screenplay"
+          ? screenplayTitle.trim().length >= 2
+            && screenplayTone.length >= 1
+            && !busy
+          : comicsTitle.trim().length >= 2
+            && comicsTone.length >= 1
+            && !busy;
 
   const handleFandomChange = useCallback((id: string) => {
     setFandom(id);
@@ -163,6 +181,37 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           relationshipType: "gen",
           rating: "teen",
           tone: screenplayTone,
+          tropes: [],
+        });
+
+        if (!story) {
+          throw new Error("Please sign in before creating a new project.");
+        }
+
+        onStoryCreated(story, formData);
+        return;
+      }
+
+      if (projectMode === "comics") {
+        const formData: StoryFormData = {
+          projectMode: "comics",
+          title: comicsTitle.trim(),
+          tone: comicsTone,
+          seriesEngine: comicsSeriesEngine,
+        };
+
+        const story = await createStoryInDB({
+          title: comicsTitle.trim(),
+          projectMode: "comics",
+          modeConfig: {
+            ...DEFAULT_COMICS_MODE_CONFIG,
+            seriesEngine: comicsSeriesEngine,
+          },
+          fandom: "",
+          characters: [],
+          relationshipType: "gen",
+          rating: "teen",
+          tone: comicsTone,
           tropes: [],
         });
 
@@ -289,6 +338,11 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             label="Screenplay"
             active={projectMode === "screenplay"}
             onClick={() => setProjectMode("screenplay")}
+          />
+          <ModeButton
+            label="Comics"
+            active={projectMode === "comics"}
+            onClick={() => setProjectMode("comics")}
           />
           <ModeButton
             label="Newsletter"
@@ -492,6 +546,99 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             )}
           </div>
         </>
+      ) : projectMode === "comics" ? (
+        <>
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-cyan-500/15 p-2 text-cyan-200">
+                <PanelsTopLeft className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                  Comics
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Start with a title, tone, and scope so future pages know how
+                  hard to push reveals and pacing.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Field
+            label="Project title"
+            helper="This is the working title and will stay attached to the comic project."
+          >
+            <input
+              type="text"
+              value={comicsTitle}
+              onChange={(event) => setComicsTitle(event.target.value)}
+              placeholder="Ash Canary"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-cyan-500 focus:outline-none"
+            />
+          </Field>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-300">Tone</p>
+            <p className="mb-3 text-xs leading-5 text-zinc-500">
+              Pick the tone the system should preserve across page turns.
+            </p>
+            <ToneSelector
+              label="Tone"
+              showLabel={false}
+              selected={comicsTone}
+              onChange={setComicsTone}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <button
+              type="button"
+              onClick={() => setShowComicsOptions((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">More options</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-400">
+                  Series scope and future pacing defaults.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-zinc-400 transition-transform ${
+                  showComicsOptions ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showComicsOptions && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-medium text-zinc-300">
+                  Series scope
+                </p>
+                <p className="mb-3 text-xs leading-5 text-zinc-500">
+                  This shapes pacing pressure, reveal timing, and payoff horizon
+                  for future pages.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {COMICS_SERIES_ENGINES.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setComicsSeriesEngine(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        comicsSeriesEngine === option
+                          ? "border-cyan-500 bg-cyan-500/15 text-white"
+                          : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-white"
+                      }`}
+                    >
+                      {labelComicsSeriesEngine(option)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       ) : (
         <>
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
@@ -643,6 +790,8 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
               ? "Start newsletter project"
               : projectMode === "screenplay"
                 ? "Start screenplay project"
+                : projectMode === "comics"
+                  ? "Start comics project"
                 : "Start fiction project"}
           </>
         )}
