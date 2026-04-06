@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePlanningPromptContext } from "../../lib/planningContext";
-import { resolvePromptStoryContext } from "../../lib/storyContext";
+import { resolvePromptContextBundle } from "../../lib/storyContext";
 import { fetchNewsletterIssuePackageSelection } from "../../lib/supabase/newsletterIssuePackages";
 import { fetchAdaptationOutputs } from "../../lib/supabase/adaptations";
 import { createServerSupabase } from "../../lib/supabase/server";
@@ -90,19 +89,16 @@ export async function authenticateAndLoadAdaptationSource(
   }
 
   const chapterNumber = Math.max(1, chapter.chapter_number as number);
-  const storyContext = await resolvePromptStoryContext(
+  const { storyContext, planningContext } = await resolvePromptContextBundle(
     supabase,
     storyId,
-    chapterNumber
+    {
+      resolvedThroughUnitNumber: chapterNumber,
+      planningUnitNumber: chapterNumber,
+    }
   );
   const projectMode =
     (story.project_mode as ProjectMode | undefined) ?? "fiction";
-  const planningContext = await resolvePlanningPromptContext(
-    supabase,
-    storyId,
-    chapterNumber,
-    projectMode
-  );
   const existingOutputs = await fetchAdaptationOutputs(supabase, storyId, chapterId);
   const packageSelection =
     projectMode === "newsletter"

@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerSupabase } from "../../lib/supabase/server";
 import { buildContinuationPrompt } from "../../lib/prompts";
-import { resolvePlanningPromptContext } from "../../lib/planningContext";
 import type { ProjectMode, StoryModeConfig } from "../../types/story";
-import { resolvePromptStoryContext } from "../../lib/storyContext";
+import { resolvePromptContextBundle } from "../../lib/storyContext";
 import { Story, Chapter } from "../../types/story";
 import { sseEvent } from "../../lib/stream";
 
@@ -99,22 +98,19 @@ export async function POST(req: NextRequest) {
   }
 
   const chapterNum = story.chapters.length + 1;
-  const { text: storyContext } = await resolvePromptStoryContext(
+  const { storyContext, planningContext } = await resolvePromptContextBundle(
     supabase,
     storyId,
-    Math.max(1, chapterNum - 1)
-  );
-  const planningContext = await resolvePlanningPromptContext(
-    supabase,
-    storyId,
-    chapterNum,
-    story.projectMode
+    {
+      resolvedThroughUnitNumber: Math.max(1, chapterNum - 1),
+      planningUnitNumber: chapterNum,
+    }
   );
 
   const prompt = buildContinuationPrompt(
     story,
     chapterNum,
-    storyContext,
+    storyContext.text,
     planningContext
   );
 

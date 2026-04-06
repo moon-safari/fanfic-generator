@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildNewsletterMemorySnapshot, formatNewsletterMemoryForPrompt } from "./newsletterMemory";
+import {
+  resolvePromptContextBundle as resolvePromptContextBundleWithDeps,
+  type PromptContextBundleResult,
+  type StoryPromptMetaLike,
+} from "./promptContextBundle";
+import { resolvePlanningPromptContext } from "./planningContext";
 import { getNewsletterModeConfig } from "./projectMode";
 import { formatBibleForPrompt } from "./prompts/bible";
 import { formatMemoryForPrompt, resolveMemoryEntryAtChapter } from "./prompts/memory";
@@ -66,6 +72,35 @@ export async function resolvePromptStoryContext(
   const resolvedChapterNumber = Math.max(1, chapterNumber);
   const storyMeta = await fetchStoryPromptMeta(supabase, storyId);
 
+  return resolvePromptStoryContextFromMeta(
+    supabase,
+    storyId,
+    resolvedChapterNumber,
+    storyMeta
+  );
+}
+
+export async function resolvePromptContextBundle(
+  supabase: SupabaseClient,
+  storyId: string,
+  options: {
+    resolvedThroughUnitNumber: number;
+    planningUnitNumber?: number;
+  }
+): Promise<PromptContextBundleResult> {
+  return resolvePromptContextBundleWithDeps(supabase, storyId, options, {
+    fetchStoryPromptMeta,
+    resolveStoryContext: resolvePromptStoryContextFromMeta,
+    resolvePlanningContext: resolvePlanningPromptContext,
+  });
+}
+
+async function resolvePromptStoryContextFromMeta(
+  supabase: SupabaseClient,
+  storyId: string,
+  resolvedChapterNumber: number,
+  storyMeta: StoryPromptMetaLike | null
+): Promise<PromptStoryContextResult> {
   if (storyMeta?.projectMode !== "newsletter") {
     try {
       const memoryContext = await resolveMemoryStoryContext(
@@ -318,7 +353,7 @@ async function fetchStoryBiblePromptContext(
   return formatBibleForPrompt(bible);
 }
 
-interface StoryPromptMeta {
+interface StoryPromptMeta extends StoryPromptMetaLike {
   title: string;
   projectMode: ProjectMode;
   modeConfig?: StoryModeConfig;
