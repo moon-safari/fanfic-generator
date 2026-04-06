@@ -92,7 +92,12 @@ export function useChapterAnnotations({
     tr.setMeta(annotationPluginKey, {
       annotations: annotations
         .filter((a) => !a.dismissed)
-        .map((a) => ({ id: a.id, textMatch: a.textMatch, severity: a.severity })),
+        .map((a) => ({
+          id: a.id,
+          textMatch: a.textMatch,
+          severity: a.severity,
+          annotationType: a.annotationType,
+        })),
     });
     editor.view.dispatch(tr);
   }, [editor, annotations]);

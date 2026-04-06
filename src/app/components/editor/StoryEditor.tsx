@@ -71,6 +71,25 @@ function createStreamingCursorExtension(isActive: () => boolean) {
   });
 }
 
+function getAnnotationNotificationMeta(annotation: ChapterAnnotation) {
+  switch (annotation.annotationType) {
+    case "planning_drift":
+      return {
+        container: "border-violet-700/50 bg-violet-950/90",
+        text: "text-violet-200",
+        button: "bg-violet-600 hover:bg-violet-500",
+        singularMessage: "Plan drift found",
+      };
+    default:
+      return {
+        container: "border-amber-700/50 bg-amber-950/90",
+        text: "text-amber-200",
+        button: "bg-amber-600 hover:bg-amber-500",
+        singularMessage: "Continuity issue found",
+      };
+  }
+}
+
 export default function StoryEditor({
   story,
   streamingFormData,
@@ -177,6 +196,11 @@ export default function StoryEditor({
     editor: editor ?? null,
     isMobile,
   });
+  const pendingNotificationMeta = chapterAnnotations.pendingNotification
+    ? getAnnotationNotificationMeta(
+        chapterAnnotations.pendingNotification.firstAnnotation
+      )
+    : null;
 
   const autosave = useAutosave({
     editor,
@@ -678,11 +702,14 @@ export default function StoryEditor({
 
       {/* Continuity check notification toast */}
       {chapterAnnotations.pendingNotification && (
-        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-amber-700/50 bg-amber-950/90 px-4 py-3 shadow-lg backdrop-blur">
+        <div
+          className={`fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${pendingNotificationMeta?.container ?? "border-amber-700/50 bg-amber-950/90"}`}
+        >
           <div className="flex items-center gap-3">
-            <span className="text-sm text-amber-200">
-              {chapterAnnotations.pendingNotification.count} continuity issue
-              {chapterAnnotations.pendingNotification.count !== 1 ? "s" : ""} found
+            <span className={`text-sm ${pendingNotificationMeta?.text ?? "text-amber-200"}`}>
+              {chapterAnnotations.pendingNotification.count === 1
+                ? (pendingNotificationMeta?.singularMessage ?? "Continuity issue found")
+                : `${chapterAnnotations.pendingNotification.count} review issues found`}
             </span>
             <button
               type="button"
@@ -693,7 +720,7 @@ export default function StoryEditor({
                 el?.scrollIntoView({ behavior: "smooth", block: "center" });
                 chapterAnnotations.clearNotification();
               }}
-              className="rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-500"
+              className={`rounded-xl px-3 py-1.5 text-xs font-medium text-white transition-colors ${pendingNotificationMeta?.button ?? "bg-amber-600 hover:bg-amber-500"}`}
             >
               Review
             </button>
