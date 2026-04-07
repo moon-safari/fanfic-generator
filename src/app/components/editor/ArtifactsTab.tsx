@@ -20,6 +20,7 @@ import {
   getGameWritingModeConfig,
   getNonFictionModeConfig,
   getNewsletterModeConfig,
+  getProjectModeLabel,
   getProjectUnitLabel,
   getScreenplayModeConfig,
 } from "../../lib/projectMode";
@@ -30,6 +31,7 @@ import { useReadinessReport } from "../../hooks/useReadinessReport";
 import type { ArtifactFocusRequest } from "../../hooks/useMemoryFocus";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import {
+  formatAdaptationArtifactLineage,
   formatArtifactListMeta,
   formatScopeLabel,
   formatTimestamp,
@@ -1162,9 +1164,18 @@ function ArtifactList({
               }`}
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">
-                  {artifact.title}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {artifact.title}
+                  </p>
+                  {artifact.kind === "adaptation"
+                    && artifact.derivedMode
+                    && artifact.derivedMode !== projectMode && (
+                      <span className="shrink-0 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-200">
+                        {getProjectModeLabel(artifact.derivedMode)}
+                      </span>
+                    )}
+                </div>
                 <p className="mt-1 break-words text-xs leading-5 text-zinc-500">
                   {artifact.description}
                 </p>
@@ -1263,6 +1274,10 @@ function ArtifactDetail({
     artifact?.kind === "adaptation"
     && (artifact.subtype === "short_summary" || artifact.subtype === "newsletter_recap")
     && artifact.content.trim().length > 0;
+  const adaptationLineage =
+    artifact?.kind === "adaptation"
+      ? formatAdaptationArtifactLineage(artifact)
+      : null;
   const handlePromoteArtifactToSummary = async () => {
     if (!canPromoteArtifactToSummary || !artifact || artifact.kind !== "adaptation") {
       return;
@@ -1310,7 +1325,16 @@ function ArtifactDetail({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white">{artifact.title}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-white">{artifact.title}</p>
+            {artifact.kind === "adaptation"
+              && artifact.derivedMode
+              && artifact.derivedMode !== projectMode && (
+                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-200">
+                  {getProjectModeLabel(artifact.derivedMode)}
+                </span>
+              )}
+          </div>
           <p className="mt-1 text-sm leading-6 text-zinc-400">
             {artifact.description}
           </p>
@@ -1334,6 +1358,10 @@ function ArtifactDetail({
           ? `Last updated ${formatTimestamp(artifact.updatedAt)}`
           : "Not yet saved to the project"}
       </p>
+
+      {adaptationLineage && (
+        <p className="mt-2 text-xs leading-5 text-zinc-500">{adaptationLineage}</p>
+      )}
 
       {showItemDetails && (
         <div className="mt-3 flex flex-wrap gap-2">

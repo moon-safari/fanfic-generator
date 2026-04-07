@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getArtifactSubtypeLabel } from "./artifacts";
-import { getProjectUnitLabel } from "./projectMode";
-import { getErrorMessage } from "./request";
-import type { AdaptationOutputType } from "../types/adaptation";
+import {
+  getAdaptationChainPreset,
+  getAdaptationPreset,
+} from "./adaptations.ts";
+import { getArtifactSubtypeLabel } from "./artifacts.ts";
+import { getProjectUnitLabel } from "./projectMode.ts";
+import { getErrorMessage } from "./request.ts";
+import type { AdaptationOutputType } from "../types/adaptation.ts";
 import type {
+  AdaptationArtifact,
   ProjectArtifact,
-} from "../types/artifact";
+} from "../types/artifact.ts";
 import type {
   NewsletterIssuePackageSelectionField,
   NewsletterIssueReadinessCheck,
   NewsletterIssueReadinessReport,
   NewsletterIssueReadinessStatus,
-} from "../types/newsletter";
-import type { ProjectMode } from "../types/story";
+} from "../types/newsletter.ts";
+import type { ProjectMode } from "../types/story.ts";
 
 // ---------------------------------------------------------------------------
 // Type aliases & interfaces
@@ -149,6 +154,24 @@ export function labelContextSource(contextSource: ProjectArtifact["contextSource
 
 export function labelArtifactKind(kind: ProjectArtifact["kind"]) {
   return kind === "adaptation" ? "Output" : "Plan";
+}
+
+export function formatAdaptationArtifactLineage(
+  artifact: AdaptationArtifact
+): string | null {
+  if (!artifact.chainId) {
+    return null;
+  }
+
+  const parts = [`Generated via ${getAdaptationChainPreset(artifact.chainId).label}`];
+
+  if (artifact.sourceOutputType) {
+    parts.push(`Derived from ${getAdaptationPreset(artifact.sourceOutputType).label}`);
+  } else {
+    parts.push("Derived directly from the current chapter");
+  }
+
+  return parts.join(" | ");
 }
 
 export function formatTimestamp(value: string) {

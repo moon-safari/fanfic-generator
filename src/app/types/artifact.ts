@@ -1,4 +1,7 @@
-import type { AdaptationOutputType } from "./adaptation";
+import type {
+  AdaptationChainId,
+  AdaptationOutputType,
+} from "./adaptation";
 import type {
   BibleNotesContent,
   BibleOutlineContent,
@@ -7,6 +10,7 @@ import type {
   BibleSynopsisContent,
 } from "./bible";
 import type { StoryContextSource } from "./memory";
+import type { ProjectMode } from "./story";
 
 export type PlanningArtifactSubtype = Extract<
   BibleSectionType,
@@ -43,6 +47,11 @@ export interface AdaptationArtifact extends BaseProjectArtifact {
   chapterId: string;
   chapterNumber: number;
   contextSource: StoryContextSource;
+  derivedMode?: ProjectMode | null;
+  chainId?: AdaptationChainId | null;
+  chainStepIndex?: number | null;
+  sourceOutputId?: string | null;
+  sourceOutputType?: AdaptationOutputType | null;
 }
 
 export interface PlanningArtifact extends BaseProjectArtifact {

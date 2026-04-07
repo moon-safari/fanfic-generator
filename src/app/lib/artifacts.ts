@@ -1,4 +1,7 @@
-import { getAdaptationPreset } from "./adaptations.ts";
+import {
+  getAdaptationDerivedMode,
+  getAdaptationPreset,
+} from "./adaptations.ts";
 import { getModeConfig } from "./modes/registry.ts";
 import { hasArcContent, hasThreadContent, normalizeNotesContent } from "./planning.ts";
 import { getProjectUnitLabel } from "./projectMode.ts";
@@ -70,6 +73,11 @@ export function toAdaptationArtifact(
     createdAt: result.generatedAt,
     updatedAt: result.updatedAt,
     persisted: result.persisted,
+    derivedMode: getAdaptationDerivedMode(result.outputType),
+    chainId: result.chainId ?? null,
+    chainStepIndex: result.chainStepIndex ?? null,
+    sourceOutputId: result.sourceOutputId ?? null,
+    sourceOutputType: result.sourceOutputType ?? null,
   };
 }
 
