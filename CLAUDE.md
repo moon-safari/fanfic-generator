@@ -130,6 +130,7 @@ docs/                            - product, strategy, and build specs
 14. Comics mode v1 (page-based comic scripting, comics-native planning/memory semantics, comic beat-sheet output, structured text export)
 15. Game writing mode v1 (quest-based drafting, systems-aware quest memory, quest handoff output, structured text export)
 16. Non-fiction mode v1 (section-based article/essay drafting, source-aware memory and planning, argument/evidence brief output, structured text export)
+17. Phase D1 cross-mode adaptation chains (fiction chapter -> screenplay scene pages -> comic page beat sheet, lineage-aware persistence, Outputs/Project lineage metadata)
 
 ### What's next
 
@@ -154,7 +155,7 @@ Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadm
 4. Non-fiction / articles / essays mode â€” sections, arguments, sources, bibliography (completed 2026-04-07)
 
 **Phase D: Adaptation Studio & Publishing** (platform)
-1. Cross-mode adaptation chains â€” chapter â†’ screenplay scene â†’ comic page
+1. Cross-mode adaptation chains â€” chapter â†’ screenplay scene â†’ comic page (completed 2026-04-07)
 2. Export & distribution â€” PDF, DOCX, EPUB, Fountain, publishing pipeline
 3. Collaborative review â€” shared access, roles, comment workflows (future)
 

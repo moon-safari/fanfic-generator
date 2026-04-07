@@ -8,6 +8,14 @@
 
 **Tech Stack:** Next.js App Router, TypeScript, React hooks/components, Supabase/Postgres migrations, `node:test`
 
+## Status
+
+- [x] Task 1: Add Cross-Mode Chain Metadata And Selectable Output Helpers
+- [x] Task 2: Persist Chain Lineage And Strengthen Chained Prompt Framing
+- [x] Task 3: Support Cross-Mode Workflow Preview In Outputs
+- [x] Task 4: Surface Lineage In Project Artifacts
+- [x] Task 5: Rollout Notes, Manual Verification, And Final Closeout
+
 ---
 
 ### Task 1: Add Cross-Mode Chain Metadata And Selectable Output Helpers
