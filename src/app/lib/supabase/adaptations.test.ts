@@ -154,3 +154,64 @@ test("invalid lineage strings from the DB co-normalize both lineage pairs to nul
   assert.equal(result?.sourceOutputType, null);
   assert.equal(result?.sourceOutputId, null);
 });
+
+test("missing source_output_id nulls out source lineage even when source_output_type looks valid", async () => {
+  const returnedRows = [
+    {
+      id: "output-3",
+      story_id: "story-1",
+      chapter_id: "chapter-1",
+      chapter_number: 3,
+      output_type: "public_teaser",
+      chain_id: "promo_chain",
+      chain_step_index: 1,
+      source_output_id: null,
+      source_output_type: "newsletter_recap",
+      content: "Adapted text",
+      context_source: "memory",
+      created_at: "2026-04-07T10:00:00.000Z",
+      updated_at: "2026-04-07T10:00:01.000Z",
+    },
+  ];
+
+  const query = {
+    eqCalls: [] as Array<{ column: string; value: string }>,
+    eq(column: string, value: string) {
+      this.eqCalls.push({ column, value });
+      return this;
+    },
+    async order(column: string, options: { ascending: boolean }) {
+      assert.equal(column, "updated_at");
+      assert.deepEqual(options, { ascending: false });
+      return { data: returnedRows, error: null };
+    },
+  };
+
+  const supabase = {
+    from(table: string) {
+      assert.equal(table, "adaptation_outputs");
+
+      return {
+        select(selection: string) {
+          assert.equal(selection, "*");
+          return query;
+        },
+      };
+    },
+  };
+
+  const [result] = await fetchAdaptationOutputs(
+    supabase as never,
+    "story-1",
+    "chapter-1"
+  );
+
+  assert.deepEqual(query.eqCalls, [
+    { column: "story_id", value: "story-1" },
+    { column: "chapter_id", value: "chapter-1" },
+  ]);
+  assert.equal(result?.chainId, "promo_chain");
+  assert.equal(result?.chainStepIndex, 1);
+  assert.equal(result?.sourceOutputId, null);
+  assert.equal(result?.sourceOutputType, null);
+});

@@ -151,6 +151,8 @@ function mapAdaptationOutputRow(
   const normalizedSourceOutputType = normalizeAdaptationOutputType(
     row.source_output_type
   );
+  const hasNormalizedSourceLineage =
+    Boolean(row.source_output_id) && Boolean(normalizedSourceOutputType);
 
   return {
     id: row.id,
@@ -158,8 +160,10 @@ function mapAdaptationOutputRow(
     outputType: row.output_type,
     chainId: normalizedChainId,
     chainStepIndex: normalizedChainId ? row.chain_step_index : null,
-    sourceOutputId: normalizedSourceOutputType ? row.source_output_id : null,
-    sourceOutputType: normalizedSourceOutputType,
+    sourceOutputId: hasNormalizedSourceLineage ? row.source_output_id : null,
+    sourceOutputType: hasNormalizedSourceLineage
+      ? normalizedSourceOutputType
+      : null,
     chapterId: row.chapter_id,
     chapterNumber: row.chapter_number,
     content: row.content,

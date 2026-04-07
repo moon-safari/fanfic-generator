@@ -170,8 +170,8 @@ export async function POST(req: NextRequest) {
         validatedChainId,
         stepIndex,
         step.outputType,
-        previousResult?.id ?? null,
-        previousResult?.outputType ?? null,
+        previousResult?.id ? previousResult.id : null,
+        previousResult?.id ? previousResult.outputType : null,
         content
       );
 
