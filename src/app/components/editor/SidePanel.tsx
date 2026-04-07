@@ -87,7 +87,7 @@ interface SidePanelProps {
   onAdaptSelectChainId: (chainId: AdaptationChainId) => void;
   onAdaptSelectOutputType: (outputType: AdaptationOutputType) => void;
   onAdaptGenerate: (outputType: AdaptationOutputType) => Promise<void>;
-  onAdaptGenerateChain: () => Promise<void>;
+  onAdaptGenerateChain: (chainId?: AdaptationChainId) => Promise<void>;
   onAdaptDeleteOutput: (outputType: AdaptationOutputType) => Promise<void>;
   onAdaptInsert: (text: string) => void;
   onAdaptSummaryUpdated?: (summary: string) => void;

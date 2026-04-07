@@ -659,8 +659,8 @@ export default function StoryEditor({
           onAdaptGenerate={async (outputType) => {
             await adaptation.generate(outputType);
           }}
-          onAdaptGenerateChain={async () => {
-            await adaptation.generateChain();
+          onAdaptGenerateChain={async (chainId) => {
+            await adaptation.generateChain(chainId);
           }}
           onAdaptDeleteOutput={async (outputType) => {
             await adaptation.deleteOutput(outputType);

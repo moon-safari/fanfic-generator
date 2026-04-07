@@ -164,7 +164,9 @@ export function useChapterAdaptation(
     [chapterId, storyId, unitLabel]
   );
 
-  const generateChain = useCallback(async (): Promise<AdaptationChainResult> => {
+  const generateChain = useCallback(async (
+    chainIdOverride?: AdaptationChainId
+  ): Promise<AdaptationChainResult> => {
     if (!chapterId) {
       throw new Error(`Save the ${unitLabel} before running the workflow chain.`);
     }
@@ -180,7 +182,7 @@ export function useChapterAdaptation(
           body: JSON.stringify({
             storyId,
             chapterId,
-            chainId: selectedChainId,
+            chainId: chainIdOverride ?? selectedChainId,
           }),
         },
         60000,

@@ -61,7 +61,7 @@ interface AdaptTabProps {
   onSelectChainId: (chainId: AdaptationChainId) => void;
   onSelectOutputType: (outputType: AdaptationOutputType) => void;
   onGenerate: (outputType: AdaptationOutputType) => Promise<void>;
-  onGenerateChain: () => Promise<void>;
+  onGenerateChain: (chainId?: AdaptationChainId) => Promise<void>;
   onDeleteOutput: (outputType: AdaptationOutputType) => Promise<void>;
   onInsert: (text: string) => void;
   onSummaryUpdated?: (summary: string) => void;
@@ -132,6 +132,7 @@ export default function AdaptTab({
   const activeOutputDerivedMode = getAdaptationDerivedMode(activeOutputType);
   const activeOutputIsCrossMode =
     activeOutputDerivedMode !== null && activeOutputDerivedMode !== projectMode;
+  const activePreviewChainId = currentResult?.chainId ?? selectedChainId;
   const loading = loadingOutputType !== null;
   const activeGenerating = loadingOutputType === activeOutputType;
   const deletingCurrent = deletingOutputType === activeOutputType;
@@ -495,7 +496,7 @@ export default function AdaptTab({
                     <button
                       type="button"
                       onClick={() => {
-                        void onGenerateChain();
+                        void onGenerateChain(selectedChainId);
                       }}
                       disabled={
                         !currentChapterId || loading || chainLoading || fillingMissingChain
@@ -513,7 +514,7 @@ export default function AdaptTab({
                       type="button"
                       onClick={() => {
                         if (missingChainRequiresWorkflow) {
-                          void onGenerateChain();
+                          void onGenerateChain(selectedChainId);
                           return;
                         }
 
@@ -560,7 +561,7 @@ export default function AdaptTab({
                     <button
                       type="button"
                       onClick={() => {
-                        void onGenerateChain();
+                        void onGenerateChain(selectedChainId);
                       }}
                       disabled={
                         !currentChapterId || loading || chainLoading || fillingMissingChain
@@ -768,7 +769,7 @@ export default function AdaptTab({
                 <button
                   type="button"
                   onClick={() => {
-                    void onGenerateChain();
+                    void onGenerateChain(activePreviewChainId);
                   }}
                   disabled={!canRunWorkflow}
                   className="inline-flex items-center gap-1 rounded-xl bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
@@ -863,7 +864,7 @@ export default function AdaptTab({
                       <button
                         type="button"
                         onClick={() => {
-                          void onGenerateChain();
+                          void onGenerateChain(activePreviewChainId);
                         }}
                         disabled={!canRunWorkflow}
                         className="rounded-xl bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
