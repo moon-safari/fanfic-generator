@@ -5,6 +5,7 @@ import {
   BookOpen,
   Clapperboard,
   ChevronDown,
+  FileText,
   Gamepad2,
   Loader2,
   Mail,
@@ -21,6 +22,7 @@ import {
   ComicsSeriesEngine,
   GameWritingQuestEngine,
   NewsletterCadence,
+  NonFictionPieceEngine,
   ProjectMode,
   Rating,
   RelationshipType,
@@ -39,6 +41,11 @@ import {
   GAME_WRITING_QUEST_ENGINES,
   labelGameWritingQuestEngine,
 } from "../lib/gameWritingModeConfig";
+import {
+  DEFAULT_NON_FICTION_MODE_CONFIG,
+  labelNonFictionPieceEngine,
+  NON_FICTION_PIECE_ENGINES,
+} from "../lib/nonFictionModeConfig";
 import { getFandomById } from "../lib/fandoms";
 import { NEWSLETTER_VOICE_OPTIONS } from "../lib/newsletter";
 import { requestJson } from "../lib/request";
@@ -96,6 +103,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
       DEFAULT_GAME_WRITING_MODE_CONFIG.questEngine ?? "main_quest"
     );
   const [showGameWritingOptions, setShowGameWritingOptions] = useState(false);
+  const [nonFictionTitle, setNonFictionTitle] = useState("");
+  const [nonFictionTone, setNonFictionTone] = useState<string[]>([]);
+  const [nonFictionPieceEngine, setNonFictionPieceEngine] =
+    useState<NonFictionPieceEngine>(
+      DEFAULT_NON_FICTION_MODE_CONFIG.pieceEngine ?? "article"
+    );
+  const [showNonFictionOptions, setShowNonFictionOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [memoryDemoLoading, setMemoryDemoLoading] = useState(false);
@@ -122,9 +136,13 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
           ? comicsTitle.trim().length >= 2
             && comicsTone.length >= 1
             && !busy
-          : gameWritingTitle.trim().length >= 2
+        : projectMode === "game_writing"
+          ? gameWritingTitle.trim().length >= 2
             && gameWritingTone.length >= 1
-            && !busy;
+            && !busy
+        : nonFictionTitle.trim().length >= 2
+          && nonFictionTone.length >= 1
+          && !busy;
 
   const handleFandomChange = useCallback((id: string) => {
     setFandom(id);
@@ -272,6 +290,37 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
         return;
       }
 
+      if (projectMode === "non_fiction") {
+        const formData: StoryFormData = {
+          projectMode: "non_fiction",
+          title: nonFictionTitle.trim(),
+          tone: nonFictionTone,
+          pieceEngine: nonFictionPieceEngine,
+        };
+
+        const story = await createStoryInDB({
+          title: nonFictionTitle.trim(),
+          projectMode: "non_fiction",
+          modeConfig: {
+            ...DEFAULT_NON_FICTION_MODE_CONFIG,
+            pieceEngine: nonFictionPieceEngine,
+          },
+          fandom: "",
+          characters: [],
+          relationshipType: "gen",
+          rating: "general",
+          tone: nonFictionTone,
+          tropes: [],
+        });
+
+        if (!story) {
+          throw new Error("Please sign in before creating a new project.");
+        }
+
+        onStoryCreated(story, formData);
+        return;
+      }
+
       const formData: StoryFormData = {
         projectMode: "newsletter",
         title: newsletterTitle.trim(),
@@ -397,6 +446,11 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             label="Game Writing"
             active={projectMode === "game_writing"}
             onClick={() => setProjectMode("game_writing")}
+          />
+          <ModeButton
+            label="Non-Fiction"
+            active={projectMode === "non_fiction"}
+            onClick={() => setProjectMode("non_fiction")}
           />
           <ModeButton
             label="Newsletter"
@@ -786,6 +840,99 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
             )}
           </div>
         </>
+      ) : projectMode === "non_fiction" ? (
+        <>
+          <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-orange-500/15 p-2 text-orange-200">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-300">
+                  Non-Fiction
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  Start with a title, tone, and piece engine so future sections
+                  know how hard to push claims, evidence, and argument flow.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Field
+            label="Project title"
+            helper="This is the working title and will stay attached to the article or essay project."
+          >
+            <input
+              type="text"
+              value={nonFictionTitle}
+              onChange={(event) => setNonFictionTitle(event.target.value)}
+              placeholder="The Cost of Shallow Tools"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-orange-500 focus:outline-none"
+            />
+          </Field>
+
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-300">Tone</p>
+            <p className="mb-3 text-xs leading-5 text-zinc-500">
+              Pick the editorial energy the system should preserve across sections.
+            </p>
+            <ToneSelector
+              label="Tone"
+              showLabel={false}
+              selected={nonFictionTone}
+              onChange={setNonFictionTone}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <button
+              type="button"
+              onClick={() => setShowNonFictionOptions((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-white">More options</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-400">
+                  Piece engine and future section defaults.
+                </p>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-zinc-400 transition-transform ${
+                  showNonFictionOptions ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {showNonFictionOptions && (
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-medium text-zinc-300">
+                  Piece engine
+                </p>
+                <p className="mb-3 text-xs leading-5 text-zinc-500">
+                  This shapes argument cadence, section voice, and evidence framing
+                  for future sections.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {NON_FICTION_PIECE_ENGINES.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setNonFictionPieceEngine(option)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        nonFictionPieceEngine === option
+                          ? "border-orange-500 bg-orange-500/15 text-white"
+                          : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-600 hover:text-white"
+                      }`}
+                    >
+                      {labelNonFictionPieceEngine(option)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       ) : (
         <>
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
@@ -941,6 +1088,8 @@ export default function CreateStoryTab({ onStoryCreated }: CreateStoryTabProps) 
                   ? "Start comics project"
                 : projectMode === "game_writing"
                   ? "Start game writing project"
+                : projectMode === "non_fiction"
+                  ? "Start non-fiction project"
                   : "Start fiction project"}
           </>
         )}

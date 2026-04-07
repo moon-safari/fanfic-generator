@@ -18,6 +18,7 @@ import {
 import {
   getComicsModeConfig,
   getGameWritingModeConfig,
+  getNonFictionModeConfig,
   getNewsletterModeConfig,
   getProjectUnitLabel,
   getScreenplayModeConfig,
@@ -64,6 +65,7 @@ import {
 import type {
   ComicsModeConfig,
   GameWritingModeConfig,
+  NonFictionModeConfig,
   NewsletterModeConfig,
   ProjectMode,
   ScreenplayModeConfig,
@@ -71,6 +73,7 @@ import type {
 } from "../../types/story";
 import ComicsSetupPanel from "./ComicsSetupPanel";
 import GameWritingSetupPanel from "./GameWritingSetupPanel";
+import NonFictionSetupPanel from "./NonFictionSetupPanel";
 import NewsletterSetupPanel from "./NewsletterSetupPanel";
 import NewsletterReadinessPanel from "./NewsletterReadinessPanel";
 import ScreenplaySetupPanel from "./ScreenplaySetupPanel";
@@ -159,6 +162,14 @@ export default function ArtifactsTab({
       }),
     [modeConfig, projectMode]
   );
+  const nonFictionModeConfig = useMemo(
+    () =>
+      getNonFictionModeConfig({
+        projectMode,
+        modeConfig,
+      }),
+    [modeConfig, projectMode]
+  );
   const screenplayModeConfig = useMemo(
     () =>
       getScreenplayModeConfig({
@@ -202,6 +213,13 @@ export default function ArtifactsTab({
     null
   );
   const [showGameWritingSetup, setShowGameWritingSetup] = useState(false);
+  const [nonFictionConfigDraft, setNonFictionConfigDraft] =
+    useState<NonFictionModeConfig | null>(nonFictionModeConfig);
+  const [savingNonFictionConfig, setSavingNonFictionConfig] = useState(false);
+  const [nonFictionConfigError, setNonFictionConfigError] = useState<string | null>(
+    null
+  );
+  const [showNonFictionSetup, setShowNonFictionSetup] = useState(false);
   const [screenplayConfigDraft, setScreenplayConfigDraft] =
     useState<ScreenplayModeConfig | null>(screenplayModeConfig);
   const [savingScreenplayConfig, setSavingScreenplayConfig] = useState(false);
@@ -235,6 +253,9 @@ export default function ArtifactsTab({
   );
   const comicsConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameWritingConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const nonFictionConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
   const screenplayConfigTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -416,6 +437,9 @@ export default function ArtifactsTab({
       if (gameWritingConfigTimerRef.current) {
         clearTimeout(gameWritingConfigTimerRef.current);
       }
+      if (nonFictionConfigTimerRef.current) {
+        clearTimeout(nonFictionConfigTimerRef.current);
+      }
       if (screenplayConfigTimerRef.current) {
         clearTimeout(screenplayConfigTimerRef.current);
       }
@@ -433,6 +457,10 @@ export default function ArtifactsTab({
   useEffect(() => {
     setGameWritingConfigDraft(gameWritingModeConfig);
   }, [gameWritingModeConfig]);
+
+  useEffect(() => {
+    setNonFictionConfigDraft(nonFictionModeConfig);
+  }, [nonFictionModeConfig]);
 
   useEffect(() => {
     setScreenplayConfigDraft(screenplayModeConfig);
@@ -605,6 +633,39 @@ export default function ArtifactsTab({
         })
         .finally(() => {
           setSavingGameWritingConfig(false);
+        });
+    }, 700);
+  };
+
+  const handleNonFictionConfigChange = (nextValue: NonFictionModeConfig) => {
+    setNonFictionConfigDraft(nextValue);
+    setNonFictionConfigError(null);
+
+    if (nonFictionConfigTimerRef.current) {
+      clearTimeout(nonFictionConfigTimerRef.current);
+    }
+
+    nonFictionConfigTimerRef.current = setTimeout(() => {
+      setSavingNonFictionConfig(true);
+      void requestJson<{ modeConfig: NonFictionModeConfig }>(
+        `/api/stories/${storyId}/mode-config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modeConfig: nextValue }),
+        }
+      )
+        .then((data) => {
+          setNonFictionConfigDraft(data.modeConfig);
+          onModeConfigUpdated?.(data.modeConfig);
+        })
+        .catch((error: unknown) => {
+          setNonFictionConfigError(
+            getErrorMessage(error, "Failed to save non-fiction setup")
+          );
+        })
+        .finally(() => {
+          setSavingNonFictionConfig(false);
         });
     }, 700);
   };
@@ -935,6 +996,17 @@ export default function ArtifactsTab({
               showSetup={showGameWritingSetup}
               onToggleSetup={() => setShowGameWritingSetup((prev) => !prev)}
               onConfigChange={handleGameWritingConfigChange}
+            />
+          )}
+
+          {projectMode === "non_fiction" && nonFictionConfigDraft && (
+            <NonFictionSetupPanel
+              nonFictionConfigDraft={nonFictionConfigDraft}
+              savingNonFictionConfig={savingNonFictionConfig}
+              nonFictionConfigError={nonFictionConfigError}
+              showSetup={showNonFictionSetup}
+              onToggleSetup={() => setShowNonFictionSetup((prev) => !prev)}
+              onConfigChange={handleNonFictionConfigChange}
             />
           )}
 
