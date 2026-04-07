@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  isAdaptationChainId,
+  isAdaptationOutputType,
+} from "../adaptations.ts";
 import type {
   AdaptationChainId,
   AdaptationOutputType,
@@ -12,10 +16,10 @@ type DbAdaptationOutputRow = {
   chapter_id: string;
   chapter_number: number;
   output_type: AdaptationOutputType;
-  chain_id: AdaptationChainId | null;
+  chain_id: string | null;
   chain_step_index: number | null;
   source_output_id: string | null;
-  source_output_type: AdaptationOutputType | null;
+  source_output_type: string | null;
   content: string;
   context_source: StoryContextSource;
   created_at: string;
@@ -147,10 +151,10 @@ function mapAdaptationOutputRow(
     id: row.id,
     storyId: row.story_id,
     outputType: row.output_type,
-    chainId: row.chain_id,
+    chainId: normalizeAdaptationChainId(row.chain_id),
     chainStepIndex: row.chain_step_index,
     sourceOutputId: row.source_output_id,
-    sourceOutputType: row.source_output_type,
+    sourceOutputType: normalizeAdaptationOutputType(row.source_output_type),
     chapterId: row.chapter_id,
     chapterNumber: row.chapter_number,
     content: row.content,
@@ -173,4 +177,16 @@ function isMissingTableError(
       && error.message.includes("does not exist")
     )
   );
+}
+
+function normalizeAdaptationChainId(
+  value: string | null
+): AdaptationChainId | null {
+  return value && isAdaptationChainId(value) ? value : null;
+}
+
+function normalizeAdaptationOutputType(
+  value: string | null
+): AdaptationOutputType | null {
+  return value && isAdaptationOutputType(value) ? value : null;
 }
