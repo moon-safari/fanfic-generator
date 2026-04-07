@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getAdaptationChainPresetsForMode,
+  getAdaptationDerivedMode,
   getAdaptationPresetsForMode,
   getDefaultAdaptationOutputType,
+  getSelectableAdaptationOutputTypes,
 } from "./adaptations.ts";
+
+test("fiction mode exposes story_to_screen_to_comic first in chain ordering", () => {
+  const chains = getAdaptationChainPresetsForMode("fiction");
+
+  assert.equal(chains[0]?.id, "story_to_screen_to_comic");
+  assert.equal(
+    chains.some((chain) => chain.id === "story_to_screen_to_comic"),
+    true
+  );
+});
 
 test("screenplay mode exposes screenplay-only outputs", () => {
   const presets = getAdaptationPresetsForMode("screenplay", {
@@ -28,6 +41,15 @@ test("fiction mode no longer exposes screenplay beat-sheet output", () => {
     presets.some((preset) => preset.type === "screenplay_beat_sheet"),
     false
   );
+});
+
+test("derived modes are reported for cross-mode outputs", () => {
+  assert.equal(
+    getAdaptationDerivedMode("screenplay_scene_pages"),
+    "screenplay"
+  );
+  assert.equal(getAdaptationDerivedMode("comic_page_beat_sheet"), "comics");
+  assert.equal(getAdaptationDerivedMode("short_summary"), null);
 });
 
 test("screenplay preference changes the default output emphasis", () => {
@@ -140,4 +162,36 @@ test("fiction mode does not expose non-fiction-only outputs", () => {
     presets.some((preset) => preset.type === "argument_evidence_brief"),
     false
   );
+});
+
+test("selectable adaptation outputs include current mode and active chain outputs", () => {
+  const selectable = getSelectableAdaptationOutputTypes({
+    projectMode: "fiction",
+    selectedChainId: "story_to_screen_to_comic",
+    savedOutputTypes: ["screenplay_scene_pages", "comic_page_beat_sheet"],
+  });
+
+  assert.deepEqual(selectable, [
+    "short_summary",
+    "newsletter_recap",
+    "public_teaser",
+    "screenplay_scene_pages",
+    "comic_page_beat_sheet",
+  ]);
+});
+
+test("saved cross-mode derivatives remain selectable on fiction projects", () => {
+  const selectable = getSelectableAdaptationOutputTypes({
+    projectMode: "fiction",
+    selectedChainId: "promo_chain",
+    savedOutputTypes: ["screenplay_scene_pages", "comic_page_beat_sheet"],
+  });
+
+  assert.deepEqual(selectable, [
+    "short_summary",
+    "newsletter_recap",
+    "public_teaser",
+    "screenplay_scene_pages",
+    "comic_page_beat_sheet",
+  ]);
 });

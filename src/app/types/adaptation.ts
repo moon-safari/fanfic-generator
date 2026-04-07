@@ -27,12 +27,17 @@ export type AdaptationChainId =
   | "promo_chain"
   | "summary_to_recap"
   | "summary_to_teaser"
+  | "story_to_screen_to_comic"
   | "issue_package";
 
 export interface ChapterAdaptationResult {
   id?: string;
   storyId: string;
   outputType: AdaptationOutputType;
+  chainId?: AdaptationChainId | null;
+  chainStepIndex?: number | null;
+  sourceOutputId?: string | null;
+  sourceOutputType?: AdaptationOutputType | null;
   chapterId: string;
   chapterNumber: number;
   content: string;

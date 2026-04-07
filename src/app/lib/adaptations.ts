@@ -14,6 +14,7 @@ export interface AdaptationPreset {
   supportingOutputTypes?: AdaptationOutputType[];
   usesOfficialPackageState?: boolean;
   supportedModes?: ProjectMode[];
+  derivedMode?: ProjectMode;
 }
 
 export const ADAPTATION_PRESETS: AdaptationPreset[] = [
@@ -54,6 +55,7 @@ export const ADAPTATION_PRESETS: AdaptationPreset[] = [
     stateSources: ["draft", "memory", "plans", "saved_outputs"],
     supportingOutputTypes: ["short_summary", "screenplay_beat_sheet"],
     supportedModes: ["screenplay"],
+    derivedMode: "screenplay",
   },
   {
     type: "comic_page_beat_sheet",
@@ -63,6 +65,7 @@ export const ADAPTATION_PRESETS: AdaptationPreset[] = [
     stateSources: ["draft", "memory", "plans", "saved_outputs"],
     supportingOutputTypes: ["short_summary"],
     supportedModes: ["comics"],
+    derivedMode: "comics",
   },
   {
     type: "quest_handoff_sheet",
@@ -302,6 +305,12 @@ export function getAdaptationPreset(
   );
 }
 
+export function getAdaptationDerivedMode(
+  outputType: AdaptationOutputType
+): ProjectMode | null {
+  return getAdaptationPreset(outputType).derivedMode ?? null;
+}
+
 export interface AdaptationChainStep {
   outputType: AdaptationOutputType;
   source: "chapter" | "previous";
@@ -361,6 +370,18 @@ export const ADAPTATION_CHAIN_PRESETS: AdaptationChainPreset[] = [
     ],
   }),
   createChainPreset({
+    id: "story_to_screen_to_comic",
+    label: "Story -> Screen -> Comic",
+    description:
+      "Turn the current chapter into screenplay scene pages, then condense those pages into a comic page beat sheet.",
+    stateSources: ["draft", "memory", "plans", "saved_outputs"],
+    supportedModes: ["fiction"],
+    steps: [
+      { outputType: "screenplay_scene_pages", source: "chapter" },
+      { outputType: "comic_page_beat_sheet", source: "previous" },
+    ],
+  }),
+  createChainPreset({
     id: "issue_package",
     label: "Issue Package",
     description:
@@ -404,7 +425,14 @@ export function getAdaptationChainPresetsForMode(
           "summary_to_recap",
           "summary_to_teaser",
         ]
-      : ["promo_chain", "summary_to_recap", "summary_to_teaser"];
+      : projectMode === "fiction"
+        ? [
+            "story_to_screen_to_comic",
+            "promo_chain",
+            "summary_to_recap",
+            "summary_to_teaser",
+          ]
+        : ["promo_chain", "summary_to_recap", "summary_to_teaser"];
 
   return filtered.sort(
     (left, right) =>
@@ -450,7 +478,49 @@ export function getDefaultAdaptationOutputType(
 export function getDefaultAdaptationChainId(
   projectMode: ProjectMode
 ): AdaptationChainId {
-  return projectMode === "newsletter" ? "issue_package" : "promo_chain";
+  return projectMode === "newsletter"
+    ? "issue_package"
+    : projectMode === "fiction"
+      ? "story_to_screen_to_comic"
+      : "promo_chain";
+}
+
+export interface SelectableAdaptationOutputTypesArgs {
+  projectMode: ProjectMode;
+  selectedChainId: AdaptationChainId;
+  savedOutputTypes?: AdaptationOutputType[];
+  modeConfig?: StoryModeConfig;
+}
+
+export function getSelectableAdaptationOutputTypes({
+  projectMode,
+  selectedChainId,
+  savedOutputTypes = [],
+  modeConfig,
+}: SelectableAdaptationOutputTypesArgs): AdaptationOutputType[] {
+  const orderedTypes: AdaptationOutputType[] = [];
+  const pushUnique = (outputType: AdaptationOutputType) => {
+    if (!orderedTypes.includes(outputType)) {
+      orderedTypes.push(outputType);
+    }
+  };
+
+  for (const preset of getAdaptationPresetsForMode(projectMode, modeConfig)) {
+    pushUnique(preset.type);
+  }
+
+  const selectedChain = getAdaptationChainPreset(selectedChainId);
+  for (const outputType of selectedChain.outputTypes) {
+    pushUnique(outputType);
+  }
+
+  for (const outputType of savedOutputTypes) {
+    if (getAdaptationDerivedMode(outputType)) {
+      pushUnique(outputType);
+    }
+  }
+
+  return orderedTypes;
 }
 
 export function formatAdaptationWorkflowStateSource(
