@@ -129,6 +129,7 @@ docs/                            - product, strategy, and build specs
 13. Screenplay mode v1 (scene-based drafting, durable screenplay preferences, screenplay-native planning/memory semantics, screenplay outputs, Fountain export for script-page projects)
 14. Comics mode v1 (page-based comic scripting, comics-native planning/memory semantics, comic beat-sheet output, structured text export)
 15. Game writing mode v1 (quest-based drafting, systems-aware quest memory, quest handoff output, structured text export)
+16. Non-fiction mode v1 (section-based article/essay drafting, source-aware memory and planning, argument/evidence brief output, structured text export)
 
 ### What's next
 
@@ -146,11 +147,11 @@ Detailed roadmap: `docs/superpowers/specs/2026-04-05-writing-os-next-steps-roadm
 3. Planning-to-memory bridge â€” auto-suggest memory updates when planned beats are written
 4. Mode-aware planning schemas â€” extend ModeConfig with planning unit labels and schemas
 
-**Phase C: Mode Pack Expansion** (in progress)
+**Phase C: Mode Pack Expansion** (completed 2026-04-07)
 1. Screenplay mode â€” scenes, beat sheets, act structure, formatted output (completed 2026-04-06)
 2. Comics / graphic narrative mode â€” pages/panels, visual pacing, script format (completed 2026-04-06)
 3. Game writing / narrative design mode â€” quests, branching, dialogue trees (completed 2026-04-06)
-4. Non-fiction / articles / essays mode â€” sections, arguments, sources, bibliography
+4. Non-fiction / articles / essays mode â€” sections, arguments, sources, bibliography (completed 2026-04-07)
 
 **Phase D: Adaptation Studio & Publishing** (platform)
 1. Cross-mode adaptation chains â€” chapter â†’ screenplay scene â†’ comic page
