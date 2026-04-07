@@ -53,3 +53,43 @@ test("chained prompts include current step, immediate source, and bridge guidanc
     /If the bridge artifact conflicts with the original draft truth/
   );
 });
+
+test("chained prompts do not duplicate the immediate source inside relevant saved outputs", () => {
+  const prompt = buildChainedAdaptationPrompt({
+    ...baseInput,
+    outputType: "public_teaser",
+    sourceLabel: "Newsletter Recap",
+    sourceContent: "Recap text",
+    existingOutputs: [
+      {
+        storyId: "story-1",
+        outputType: "newsletter_recap",
+        chapterId: "chapter-7",
+        chapterNumber: 7,
+        content: "Recap text",
+        contextSource: "memory",
+        generatedAt: "2026-04-07T10:00:00.000Z",
+        updatedAt: "2026-04-07T10:00:00.000Z",
+        persisted: true,
+      },
+      {
+        storyId: "story-1",
+        outputType: "short_summary",
+        chapterId: "chapter-7",
+        chapterNumber: 7,
+        content: "Summary text",
+        contextSource: "memory",
+        generatedAt: "2026-04-07T10:00:00.000Z",
+        updatedAt: "2026-04-07T10:00:00.000Z",
+        persisted: true,
+      },
+    ],
+    currentStepLabel: "Promo chain · Step 2/2: Public Teaser",
+    immediateSourceLabel: "Newsletter Recap (saved result)",
+    immediateSourceOutputType: "newsletter_recap",
+  });
+
+  assert.equal(prompt.match(/NEWSLETTER RECAP:/g)?.length ?? 0, 1);
+  assert.match(prompt, /RELEVANT SAVED OUTPUTS:/);
+  assert.match(prompt, /SHORT SUMMARY:/);
+});

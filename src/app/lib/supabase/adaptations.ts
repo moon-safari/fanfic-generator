@@ -147,14 +147,19 @@ export async function deleteAdaptationOutput(
 function mapAdaptationOutputRow(
   row: DbAdaptationOutputRow
 ): ChapterAdaptationResult {
+  const normalizedChainId = normalizeAdaptationChainId(row.chain_id);
+  const normalizedSourceOutputType = normalizeAdaptationOutputType(
+    row.source_output_type
+  );
+
   return {
     id: row.id,
     storyId: row.story_id,
     outputType: row.output_type,
-    chainId: normalizeAdaptationChainId(row.chain_id),
-    chainStepIndex: row.chain_step_index,
-    sourceOutputId: row.source_output_id,
-    sourceOutputType: normalizeAdaptationOutputType(row.source_output_type),
+    chainId: normalizedChainId,
+    chainStepIndex: normalizedChainId ? row.chain_step_index : null,
+    sourceOutputId: normalizedSourceOutputType ? row.source_output_id : null,
+    sourceOutputType: normalizedSourceOutputType,
     chapterId: row.chapter_id,
     chapterNumber: row.chapter_number,
     content: row.content,

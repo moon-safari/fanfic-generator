@@ -94,7 +94,7 @@ test("upsertAdaptationOutput forwards lineage columns and maps returned lineage 
   });
 });
 
-test("invalid lineage strings from the DB are normalized to null", async () => {
+test("invalid lineage strings from the DB co-normalize both lineage pairs to null", async () => {
   const returnedRows = [
     {
       id: "output-2",
@@ -150,7 +150,7 @@ test("invalid lineage strings from the DB are normalized to null", async () => {
     { column: "chapter_id", value: "chapter-1" },
   ]);
   assert.equal(result?.chainId, null);
+  assert.equal(result?.chainStepIndex, null);
   assert.equal(result?.sourceOutputType, null);
-  assert.equal(result?.sourceOutputId, "output-1");
-  assert.equal(result?.chainStepIndex, 1);
+  assert.equal(result?.sourceOutputId, null);
 });

@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
               immediateSourceLabel: `${getAdaptationPreset(previousResult.outputType).label}${
                 previousResult.persisted ? " (saved result)" : " (previous result)"
               }`,
+              immediateSourceOutputType: previousResult.outputType,
             })
           : null;
       } else {

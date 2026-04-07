@@ -71,6 +71,7 @@ interface BuildChainedAdaptationPromptInput {
   workflowLabel?: string;
   currentStepLabel?: string;
   immediateSourceLabel?: string;
+  immediateSourceOutputType?: AdaptationOutputType;
 }
 
 export function buildChapterAdaptationPrompt({
@@ -221,6 +222,7 @@ export function buildChainedAdaptationPrompt({
   workflowLabel,
   currentStepLabel,
   immediateSourceLabel,
+  immediateSourceOutputType,
 }: BuildChainedAdaptationPromptInput): string {
   const preset = getAdaptationPreset(outputType);
   const unitLabelCapitalized = getProjectUnitLabel(projectMode, {
@@ -259,6 +261,7 @@ ${storyContext ? `${storyContext}\n` : ""}${planningContext ? `${planningContext
     workflowLabel,
     currentStepLabel,
     immediateSourceLabel,
+    excludedSupportingOutputType: immediateSourceOutputType,
   })}${unitLabelCapitalized.toUpperCase()} NUMBER:
 ${chapterNumber}
 
@@ -552,6 +555,7 @@ function buildWorkflowStateBlock({
   workflowLabel,
   currentStepLabel,
   immediateSourceLabel,
+  excludedSupportingOutputType,
 }: {
   outputType: AdaptationOutputType;
   existingOutputs?: ChapterAdaptationResult[];
@@ -559,6 +563,7 @@ function buildWorkflowStateBlock({
   workflowLabel?: string;
   currentStepLabel?: string;
   immediateSourceLabel?: string;
+  excludedSupportingOutputType?: AdaptationOutputType;
 }): string {
   const preset = getAdaptationPreset(outputType);
   const stateSources = preset.stateSources
@@ -597,6 +602,10 @@ function buildWorkflowStateBlock({
 
   const relevantSavedOutputs =
     preset.supportingOutputTypes
+      ?.filter(
+        (supportingOutputType) =>
+          supportingOutputType !== excludedSupportingOutputType
+      )
       ?.map((supportingOutputType) =>
         existingOutputs?.find(
           (output) =>
