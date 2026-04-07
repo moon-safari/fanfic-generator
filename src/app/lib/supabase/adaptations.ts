@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  AdaptationChainId,
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../../types/adaptation";
@@ -11,6 +12,10 @@ type DbAdaptationOutputRow = {
   chapter_id: string;
   chapter_number: number;
   output_type: AdaptationOutputType;
+  chain_id: AdaptationChainId | null;
+  chain_step_index: number | null;
+  source_output_id: string | null;
+  source_output_type: AdaptationOutputType | null;
   content: string;
   context_source: StoryContextSource;
   created_at: string;
@@ -68,6 +73,10 @@ export async function upsertAdaptationOutput(
     chapterId: string;
     chapterNumber: number;
     outputType: AdaptationOutputType;
+    chainId?: AdaptationChainId | null;
+    chainStepIndex?: number | null;
+    sourceOutputId?: string | null;
+    sourceOutputType?: AdaptationOutputType | null;
     content: string;
     contextSource: StoryContextSource;
   }
@@ -81,6 +90,10 @@ export async function upsertAdaptationOutput(
         chapter_id: input.chapterId,
         chapter_number: input.chapterNumber,
         output_type: input.outputType,
+        chain_id: input.chainId ?? null,
+        chain_step_index: input.chainStepIndex ?? null,
+        source_output_id: input.sourceOutputId ?? null,
+        source_output_type: input.sourceOutputType ?? null,
         content: input.content,
         context_source: input.contextSource,
         updated_at: now,
@@ -134,6 +147,10 @@ function mapAdaptationOutputRow(
     id: row.id,
     storyId: row.story_id,
     outputType: row.output_type,
+    chainId: row.chain_id,
+    chainStepIndex: row.chain_step_index,
+    sourceOutputId: row.source_output_id,
+    sourceOutputType: row.source_output_type,
     chapterId: row.chapter_id,
     chapterNumber: row.chapter_number,
     content: row.content,

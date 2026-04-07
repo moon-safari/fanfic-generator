@@ -15,6 +15,7 @@ import {
 import { upsertAdaptationOutput } from "../../../lib/supabase/adaptations";
 import type {
   AdaptationChainResult,
+  AdaptationChainId,
   ChapterAdaptationResult,
 } from "../../../types/adaptation";
 import {
@@ -56,14 +57,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const chain = getAdaptationChainPreset(chainId);
+    const validatedChainId: AdaptationChainId = chainId;
+    const chain = getAdaptationChainPreset(validatedChainId);
 
     const source = await authenticateAndLoadAdaptationSource(storyId, chapterId);
     if (isAdaptationRouteError(source)) {
       return source.error;
     }
 
-    if (!isAdaptationChainIdEnabled(chainId, source.story.projectMode)) {
+    if (!isAdaptationChainIdEnabled(validatedChainId, source.story.projectMode)) {
       return NextResponse.json(
         { error: "This workflow is not available for the current project mode" },
         { status: 400 }
@@ -74,18 +76,14 @@ export async function POST(req: NextRequest) {
     const supportingArtifacts = getIssuePackageSupportingArtifacts(
       source.existingOutputs
     );
-    let previousArtifact:
-      | {
-          label: string;
-          content: string;
-        }
-      | null = null;
+    let previousResult: ChapterAdaptationResult | null = null;
 
-    for (const step of chain.steps) {
+    for (const [stepIndex, step] of chain.steps.entries()) {
+      const stepLabel = `${chain.label} · Step ${stepIndex + 1}/${chain.steps.length}: ${getAdaptationPreset(step.outputType).label}`;
       let prompt: string | null;
 
       if (step.source === "previous") {
-        prompt = previousArtifact
+        prompt = previousResult
           ? buildChainedAdaptationPrompt({
               outputType: step.outputType,
               storyTitle: source.story.title,
@@ -98,13 +96,17 @@ export async function POST(req: NextRequest) {
               tropes: source.story.tropes,
               chapterNumber: source.chapter.chapterNumber,
               chapterSummary: source.chapter.summary,
-              sourceLabel: previousArtifact.label,
-              sourceContent: previousArtifact.content,
+              sourceLabel: getAdaptationPreset(previousResult.outputType).label,
+              sourceContent: previousResult.content,
               storyContext: source.storyContext.text,
               planningContext: source.planningContext,
               existingOutputs: source.existingOutputs,
               packageSelection: source.packageSelection,
               workflowLabel: chain.label,
+              currentStepLabel: stepLabel,
+              immediateSourceLabel: `${getAdaptationPreset(previousResult.outputType).label}${
+                previousResult.persisted ? " (saved result)" : " (previous result)"
+              }`,
             })
           : null;
       } else {
@@ -126,6 +128,7 @@ export async function POST(req: NextRequest) {
           existingOutputs: source.existingOutputs,
           packageSelection: source.packageSelection,
           workflowLabel: chain.label,
+          currentStepLabel: stepLabel,
           supportingArtifacts:
             step.outputType === "issue_send_checklist"
               ? supportingArtifacts
@@ -163,7 +166,11 @@ export async function POST(req: NextRequest) {
 
       const result = await persistChainedOutput(
         source,
+        validatedChainId,
+        stepIndex,
         step.outputType,
+        previousResult?.id ?? null,
+        previousResult?.outputType ?? null,
         content
       );
 
@@ -174,10 +181,7 @@ export async function POST(req: NextRequest) {
         ),
         result,
       ];
-      previousArtifact = {
-        label: getAdaptationPreset(step.outputType).label,
-        content,
-      };
+      previousResult = result;
       if (step.outputType !== "issue_send_checklist") {
         supportingArtifacts.push({
           label: getAdaptationPreset(step.outputType).label,
@@ -187,7 +191,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response: AdaptationChainResult = {
-      chainId,
+      chainId: validatedChainId,
       results,
     };
 
@@ -202,13 +206,21 @@ export async function POST(req: NextRequest) {
 
 async function persistChainedOutput(
   source: AdaptationSourceData,
+  chainId: AdaptationChainId,
+  chainStepIndex: number,
   outputType: ChapterAdaptationResult["outputType"],
+  sourceOutputId: string | null,
+  sourceOutputType: ChapterAdaptationResult["outputType"] | null,
   content: string
 ): Promise<ChapterAdaptationResult> {
   const now = new Date().toISOString();
   let result: ChapterAdaptationResult = {
     storyId: source.storyId,
     outputType,
+    chainId,
+    chainStepIndex,
+    sourceOutputId,
+    sourceOutputType,
     chapterId: source.chapter.id,
     chapterNumber: source.chapter.chapterNumber,
     content,
@@ -224,6 +236,10 @@ async function persistChainedOutput(
       chapterId: source.chapter.id,
       chapterNumber: source.chapter.chapterNumber,
       outputType,
+      chainId,
+      chainStepIndex,
+      sourceOutputId,
+      sourceOutputType,
       content,
       contextSource: source.storyContext.source,
     });

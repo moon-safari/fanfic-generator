@@ -1,19 +1,11 @@
 import {
   formatAdaptationWorkflowStateSource,
   getAdaptationPreset,
-} from "../adaptations";
+} from "../adaptations.ts";
 import type {
   AdaptationOutputType,
   ChapterAdaptationResult,
 } from "../../types/adaptation";
-import {
-  getComicsModeConfig,
-  getGameWritingModeConfig,
-  getNewsletterModeConfig,
-  getNonFictionModeConfig,
-  getProjectUnitLabel,
-  getScreenplayModeConfig,
-} from "../projectMode";
 import type { NewsletterIssuePackageSelectionValues } from "../../types/newsletter";
 import type { ProjectMode, StoryModeConfig } from "../../types/story";
 
@@ -35,6 +27,7 @@ interface BuildChapterAdaptationPromptInput {
   existingOutputs?: ChapterAdaptationResult[];
   packageSelection?: NewsletterIssuePackageSelectionValues | null;
   workflowLabel?: string;
+  currentStepLabel?: string;
   supportingArtifacts?: Array<{
     label: string;
     content: string;
@@ -76,6 +69,8 @@ interface BuildChainedAdaptationPromptInput {
   existingOutputs?: ChapterAdaptationResult[];
   packageSelection?: NewsletterIssuePackageSelectionValues | null;
   workflowLabel?: string;
+  currentStepLabel?: string;
+  immediateSourceLabel?: string;
 }
 
 export function buildChapterAdaptationPrompt({
@@ -96,6 +91,7 @@ export function buildChapterAdaptationPrompt({
   existingOutputs,
   packageSelection,
   workflowLabel,
+  currentStepLabel,
   supportingArtifacts,
 }: BuildChapterAdaptationPromptInput): string {
   const preset = getAdaptationPreset(outputType);
@@ -134,6 +130,7 @@ ${storyContext ? `${storyContext}\n` : ""}${planningContext ? `${planningContext
     existingOutputs,
     packageSelection,
     workflowLabel,
+    currentStepLabel,
   })}${buildSupportingArtifactBlock(outputType, supportingArtifacts)}
 ${unitLabelCapitalized.toUpperCase()} NUMBER:
 ${chapterNumber}
@@ -222,6 +219,8 @@ export function buildChainedAdaptationPrompt({
   existingOutputs,
   packageSelection,
   workflowLabel,
+  currentStepLabel,
+  immediateSourceLabel,
 }: BuildChainedAdaptationPromptInput): string {
   const preset = getAdaptationPreset(outputType);
   const unitLabelCapitalized = getProjectUnitLabel(projectMode, {
@@ -258,6 +257,8 @@ ${storyContext ? `${storyContext}\n` : ""}${planningContext ? `${planningContext
     existingOutputs,
     packageSelection,
     workflowLabel,
+    currentStepLabel,
+    immediateSourceLabel,
   })}${unitLabelCapitalized.toUpperCase()} NUMBER:
 ${chapterNumber}
 
@@ -549,25 +550,50 @@ function buildWorkflowStateBlock({
   existingOutputs,
   packageSelection,
   workflowLabel,
+  currentStepLabel,
+  immediateSourceLabel,
 }: {
   outputType: AdaptationOutputType;
   existingOutputs?: ChapterAdaptationResult[];
   packageSelection?: NewsletterIssuePackageSelectionValues | null;
   workflowLabel?: string;
+  currentStepLabel?: string;
+  immediateSourceLabel?: string;
 }): string {
   const preset = getAdaptationPreset(outputType);
-  const blocks: string[] = [];
   const stateSources = preset.stateSources
     .map((source) => `- ${formatAdaptationWorkflowStateSource(source)}`)
     .join("\n");
+  const workflowStateLines = ["WORKFLOW STATE:"];
 
-  blocks.push(`WORKFLOW STATE:
-${workflowLabel ? `ACTIVE WORKFLOW: ${workflowLabel}\n` : ""}THIS OUTPUT SHOULD READ FROM:
-${stateSources}
+  if (workflowLabel) {
+    workflowStateLines.push(`ACTIVE WORKFLOW: ${workflowLabel}`);
+  }
 
-ALIGNMENT RULES:
-- Build on any saved workflow state instead of resetting from zero.
-- Keep the new output aligned with project memory and planning context.`);
+  if (currentStepLabel) {
+    workflowStateLines.push(`CURRENT STEP: ${currentStepLabel}`);
+  }
+
+  if (immediateSourceLabel) {
+    workflowStateLines.push(`IMMEDIATE SOURCE: ${immediateSourceLabel}`);
+  }
+
+  workflowStateLines.push(`THIS OUTPUT SHOULD READ FROM:\n${stateSources}`);
+  workflowStateLines.push("");
+  workflowStateLines.push("ALIGNMENT RULES:");
+  workflowStateLines.push("- Build on any saved workflow state instead of resetting from zero.");
+  workflowStateLines.push("- Keep the new output aligned with project memory and planning context.");
+
+  if (immediateSourceLabel) {
+    workflowStateLines.push(
+      "- Treat the immediate source as a bridge artifact, not permission to contradict original draft truth."
+    );
+    workflowStateLines.push(
+      "- If the bridge artifact conflicts with the original draft truth, story context, or planning context, preserve the original facts instead of following the bridge artifact."
+    );
+  }
+
+  const blocks: string[] = [workflowStateLines.join("\n")];
 
   const relevantSavedOutputs =
     preset.supportingOutputTypes
@@ -642,4 +668,278 @@ function truncateAdaptationText(content: string, limit: number): string {
   }
 
   return `${normalized.slice(0, limit)}\n\n[Source text truncated for adaptation prompt.]`;
+}
+
+function getNewsletterModeConfig({
+  projectMode,
+  modeConfig,
+}: {
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
+}) {
+  if (projectMode !== "newsletter" || !modeConfig) {
+    return null;
+  }
+
+  return parseNewsletterModeConfig(modeConfig);
+}
+
+function getScreenplayModeConfig({
+  projectMode,
+  modeConfig,
+}: {
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
+}) {
+  if (projectMode !== "screenplay" || !modeConfig) {
+    return null;
+  }
+
+  return parseScreenplayModeConfig(modeConfig);
+}
+
+function getComicsModeConfig({
+  projectMode,
+  modeConfig,
+}: {
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
+}) {
+  if (projectMode !== "comics" || !modeConfig) {
+    return null;
+  }
+
+  return parseComicsModeConfig(modeConfig);
+}
+
+function getGameWritingModeConfig({
+  projectMode,
+  modeConfig,
+}: {
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
+}) {
+  if (projectMode !== "game_writing" || !modeConfig) {
+    return null;
+  }
+
+  return parseGameWritingModeConfig(modeConfig);
+}
+
+function getNonFictionModeConfig({
+  projectMode,
+  modeConfig,
+}: {
+  projectMode: ProjectMode;
+  modeConfig?: StoryModeConfig;
+}) {
+  if (projectMode !== "non_fiction" || !modeConfig) {
+    return null;
+  }
+
+  return parseNonFictionModeConfig(modeConfig);
+}
+
+function getProjectUnitLabel(
+  mode: ProjectMode,
+  options: {
+    capitalize?: boolean;
+  } = {}
+): string {
+  const { capitalize = false } = options;
+
+  if (mode === "non_fiction") {
+    return capitalize ? "Section" : "section";
+  }
+
+  if (mode === "game_writing") {
+    return capitalize ? "Quest" : "quest";
+  }
+
+  if (mode === "comics") {
+    return capitalize ? "Page" : "page";
+  }
+
+  if (mode === "screenplay") {
+    return capitalize ? "Scene" : "scene";
+  }
+
+  if (mode === "newsletter") {
+    return capitalize ? "Issue" : "issue";
+  }
+
+  return capitalize ? "Chapter" : "chapter";
+}
+
+function parseNewsletterModeConfig(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<{
+    topic: string;
+    audience: string;
+    issueAngle: string;
+    cadence: "weekly" | "biweekly" | "monthly" | "irregular";
+    subtitle?: string;
+    hookApproach?: string;
+    ctaStyle?: string;
+    recurringSections?: string[];
+  }>;
+
+  if (
+    typeof candidate.topic !== "string"
+    || typeof candidate.audience !== "string"
+    || typeof candidate.issueAngle !== "string"
+    || typeof candidate.cadence !== "string"
+  ) {
+    return null;
+  }
+
+  const recurringSections = Array.isArray(candidate.recurringSections)
+    ? candidate.recurringSections
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 8)
+    : [];
+
+  return {
+    topic: candidate.topic.trim(),
+    audience: candidate.audience.trim(),
+    issueAngle: candidate.issueAngle.trim(),
+    cadence: candidate.cadence,
+    subtitle:
+      typeof candidate.subtitle === "string" && candidate.subtitle.trim()
+        ? candidate.subtitle.trim()
+        : undefined,
+    hookApproach:
+      typeof candidate.hookApproach === "string" && candidate.hookApproach.trim()
+        ? candidate.hookApproach.trim()
+        : undefined,
+    ctaStyle:
+      typeof candidate.ctaStyle === "string" && candidate.ctaStyle.trim()
+        ? candidate.ctaStyle.trim()
+        : undefined,
+    recurringSections: recurringSections.length > 0 ? recurringSections : undefined,
+  };
+}
+
+function parseScreenplayModeConfig(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<{
+    draftingPreference: "script_pages" | "beat_draft";
+    formatStyle: "fountain";
+    storyEngine?: "feature" | "pilot" | "short";
+  }>;
+
+  if (
+    (candidate.draftingPreference !== "script_pages"
+      && candidate.draftingPreference !== "beat_draft")
+    || candidate.formatStyle !== "fountain"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: candidate.draftingPreference,
+    formatStyle: "fountain" as const,
+    storyEngine:
+      candidate.storyEngine === "feature"
+      || candidate.storyEngine === "pilot"
+      || candidate.storyEngine === "short"
+        ? candidate.storyEngine
+        : undefined,
+  };
+}
+
+function parseComicsModeConfig(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<{
+    draftingPreference: "comic_script_pages";
+    formatStyle: "comic_script";
+    seriesEngine?: "issue" | "one_shot" | "graphic_novel";
+  }>;
+
+  if (
+    candidate.draftingPreference !== "comic_script_pages"
+    || candidate.formatStyle !== "comic_script"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "comic_script_pages" as const,
+    formatStyle: "comic_script" as const,
+    seriesEngine:
+      candidate.seriesEngine === "issue"
+      || candidate.seriesEngine === "one_shot"
+      || candidate.seriesEngine === "graphic_novel"
+        ? candidate.seriesEngine
+        : undefined,
+  };
+}
+
+function parseGameWritingModeConfig(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<{
+    draftingPreference: "hybrid_quest_brief";
+    formatStyle: "quest_brief";
+    questEngine?: "main_quest" | "side_quest" | "questline";
+  }>;
+
+  if (
+    candidate.draftingPreference !== "hybrid_quest_brief"
+    || candidate.formatStyle !== "quest_brief"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "hybrid_quest_brief" as const,
+    formatStyle: "quest_brief" as const,
+    questEngine:
+      candidate.questEngine === "main_quest"
+      || candidate.questEngine === "side_quest"
+      || candidate.questEngine === "questline"
+        ? candidate.questEngine
+        : undefined,
+  };
+}
+
+function parseNonFictionModeConfig(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return null;
+  }
+
+  const candidate = input as Partial<{
+    draftingPreference: "hybrid_section_draft";
+    formatStyle: "article_draft";
+    pieceEngine?: "article" | "essay";
+  }>;
+
+  if (
+    candidate.draftingPreference !== "hybrid_section_draft"
+    || candidate.formatStyle !== "article_draft"
+  ) {
+    return null;
+  }
+
+  return {
+    draftingPreference: "hybrid_section_draft" as const,
+    formatStyle: "article_draft" as const,
+    pieceEngine:
+      candidate.pieceEngine === "article" || candidate.pieceEngine === "essay"
+        ? candidate.pieceEngine
+        : undefined,
+  };
 }
