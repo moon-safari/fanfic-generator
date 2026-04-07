@@ -10,8 +10,8 @@ import { getProjectUnitLabel } from "../lib/projectMode";
 import {
   getDefaultAdaptationChainId as getDefaultChainId,
   getDefaultAdaptationOutputType as getDefaultOutputType,
+  getSelectableAdaptationOutputTypes,
   isAdaptationChainIdEnabled as isChainIdEnabled,
-  isAdaptationOutputTypeEnabled as isOutputTypeEnabled,
 } from "../lib/adaptations";
 import type {
   AdaptationChainId,
@@ -45,16 +45,32 @@ export function useChapterAdaptation(
     useState<AdaptationOutputType | null>(null);
   const [chainLoading, setChainLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectableOutputTypes = useMemo(
+    () =>
+      getSelectableAdaptationOutputTypes({
+        projectMode,
+        modeConfig,
+        selectedChainId,
+        savedOutputTypes: Object.keys(resultsByType) as AdaptationOutputType[],
+      }),
+    [modeConfig, projectMode, resultsByType, selectedChainId]
+  );
 
   useEffect(() => {
-    if (!isOutputTypeEnabled(activeOutputType, projectMode)) {
+    if (!selectableOutputTypes.includes(activeOutputType)) {
       setActiveOutputType(getDefaultOutputType(projectMode, modeConfig));
     }
 
     if (!isChainIdEnabled(selectedChainId, projectMode)) {
       setSelectedChainId(getDefaultChainId(projectMode));
     }
-  }, [activeOutputType, modeConfig, projectMode, selectedChainId]);
+  }, [
+    activeOutputType,
+    modeConfig,
+    projectMode,
+    selectableOutputTypes,
+    selectedChainId,
+  ]);
 
   useEffect(() => {
     setResultsByType({});

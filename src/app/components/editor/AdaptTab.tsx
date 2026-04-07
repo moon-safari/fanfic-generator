@@ -23,7 +23,9 @@ import { getProjectUnitLabel } from "../../lib/projectMode";
 import { getErrorMessage, requestJson } from "../../lib/request";
 import {
   formatAdaptationWorkflowStateSource,
+  getAdaptationChainPreset,
   getAdaptationChainPresetsForMode,
+  getAdaptationDerivedMode,
   getAdaptationPreset,
   getAdaptationPresetsForMode,
 } from "../../lib/adaptations";
@@ -123,12 +125,13 @@ export default function AdaptTab({
   });
   const adaptationPresets = getAdaptationPresetsForMode(projectMode, modeConfig);
   const chainPresets = getAdaptationChainPresetsForMode(projectMode);
-  const activePreset =
-    adaptationPresets.find((preset) => preset.type === activeOutputType)
-    ?? adaptationPresets[0];
+  const activePreset = getAdaptationPreset(activeOutputType);
   const selectedChainPreset =
     chainPresets.find((preset) => preset.id === selectedChainId)
     ?? chainPresets[0];
+  const activeOutputDerivedMode = getAdaptationDerivedMode(activeOutputType);
+  const activeOutputIsCrossMode =
+    activeOutputDerivedMode !== null && activeOutputDerivedMode !== projectMode;
   const loading = loadingOutputType !== null;
   const activeGenerating = loadingOutputType === activeOutputType;
   const deletingCurrent = deletingOutputType === activeOutputType;
@@ -176,6 +179,8 @@ export default function AdaptTab({
     null
   );
   const [showOfficialEditor, setShowOfficialEditor] = useState(false);
+  const canRunWorkflow =
+    Boolean(currentChapterId) && !loading && !chainLoading && !fillingMissingChain;
   const activeSelectionField =
     projectMode === "newsletter"
       ? NEWSLETTER_OUTPUT_TO_SELECTION_FIELD[activeOutputType] ?? null
@@ -625,6 +630,9 @@ export default function AdaptTab({
                   <div className="mt-3 space-y-2">
                     {selectedChainPreset.outputTypes.map((outputType) => {
                       const saved = Boolean(resultsByType[outputType]?.persisted);
+                      const derivedMode = getAdaptationDerivedMode(outputType);
+                      const isCrossMode =
+                        derivedMode !== null && derivedMode !== projectMode;
 
                       return (
                         <button
@@ -633,8 +641,15 @@ export default function AdaptTab({
                           onClick={() => onSelectOutputType(outputType)}
                           className="flex w-full items-center justify-between gap-3 rounded-2xl border border-zinc-800 bg-black/20 px-3 py-2 text-left transition-colors hover:border-zinc-600"
                         >
-                          <span className="text-sm font-medium text-white">
-                            {getPresetLabel(outputType)}
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="text-sm font-medium text-white">
+                              {getPresetLabel(outputType)}
+                            </span>
+                            {isCrossMode && derivedMode && (
+                              <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-cyan-200">
+                                {formatProjectModeLabel(derivedMode)}
+                              </span>
+                            )}
                           </span>
                           <span className="text-xs text-zinc-500">
                             {saved ? "Saved" : "Missing"}
@@ -758,8 +773,9 @@ export default function AdaptTab({
 
             {!currentResult && !loading && (
               <div className="mt-4 rounded-2xl border border-dashed border-zinc-800 bg-black/20 px-4 py-5 text-sm leading-6 text-zinc-400">
-                Generate this output to create a reusable version of the current{" "}
-                {unitLabel} while keeping project truth intact.
+                {activeOutputIsCrossMode
+                  ? "Use the workflow above to generate this derived output from the current chapter while keeping project truth intact."
+                  : `Generate this output to create a reusable version of the current ${unitLabel} while keeping project truth intact.`}
               </div>
             )}
 
@@ -781,6 +797,16 @@ export default function AdaptTab({
                   {labelContextSource(currentResult.contextSource)}
                 </p>
 
+                {currentResult.chainId && (
+                  <p className="text-xs leading-5 text-zinc-500">
+                    Generated via {getAdaptationChainPreset(currentResult.chainId).label}
+                    {" | "}
+                    {currentResult.sourceOutputType
+                      ? `Derived from ${getAdaptationPreset(currentResult.sourceOutputType).label}`
+                      : "Derived directly from the current chapter"}
+                  </p>
+                )}
+
                 <p className="text-xs text-zinc-500">
                   Last updated {formatTimestamp(currentResult.updatedAt)}
                 </p>
@@ -792,13 +818,37 @@ export default function AdaptTab({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onInsert(currentResult.content)}
-                    className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
-                  >
-                    Use in editor
-                  </button>
+                  {activeOutputIsCrossMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void onGenerateChain();
+                        }}
+                        disabled={!canRunWorkflow}
+                        className="rounded-xl bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {chainLoading || fillingMissingChain
+                          ? "Running workflow..."
+                          : "Run workflow"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onInsert(currentResult.content)}
+                        className="rounded-xl border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-200 transition-colors hover:border-zinc-500 hover:text-white"
+                      >
+                        Use in editor
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onInsert(currentResult.content)}
+                      className="rounded-xl bg-purple-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
+                    >
+                      Use in editor
+                    </button>
+                  )}
                   {canPromoteToSummary && (
                     <button
                       type="button"
@@ -1052,6 +1102,13 @@ function labelContextSource(
     default:
       return "Using current draft only";
   }
+}
+
+function formatProjectModeLabel(mode: ProjectMode): string {
+  return mode
+    .split("_")
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function formatTimestamp(value: string): string {
