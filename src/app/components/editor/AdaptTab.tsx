@@ -163,6 +163,12 @@ export default function AdaptTab({
     [resultsByType, selectedChainPreset.outputTypes]
   );
   const nextMissingOutputType = missingChainOutputTypes[0] ?? null;
+  const missingChainRequiresWorkflow = missingChainOutputTypes.some(
+    (outputType) => {
+      const derivedMode = getAdaptationDerivedMode(outputType);
+      return derivedMode !== null && derivedMode !== projectMode;
+    }
+  );
   const sendChecklistSaved =
     Boolean(resultsByType.issue_send_checklist?.persisted);
   const isNewsletterIssuePackage = selectedChainId === "issue_package";
@@ -506,6 +512,11 @@ export default function AdaptTab({
                     <button
                       type="button"
                       onClick={() => {
+                        if (missingChainRequiresWorkflow) {
+                          void onGenerateChain();
+                          return;
+                        }
+
                         void handleGenerateMissingChainOutputs();
                       }}
                       disabled={
@@ -514,9 +525,15 @@ export default function AdaptTab({
                       className="inline-flex items-center gap-1 rounded-xl bg-cyan-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Sparkles
-                        className={`h-4 w-4 ${fillingMissingChain ? "animate-pulse" : ""}`}
+                        className={`h-4 w-4 ${
+                          fillingMissingChain || chainLoading ? "animate-pulse" : ""
+                        }`}
                       />
-                      {fillingMissingChain && fillingMissingOutputType
+                      {missingChainRequiresWorkflow
+                        ? chainLoading
+                          ? "Running workflow..."
+                          : "Run workflow again"
+                        : fillingMissingChain && fillingMissingOutputType
                         ? `Generating ${getPresetLabel(fillingMissingOutputType)}...`
                         : "Generate missing pieces"}
                     </button>
